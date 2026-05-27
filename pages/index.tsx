@@ -15,7 +15,8 @@ import {
   FilmIcon,
   TvIcon,
   PlayIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -129,7 +130,6 @@ export default function Home() {
     setShowCategoryModal(false)
   }
 
-  // Footer tabs - Admin pour les admins, Profil pour les utilisateurs normaux
   const footerTabs = isAdmin 
     ? [
         { id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' },
@@ -150,32 +150,59 @@ export default function Home() {
     return (
       <div>
         <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kahonyn-energie"></div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-kahonyn-lumiere via-white to-kahonyn-sable pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 pb-20">
       <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
-      {/* Bannière hero */}
-      <div className="relative bg-gradient-to-r from-kahonyn-terre/10 via-kahonyn-energie/5 to-transparent py-8 md:py-12">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-kahonyn-terre mb-3">
-            Bienvenue sur Kahonyn
+      {/* Bannière hero - design sombre chic */}
+      <div className="relative overflow-hidden">
+        {/* Effet de fond glamour */}
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-900/20 via-transparent to-amber-900/10"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl"></div>
+        
+        <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-16 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-6">
+            <SparklesIcon className="w-4 h-4 text-amber-400" />
+            <span className="text-xs text-amber-400 font-medium">Plateforme de mini-séries</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
+            <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
+              Kahonyn
+            </span>
           </h1>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            Découvrez les meilleures mini-séries et films ivoiriens. 
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+            Découvrez les meilleures mini-séries et films ivoiriens.
             Raconte ton histoire, regarde les créateurs locaux.
           </p>
+          {!session && (
+            <div className="mt-8 flex gap-4 justify-center">
+              <Link
+                href="/register"
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition"
+              >
+                Commencer l'aventure
+              </Link>
+              <Link
+                href="/login"
+                className="px-6 py-2.5 border border-gray-600 text-gray-300 rounded-full font-semibold hover:bg-gray-800 transition"
+              >
+                Se connecter
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Onglets catégories */}
-      <div className="sticky top-16 z-20 bg-white/80 backdrop-blur-md border-b border-kahonyn-sable/30">
+      {/* Onglets catégories - design sombre */}
+      <div className="sticky top-16 z-20 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4">
           <div className="relative">
             <div 
@@ -189,8 +216,8 @@ export default function Home() {
                   onClick={() => handleCategorySelect(cat.id)}
                   className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
                     activeCategory === cat.id
-                      ? 'bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-kahonyn-lumiere hover:text-kahonyn-energie'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/25'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-amber-400'
                   }`}
                 >
                   <span className="mr-1">{cat.icon}</span>
@@ -198,13 +225,13 @@ export default function Home() {
                 </button>
               ))}
               
-              <div className="flex-shrink-0 sticky right-0 bg-gradient-to-l from-white via-white to-transparent pl-4">
+              <div className="flex-shrink-0 sticky right-0 bg-gradient-to-l from-gray-900 via-gray-900 to-transparent pl-4">
                 <button
                   onClick={() => setShowCategoryModal(true)}
                   className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 flex items-center gap-1 ${
                     showCategoryModal 
-                      ? 'bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white shadow-md'
-                      : 'text-gray-600 hover:bg-kahonyn-lumiere hover:text-kahonyn-energie'
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-amber-400'
                   }`}
                 >
                   <span>📂 Catégories</span>
@@ -216,14 +243,14 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Modal Catégories */}
+      {/* Modal Catégories - sombre */}
       {showCategoryModal && (
         <>
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 animate-fadeIn" onClick={() => setShowCategoryModal(false)} />
-          <div ref={modalRef} className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 animate-slideUp max-h-[80vh] overflow-hidden shadow-2xl">
-            <div className="sticky top-0 bg-white p-4 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-lg font-bold text-kahonyn-terre">📂 Toutes les catégories</h2>
-              <button onClick={() => setShowCategoryModal(false)} className="p-2 hover:bg-gray-100 rounded-full transition">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 animate-fadeIn" onClick={() => setShowCategoryModal(false)} />
+          <div ref={modalRef} className="fixed bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl z-50 animate-slideUp max-h-[80vh] overflow-hidden shadow-2xl border-t border-gray-800">
+            <div className="sticky top-0 bg-gray-900 p-4 border-b border-gray-800 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-white">📂 Toutes les catégories</h2>
+              <button onClick={() => setShowCategoryModal(false)} className="p-2 hover:bg-gray-800 rounded-full transition">
                 <XMarkIcon className="w-5 h-5 text-gray-400" />
               </button>
             </div>
@@ -235,8 +262,8 @@ export default function Home() {
                     onClick={() => handleCategorySelect(cat.id)}
                     className={`flex items-center gap-3 p-3 rounded-xl transition-all duration-300 ${
                       activeCategory === cat.id
-                        ? 'bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white shadow-md'
-                        : 'bg-gray-50 text-gray-700 hover:bg-kahonyn-lumiere hover:text-kahonyn-energie'
+                        ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-md'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700 hover:text-amber-400'
                     }`}
                   >
                     <span className="text-2xl">{cat.icon}</span>
@@ -250,20 +277,20 @@ export default function Home() {
         </>
       )}
 
-      {/* Section SÉRIES */}
+      {/* Section SÉRIES - design sombre chic */}
       {series.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 py-10">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-gradient-to-br from-kahonyn-terre to-kahonyn-energie rounded-lg flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center shadow-md">
               <TvIcon className="w-4 h-4 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-kahonyn-terre">📺 Séries</h2>
-            <span className="px-2 py-0.5 bg-kahonyn-lumiere text-kahonyn-terre text-xs rounded-full border border-kahonyn-sable/50">
+            <h2 className="text-xl font-bold text-white">📺 Séries</h2>
+            <span className="px-2 py-0.5 bg-gray-800 text-gray-400 text-xs rounded-full">
               {series.length}
             </span>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
             {series.map((serie, index) => (
               <Link 
                 key={serie.id} 
@@ -271,12 +298,12 @@ export default function Home() {
                 className="group"
                 style={{ animationDelay: `${index * 0.03}s` }}
               >
-                <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                  <div className="relative aspect-[2/3] bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable overflow-hidden">
+                <div className="relative bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1 transition-all duration-300">
+                  <div className="relative aspect-[2/3] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
                     {serie.coverImage ? (
                       <>
                         <img src={serie.coverImage} alt={serie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent" />
                       </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-5xl">🎬</div>
@@ -284,21 +311,22 @@ export default function Home() {
                     <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-full">
                       {serie.totalEpisodes} ép.
                     </div>
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
                       <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
                     </div>
                   </div>
                   <div className="p-3">
-                    <h3 className="font-semibold text-sm text-gray-800 line-clamp-1 group-hover:text-kahonyn-energie transition">
+                    <h3 className="font-semibold text-sm text-white line-clamp-1 group-hover:text-amber-400 transition">
                       {serie.title}
                     </h3>
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-yellow-500">⭐ 4.8</span>
                       </div>
-                      <span className="text-[9px] text-gray-400">{serie.totalViews?.toLocaleString()} vues</span>
+                      <span className="text-[9px] text-gray-500">{serie.totalViews?.toLocaleString()} vues</span>
                     </div>
                   </div>
+                  <div className="absolute inset-0 rounded-xl border border-gray-700 group-hover:border-amber-500/30 transition-all duration-300 pointer-events-none"></div>
                 </div>
               </Link>
             ))}
@@ -306,20 +334,20 @@ export default function Home() {
         </div>
       )}
 
-      {/* Section FILMS */}
+      {/* Section FILMS - design sombre chic */}
       {movies.length > 0 && (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-4 py-10">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-gradient-to-br from-kahonyn-terre to-kahonyn-energie rounded-lg flex items-center justify-center shadow-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center shadow-md">
               <FilmIcon className="w-4 h-4 text-white" />
             </div>
-            <h2 className="text-xl font-bold text-kahonyn-terre">🎬 Films</h2>
-            <span className="px-2 py-0.5 bg-kahonyn-lumiere text-kahonyn-terre text-xs rounded-full border border-kahonyn-sable/50">
+            <h2 className="text-xl font-bold text-white">🎬 Films</h2>
+            <span className="px-2 py-0.5 bg-gray-800 text-gray-400 text-xs rounded-full">
               {movies.length}
             </span>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
             {movies.map((movie, index) => (
               <Link 
                 key={movie.id} 
@@ -327,34 +355,35 @@ export default function Home() {
                 className="group"
                 style={{ animationDelay: `${index * 0.03}s` }}
               >
-                <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                  <div className="relative aspect-[2/3] bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable overflow-hidden">
+                <div className="relative bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1 transition-all duration-300">
+                  <div className="relative aspect-[2/3] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
                     {movie.coverImage ? (
                       <>
                         <img src={movie.coverImage} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-transparent to-transparent" />
                       </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-5xl">🎬</div>
                     )}
-                    <div className="absolute bottom-2 right-2 bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
+                    <div className="absolute bottom-2 right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">
                       {movie.price} coins
                     </div>
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
                       <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
                     </div>
                   </div>
                   <div className="p-3">
-                    <h3 className="font-semibold text-sm text-gray-800 line-clamp-1 group-hover:text-kahonyn-energie transition">
+                    <h3 className="font-semibold text-sm text-white line-clamp-1 group-hover:text-amber-400 transition">
                       {movie.title}
                     </h3>
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1">
                         <span className="text-[10px] text-yellow-500">⭐ 4.8</span>
                       </div>
-                      <span className="text-[9px] text-gray-400">{movie.totalViews?.toLocaleString()} vues</span>
+                      <span className="text-[9px] text-gray-500">{movie.totalViews?.toLocaleString()} vues</span>
                     </div>
                   </div>
+                  <div className="absolute inset-0 rounded-xl border border-gray-700 group-hover:border-amber-500/30 transition-all duration-300 pointer-events-none"></div>
                 </div>
               </Link>
             ))}
@@ -365,10 +394,10 @@ export default function Home() {
       {/* Aucun contenu */}
       {series.length === 0 && movies.length === 0 && (
         <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-kahonyn-sable/30 shadow-md">
+          <div className="bg-gray-900/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-800">
             <div className="text-6xl mb-4">🎬</div>
-            <p className="text-gray-500">Aucun contenu dans cette catégorie</p>
-            <p className="text-sm text-gray-400 mt-2">Revenez plus tard pour découvrir nos séries et films</p>
+            <p className="text-gray-400">Aucun contenu dans cette catégorie</p>
+            <p className="text-sm text-gray-500 mt-2">Revenez plus tard pour découvrir nos séries et films</p>
           </div>
         </div>
       )}
