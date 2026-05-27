@@ -118,7 +118,7 @@ export default function Home() {
       setSeries(data.series || [])
       setMovies(data.movies || [])
     } catch (error) {
-      console.error('Erreur:', error)
+      console.error('Erreur fetchContent:', error)
     } finally {
       setLoading(false)
     }
@@ -158,26 +158,39 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-kahonyn-lumiere via-white to-kahonyn-sable pb-20">
       <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
+      {/* Bannière hero */}
+      <div className="relative bg-gradient-to-r from-kahonyn-terre/10 via-kahonyn-energie/5 to-transparent py-8 md:py-12">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold text-kahonyn-terre mb-3">
+            Bienvenue sur Kahonyn
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Découvrez les meilleures mini-séries et films ivoiriens. 
+            Raconte ton histoire, regarde les créateurs locaux.
+          </p>
+        </div>
+      </div>
+
       {/* Onglets catégories */}
-      <div className="sticky top-12 lg:top-16 z-50 bg-gradient-to-r from-gray-900 via-gray-700/30 to-gray-800 border-b border-gray-800">
+      <div className="sticky top-16 z-20 bg-white/80 backdrop-blur-md border-b border-kahonyn-sable/30">
         <div className="max-w-7xl mx-auto px-4">
           <div className="relative">
             <div 
               ref={scrollContainerRef}
-              className="flex items-center justify-start lg:justify-center gap-1 overflow-x-auto py-2 scrollbar-hide"
+              className="flex items-center justify-start lg:justify-center gap-1 overflow-x-auto py-3 scrollbar-hide"
               style={{ scrollBehavior: 'smooth' }}
             >
               {horizontalCategories.slice(0, -1).map((cat) => (
                 <button
                   key={cat.id}
                   onClick={() => handleCategorySelect(cat.id)}
-                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
                     activeCategory === cat.id
-                      ? 'bg-gradient-to-r from-kahonyn-energie to-orange-600 text-white shadow-lg shadow-kahonyn-energie/30'
-                      : 'text-gray-200 hover:bg-gray-700 hover:text-white'
+                      ? 'bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-kahonyn-lumiere hover:text-kahonyn-energie'
                   }`}
                 >
                   <span className="mr-1">{cat.icon}</span>
@@ -185,15 +198,16 @@ export default function Home() {
                 </button>
               ))}
               
-              <div className="flex-shrink-0 sticky right-0 bg-gradient-to-l from-gray-900 to-transparent pl-4">
+              <div className="flex-shrink-0 sticky right-0 bg-gradient-to-l from-white via-white to-transparent pl-4">
                 <button
                   onClick={() => setShowCategoryModal(true)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 flex items-center gap-1 ${
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 flex items-center gap-1 ${
                     showCategoryModal 
-                      ? 'bg-gradient-to-r from-kahonyn-energie to-orange-600 text-white shadow-lg'
-                      : 'text-gray-200 hover:bg-gray-700 hover:text-white'
+                      ? 'bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white shadow-md'
+                      : 'text-gray-600 hover:bg-kahonyn-lumiere hover:text-kahonyn-energie'
                   }`}
                 >
+                  <span>📂 Catégories</span>
                   <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${showCategoryModal ? 'rotate-180' : ''}`} />
                 </button>
               </div>
@@ -240,13 +254,16 @@ export default function Home() {
       {series.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 bg-gradient-to-br from-kahonyn-terre to-kahonyn-energie rounded-lg flex items-center justify-center shadow-sm">
+              <TvIcon className="w-4 h-4 text-white" />
+            </div>
             <h2 className="text-xl font-bold text-kahonyn-terre">📺 Séries</h2>
             <span className="px-2 py-0.5 bg-kahonyn-lumiere text-kahonyn-terre text-xs rounded-full border border-kahonyn-sable/50">
               {series.length}
             </span>
           </div>
           
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {series.map((serie, index) => (
               <Link 
                 key={serie.id} 
@@ -254,36 +271,34 @@ export default function Home() {
                 className="group"
                 style={{ animationDelay: `${index * 0.03}s` }}
               >
-                <div className="relative bg-white rounded-xl overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-kahonyn-energie/20 hover:-translate-y-1">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
-                  
-                  <div className="relative aspect-video bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable flex items-center justify-center overflow-hidden">
+                <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="relative aspect-[2/3] bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable overflow-hidden">
                     {serie.coverImage ? (
                       <>
-                        <img src={serie.coverImage} alt={serie.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition duration-300"></div>
+                        <img src={serie.coverImage} alt={serie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
                       </>
                     ) : (
-                      <span className="text-4xl group-hover:scale-110 transition duration-300">🎬</span>
+                      <div className="w-full h-full flex items-center justify-center text-5xl">🎬</div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                      <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
-                    </div>
                     <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-1 rounded-full">
                       {serie.totalEpisodes} ép.
                     </div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                      <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
+                    </div>
                   </div>
-                  
-                  <div className="p-3 bg-white">
+                  <div className="p-3">
                     <h3 className="font-semibold text-sm text-gray-800 line-clamp-1 group-hover:text-kahonyn-energie transition">
                       {serie.title}
                     </h3>
-                    <p className="text-xs text-gray-500 line-clamp-2 mt-1.5">
-                      {serie.description}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-yellow-500">⭐ 4.8</span>
+                      </div>
+                      <span className="text-[9px] text-gray-400">{serie.totalViews?.toLocaleString()} vues</span>
+                    </div>
                   </div>
-                  
-                  <div className="absolute inset-0 rounded-xl border border-gray-100 group-hover:border-kahonyn-energie/30 transition-all duration-300 pointer-events-none"></div>
                 </div>
               </Link>
             ))}
@@ -295,13 +310,16 @@ export default function Home() {
       {movies.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 bg-gradient-to-br from-kahonyn-terre to-kahonyn-energie rounded-lg flex items-center justify-center shadow-sm">
+              <FilmIcon className="w-4 h-4 text-white" />
+            </div>
             <h2 className="text-xl font-bold text-kahonyn-terre">🎬 Films</h2>
             <span className="px-2 py-0.5 bg-kahonyn-lumiere text-kahonyn-terre text-xs rounded-full border border-kahonyn-sable/50">
               {movies.length}
             </span>
           </div>
           
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {movies.map((movie, index) => (
               <Link 
                 key={movie.id} 
@@ -309,36 +327,34 @@ export default function Home() {
                 className="group"
                 style={{ animationDelay: `${index * 0.03}s` }}
               >
-                <div className="relative bg-white rounded-xl overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-kahonyn-energie/20 hover:-translate-y-1">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
-                  
-                  <div className="relative aspect-video bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable flex items-center justify-center overflow-hidden">
+                <div className="relative bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                  <div className="relative aspect-[2/3] bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable overflow-hidden">
                     {movie.coverImage ? (
                       <>
-                        <img src={movie.coverImage} alt={movie.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                        <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition duration-300"></div>
+                        <img src={movie.coverImage} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300" />
                       </>
                     ) : (
-                      <span className="text-4xl group-hover:scale-110 transition duration-300">🎬</span>
+                      <div className="w-full h-full flex items-center justify-center text-5xl">🎬</div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                      <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
-                    </div>
-                    <div className="absolute bottom-2 right-2 bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">
+                    <div className="absolute bottom-2 right-2 bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm">
                       {movie.price} coins
                     </div>
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                      <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
+                    </div>
                   </div>
-                  
-                  <div className="p-3 bg-white">
+                  <div className="p-3">
                     <h3 className="font-semibold text-sm text-gray-800 line-clamp-1 group-hover:text-kahonyn-energie transition">
                       {movie.title}
                     </h3>
-                    <p className="text-xs text-gray-500 line-clamp-2 mt-1.5">
-                      {movie.description}
-                    </p>
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-yellow-500">⭐ 4.8</span>
+                      </div>
+                      <span className="text-[9px] text-gray-400">{movie.totalViews?.toLocaleString()} vues</span>
+                    </div>
                   </div>
-                  
-                  <div className="absolute inset-0 rounded-xl border border-gray-100 group-hover:border-kahonyn-energie/30 transition-all duration-300 pointer-events-none"></div>
                 </div>
               </Link>
             ))}
@@ -349,7 +365,7 @@ export default function Home() {
       {/* Aucun contenu */}
       {series.length === 0 && movies.length === 0 && (
         <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-kahonyn-sable/30 shadow-lg">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-kahonyn-sable/30 shadow-md">
             <div className="text-6xl mb-4">🎬</div>
             <p className="text-gray-500">Aucun contenu dans cette catégorie</p>
             <p className="text-sm text-gray-400 mt-2">Revenez plus tard pour découvrir nos séries et films</p>
@@ -357,7 +373,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* Footer fixe - Admin pour les admins, Profil pour les autres */}
+      {/* Footer */}
       <Footer footerTabs={footerTabs} activeFooterTab={activeFooterTab} setActiveFooterTab={setActiveFooterTab} />
 
       <style jsx global>{`
