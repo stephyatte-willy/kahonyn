@@ -15,8 +15,7 @@ import {
   FilmIcon,
   TvIcon,
   PlayIcon,
-  ShieldCheckIcon,
-  SparklesIcon
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -161,46 +160,6 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 pb-20">
       <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} />
 
-      {/* Bannière hero - design sombre chic */}
-      <div className="relative overflow-hidden">
-        {/* Effet de fond glamour */}
-        <div className="absolute inset-0 bg-gradient-to-r from-amber-900/20 via-transparent to-amber-900/10"></div>
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl"></div>
-        
-        <div className="relative max-w-7xl mx-auto px-4 py-12 md:py-16 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-6">
-            <SparklesIcon className="w-4 h-4 text-amber-400" />
-            <span className="text-xs text-amber-400 font-medium">Plateforme de mini-séries</span>
-          </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">
-            <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
-              Kahonyn
-            </span>
-          </h1>
-          <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-            Découvrez les meilleures mini-séries et films ivoiriens.
-            Raconte ton histoire, regarde les créateurs locaux.
-          </p>
-          {!session && (
-            <div className="mt-8 flex gap-4 justify-center">
-              <Link
-                href="/register"
-                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full font-semibold hover:shadow-lg hover:shadow-amber-500/25 transition"
-              >
-                Commencer l'aventure
-              </Link>
-              <Link
-                href="/login"
-                className="px-6 py-2.5 border border-gray-600 text-gray-300 rounded-full font-semibold hover:bg-gray-800 transition"
-              >
-                Se connecter
-              </Link>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* Onglets catégories - design sombre */}
       <div className="sticky top-16 z-20 bg-gray-900/80 backdrop-blur-xl border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4">
@@ -290,7 +249,7 @@ export default function Home() {
             </span>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {series.map((serie, index) => (
               <Link 
                 key={serie.id} 
@@ -299,7 +258,7 @@ export default function Home() {
                 style={{ animationDelay: `${index * 0.03}s` }}
               >
                 <div className="relative bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1 transition-all duration-300">
-                  <div className="relative aspect-[2/3] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
+                  <div className="relative aspect-[4/5] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
                     {serie.coverImage ? (
                       <>
                         <img src={serie.coverImage} alt={serie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
@@ -315,16 +274,13 @@ export default function Home() {
                       <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
                     </div>
                   </div>
-                  <div className="p-3">
+                  <div className="p-2.5">
                     <h3 className="font-semibold text-sm text-white line-clamp-1 group-hover:text-amber-400 transition">
                       {serie.title}
                     </h3>
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-yellow-500">⭐ 4.8</span>
-                      </div>
-                      <span className="text-[9px] text-gray-500">{serie.totalViews?.toLocaleString()} vues</span>
-                    </div>
+                    <p className="text-[11px] text-gray-400 line-clamp-2 mt-1">
+                      {serie.description}
+                    </p>
                   </div>
                   <div className="absolute inset-0 rounded-xl border border-gray-700 group-hover:border-amber-500/30 transition-all duration-300 pointer-events-none"></div>
                 </div>
@@ -347,7 +303,7 @@ export default function Home() {
             </span>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {movies.map((movie, index) => (
               <Link 
                 key={movie.id} 
@@ -356,7 +312,7 @@ export default function Home() {
                 style={{ animationDelay: `${index * 0.03}s` }}
               >
                 <div className="relative bg-gray-900 rounded-xl overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1 transition-all duration-300">
-                  <div className="relative aspect-[2/3] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
+                  <div className="relative aspect-[4/5] bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
                     {movie.coverImage ? (
                       <>
                         <img src={movie.coverImage} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
@@ -372,16 +328,13 @@ export default function Home() {
                       <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
                     </div>
                   </div>
-                  <div className="p-3">
+                  <div className="p-2.5">
                     <h3 className="font-semibold text-sm text-white line-clamp-1 group-hover:text-amber-400 transition">
                       {movie.title}
                     </h3>
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-yellow-500">⭐ 4.8</span>
-                      </div>
-                      <span className="text-[9px] text-gray-500">{movie.totalViews?.toLocaleString()} vues</span>
-                    </div>
+                    <p className="text-[11px] text-gray-400 line-clamp-2 mt-1">
+                      {movie.description}
+                    </p>
                   </div>
                   <div className="absolute inset-0 rounded-xl border border-gray-700 group-hover:border-amber-500/30 transition-all duration-300 pointer-events-none"></div>
                 </div>

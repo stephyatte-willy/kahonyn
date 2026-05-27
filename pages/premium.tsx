@@ -186,8 +186,8 @@ export default function PremiumPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kahonyn-energie"></div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
         </div>
       </div>
     )
@@ -196,20 +196,20 @@ export default function PremiumPage() {
   const isSubscribed = userSubscription?.status === 'active'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 pb-20 text-white">
       <Navbar />
       <Toaster position="top-right" />
 
       {/* En-tête */}
-      <div className="sticky top-12 z-20 bg-white/80 backdrop-blur-md border-b border-kahonyn-sable/50">
+      <div className="sticky top-12 z-20 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-kahonyn-energie to-orange-600 rounded-xl flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20">
               <TrophyIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-kahonyn-terre">Kahonyn Primes</h1>
-              <p className="text-xs text-gray-500">
+              <h1 className="text-xl font-bold text-white">Kahonyn Primes</h1>
+              <p className="text-xs text-gray-400">
                 {session ? (
                   <>Solde: {(session.user as any)?.coins || 0} coins</>
                 ) : (
@@ -224,8 +224,8 @@ export default function PremiumPage() {
       {/* Section Abonnements */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-kahonyn-terre mb-2">🚀 Passez à Kahonyn Primes</h2>
-          <p className="text-gray-500">Profitez d'avantages exclusifs et économisez sur vos achats</p>
+          <h2 className="text-2xl font-bold text-white mb-2">🚀 Passez à Kahonyn Primes</h2>
+          <p className="text-gray-400">Profitez d'avantages exclusifs et économisez sur vos achats</p>
           {isSubscribed && (
             <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 bg-green-100 rounded-full">
               <CheckCircleIcon className="w-4 h-4 text-green-600" />
@@ -238,8 +238,8 @@ export default function PremiumPage() {
           {subscriptionPlans.map((plan) => (
             <div 
               key={plan.id}
-              className={`relative bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:scale-105 shadow-md ${
-                plan.popular ? 'ring-2 ring-kahonyn-energie shadow-lg shadow-kahonyn-energie/20' : ''
+              className={`relative bg-gray-900/95 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl border border-gray-800 ${
+                plan.popular ? 'ring-2 ring-amber-500 shadow-lg shadow-amber-500/20' : ''
               }`}
             >
               {plan.popular && (
@@ -253,9 +253,9 @@ export default function PremiumPage() {
                 </div>
               )}
               <div className="p-6">
-                <h3 className="text-xl font-bold text-kahonyn-terre mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold text-kahonyn-energie">{plan.price.toLocaleString()}</span>
+                  <span className="text-3xl font-bold text-amber-500">{plan.price.toLocaleString()}</span>
                   <span className="text-gray-400"> FCFA</span>
                 </div>
                 <ul className="space-y-2 mb-6 text-sm text-gray-600">
@@ -294,13 +294,13 @@ export default function PremiumPage() {
       </div>
 
       {/* Section Avantages VIP */}
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-kahonyn-sable/30">
-        <h2 className="text-xl font-bold text-kahonyn-terre mb-6 text-center">✨ Avantages VIP</h2>
+      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-800">
+        <h2 className="text-xl font-bold text-white mb-6 text-center">✨ Avantages VIP</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {vipBenefits.map((benefit, index) => (
-            <div key={index} className="text-center p-4 bg-white rounded-xl shadow-sm">
-              <benefit.icon className="w-8 h-8 text-kahonyn-energie mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-kahonyn-terre">{benefit.title}</h3>
+            <div key={index} className="text-center p-4 bg-gray-900/95 rounded-xl shadow-sm border border-gray-800">
+              <benefit.icon className="w-8 h-8 text-amber-500 mx-auto mb-2" />
+              <h3 className="text-sm font-semibold text-white">{benefit.title}</h3>
               <p className="text-[10px] text-gray-400 mt-1">{benefit.desc}</p>
             </div>
           ))}
@@ -308,21 +308,21 @@ export default function PremiumPage() {
       </div>
 
       {/* Section Packs de coins */}
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-kahonyn-sable/30">
-        <h2 className="text-xl font-bold text-kahonyn-terre mb-6 text-center">💰 Acheter des coins</h2>
+      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-800">
+        <h2 className="text-xl font-bold text-white mb-6 text-center">💰 Acheter des coins</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {coinPacks.map((pack) => (
             <div 
               key={pack.id}
-              className={`bg-white rounded-xl p-4 text-center transition-all duration-300 hover:scale-105 cursor-pointer shadow-sm ${
-                pack.isPopular ? 'ring-2 ring-kahonyn-energie shadow-md' : ''
+              className={`bg-gray-900/95 rounded-xl p-4 text-center transition-all duration-300 hover:shadow-2xl border border-gray-800 cursor-pointer ${
+                pack.isPopular ? 'ring-2 ring-amber-500 shadow-md shadow-amber-500/20' : ''
               }`}
               onClick={() => handleBuyCoins(pack)}
             >
               {pack.isPopular && (
-                <div className="text-kahonyn-energie text-xs font-bold mb-1">⭐ Populaire</div>
+                <div className="text-amber-500 text-xs font-bold mb-1">⭐ Populaire</div>
               )}
-              <div className="text-2xl font-bold text-kahonyn-terre">{pack.coins + pack.bonus}</div>
+              <div className="text-2xl font-bold text-white">{pack.coins + pack.bonus}</div>
               <div className="text-xs text-gray-400 mb-2">coins</div>
               {pack.bonus > 0 && (
                 <div className="text-green-600 text-[10px] font-semibold mb-1">+{pack.bonus} offerts</div>
@@ -335,24 +335,24 @@ export default function PremiumPage() {
       </div>
 
       {/* Section FAQ */}
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-kahonyn-sable/30">
-        <h2 className="text-xl font-bold text-kahonyn-terre mb-6 text-center">❓ Questions fréquentes</h2>
+      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-800">
+        <h2 className="text-xl font-bold text-white mb-6 text-center">❓ Questions fréquentes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-semibold text-kahonyn-terre mb-1">Comment utiliser mes coins ?</h3>
-            <p className="text-xs text-gray-500">Les coins permettent d'acheter des épisodes et des films sur la plateforme.</p>
+          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
+            <h3 className="font-semibold text-white mb-1">Comment utiliser mes coins ?</h3>
+            <p className="text-xs text-gray-400">Les coins permettent d'acheter des épisodes et des films sur la plateforme.</p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-semibold text-kahonyn-terre mb-1">Puis-je résilier mon abonnement ?</h3>
-            <p className="text-xs text-gray-500">Oui, vous pouvez annuler votre abonnement à tout moment depuis votre profil.</p>
+          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
+            <h3 className="font-semibold text-white mb-1">Puis-je résilier mon abonnement ?</h3>
+            <p className="text-xs text-gray-400">Oui, vous pouvez annuler votre abonnement à tout moment depuis votre profil.</p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-semibold text-kahonyn-terre mb-1">Les coins expirent-ils ?</h3>
-            <p className="text-xs text-gray-500">Non, vos coins restent valables indéfiniment sur votre compte.</p>
+          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
+            <h3 className="font-semibold text-white mb-1">Les coins expirent-ils ?</h3>
+            <p className="text-xs text-gray-400">Non, vos coins restent valables indéfiniment sur votre compte.</p>
           </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <h3 className="font-semibold text-kahonyn-terre mb-1">Paiement sécurisé ?</h3>
-            <p className="text-xs text-gray-500">Nos paiements sont sécurisés via Orange Money et MTN Mobile Money.</p>
+          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
+            <h3 className="font-semibold text-white mb-1">Paiement sécurisé ?</h3>
+            <p className="text-xs text-gray-400">Nos paiements sont sécurisés via Orange Money et MTN Mobile Money.</p>
           </div>
         </div>
       </div>

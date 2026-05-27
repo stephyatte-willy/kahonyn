@@ -125,8 +125,8 @@ export default function MyListPage() {
     return (
       <div>
         <Navbar />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kahonyn-energie"></div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
         </div>
       </div>
     )
@@ -137,20 +137,20 @@ export default function MyListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 pb-20 text-white">
       <Navbar />
       <Toaster position="top-right" />
 
       {/* En-tête */}
-      <div className="sticky top-12 z-20 bg-white/80 backdrop-blur-md border-b border-kahonyn-sable/50">
+      <div className="sticky top-12 z-20 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-kahonyn-terre to-kahonyn-energie rounded-xl flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20">
               <BookmarkIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-kahonyn-terre">Ma liste</h1>
-              <p className="text-xs text-gray-500">
+              <h1 className="text-xl font-bold text-white">Ma liste</h1>
+              <p className="text-xs text-gray-400">
                 {stats.total} élément{stats.total !== 1 ? 's' : ''} enregistré{stats.total !== 1 ? 's' : ''}
               </p>
             </div>
@@ -163,32 +163,32 @@ export default function MyListPage() {
         <div className="grid grid-cols-3 gap-3">
           <div 
             onClick={() => setFilter('like')}
-            className={`bg-white rounded-xl p-3 text-center cursor-pointer transition-all duration-300 ${
-              filter === 'like' ? 'ring-2 ring-red-500 shadow-md' : 'hover:bg-kahonyn-lumiere'
+            className={`bg-gray-900/95 rounded-xl p-3 text-center cursor-pointer transition-all duration-300 ${
+              filter === 'like' ? 'ring-2 ring-red-500 shadow-md shadow-red-500/20' : 'hover:bg-gray-800'
             }`}
           >
             <HeartSolidIcon className="w-5 h-5 text-red-500 mx-auto mb-1" />
-            <p className="text-kahonyn-terre font-bold text-lg">{stats.likes}</p>
+            <p className="text-white font-bold text-lg">{stats.likes}</p>
             <p className="text-gray-400 text-[10px]">Aimés</p>
           </div>
           <div 
             onClick={() => setFilter('save')}
-            className={`bg-white rounded-xl p-3 text-center cursor-pointer transition-all duration-300 ${
-              filter === 'save' ? 'ring-2 ring-kahonyn-energie shadow-md' : 'hover:bg-kahonyn-lumiere'
+            className={`bg-gray-900/95 rounded-xl p-3 text-center cursor-pointer transition-all duration-300 ${
+              filter === 'save' ? 'ring-2 ring-amber-500 shadow-md shadow-amber-500/20' : 'hover:bg-gray-800'
             }`}
           >
-            <BookmarkIcon className="w-5 h-5 text-kahonyn-energie mx-auto mb-1" />
-            <p className="text-kahonyn-terre font-bold text-lg">{stats.saves}</p>
+            <BookmarkIcon className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+            <p className="text-white font-bold text-lg">{stats.saves}</p>
             <p className="text-gray-400 text-[10px]">Sauvegardés</p>
           </div>
           <div 
             onClick={() => setFilter('purchase')}
-            className={`bg-white rounded-xl p-3 text-center cursor-pointer transition-all duration-300 ${
-              filter === 'purchase' ? 'ring-2 ring-green-500 shadow-md' : 'hover:bg-kahonyn-lumiere'
+            className={`bg-gray-900/95 rounded-xl p-3 text-center cursor-pointer transition-all duration-300 ${
+              filter === 'purchase' ? 'ring-2 ring-green-500 shadow-md shadow-green-500/20' : 'hover:bg-gray-800'
             }`}
           >
             <ShoppingBagIcon className="w-5 h-5 text-green-500 mx-auto mb-1" />
-            <p className="text-kahonyn-terre font-bold text-lg">{stats.purchases}</p>
+            <p className="text-white font-bold text-lg">{stats.purchases}</p>
             <p className="text-gray-400 text-[10px]">Achetés</p>
           </div>
         </div>
@@ -200,7 +200,7 @@ export default function MyListPage() {
             </p>
             <button 
               onClick={() => setFilter('all')}
-              className="text-xs text-gray-400 hover:text-kahonyn-terre transition"
+              className="text-xs text-gray-400 hover:text-amber-400 transition"
             >
               Voir tout
             </button>
@@ -211,7 +211,7 @@ export default function MyListPage() {
       {/* Liste des vidéos */}
       {filteredItems.length > 0 ? (
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {filteredItems.map((item, index) => {
               const via = item.addedVia
               return (
@@ -220,50 +220,45 @@ export default function MyListPage() {
                   href={item.type === 'series' ? `/series/${item.id}` : `/video/${item.id}`}
                   className="block"
                 >
-                  <div className="relative bg-white rounded-xl overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-kahonyn-energie/20 hover:-translate-y-1">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
-                    
-                    <div className="relative aspect-video bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable flex items-center justify-center overflow-hidden">
+                  <div className="relative bg-gray-900 rounded-xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-amber-500/20 hover:-translate-y-1 border border-gray-800">
+                    <div className="relative aspect-[4/5] bg-gray-800 flex items-center justify-center overflow-hidden">
                       {item.coverImage ? (
-                        <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
+                        <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                       ) : (
-                        <span className="text-4xl group-hover:scale-110 transition duration-300">🎬</span>
+                        <span className="text-4xl">🎬</span>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                         <PlayIcon className="w-8 h-8 text-white drop-shadow-lg" />
                       </div>
-                      <div className="absolute bottom-1.5 right-1.5 bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
+                      <div className="absolute bottom-1.5 right-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                         {item.price} coins
                       </div>
                       <div className="absolute top-1.5 left-1.5">
                         {item.type === 'series' ? (
-                          <span className="bg-kahonyn-terre/80 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">Série</span>
+                          <span className="bg-gray-900/80 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">Série</span>
                         ) : (
                           <span className="bg-blue-500/80 text-white text-[8px] font-bold px-1.5 py-0.5 rounded">Film</span>
                         )}
                       </div>
                     </div>
                     
-                    <div className="p-2">
-                      <h3 className="font-semibold text-sm text-gray-800 line-clamp-1 group-hover:text-kahonyn-energie transition">
+                    <div className="p-2.5">
+                      <h3 className="font-semibold text-sm text-white line-clamp-1 group-hover:text-amber-400 transition">
                         {item.title}
                       </h3>
-                      <div className="flex items-center justify-between mt-1">
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-yellow-500">⭐ 4.8</span>
-                        </div>
-                        <span className="text-[9px] text-gray-400">{item.views?.toLocaleString()} vues</span>
-                      </div>
+                      <p className="text-[11px] text-gray-400 line-clamp-2 mt-1">
+                        {item.description}
+                      </p>
                     </div>
                     
-                    <div className="absolute inset-0 rounded-xl border border-gray-100 group-hover:border-kahonyn-energie/30 transition-all duration-300 pointer-events-none"></div>
+                    <div className="absolute inset-0 rounded-xl border border-gray-800 group-hover:border-amber-500/30 transition-all duration-300 pointer-events-none"></div>
                   </div>
                 </Link>
                 
                 {/* Badge d'origine */}
-                <div className="absolute -top-1 -right-1 flex items-center gap-0.5 bg-white/90 backdrop-blur-sm rounded-full px-1.5 py-0.5 shadow-sm">
+                <div className="absolute -top-1 -right-1 flex items-center gap-0.5 bg-gray-900/95 backdrop-blur-sm rounded-full px-1.5 py-0.5 shadow-sm border border-gray-800">
                   {getAddedViaIcon(via)}
-                  <span className="text-[8px] text-gray-600 ml-0.5">{getAddedViaLabel(via)}</span>
+                  <span className="text-[8px] text-gray-300 ml-0.5">{getAddedViaLabel(via)}</span>
                 </div>
                 
                 {/* Bouton supprimer */}
@@ -286,16 +281,16 @@ export default function MyListPage() {
         </div>
       ) : (
         <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-kahonyn-sable/30 shadow-md">
+          <div className="bg-gray-900/95 backdrop-blur-sm rounded-2xl p-12 text-center border border-gray-800 shadow-md">
             <div className="text-6xl mb-4">📭</div>
-            <p className="text-gray-500">Votre liste est vide</p>
+            <p className="text-gray-300">Votre liste est vide</p>
             <p className="text-sm text-gray-400 mt-2">
               {filter !== 'all' 
                 ? `Aucun élément ${getAddedViaLabel(filter).toLowerCase()} dans votre liste`
                 : 'Aimez, sauvegardez ou achetez des vidéos pour les retrouver ici'
               }
             </p>
-            <Link href="/" className="inline-block mt-4 px-4 py-2 bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white rounded-lg hover:shadow-md transition">
+            <Link href="/" className="inline-block mt-4 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:shadow-md transition">
               Découvrir des vidéos
             </Link>
           </div>
