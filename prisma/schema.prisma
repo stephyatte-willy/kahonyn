@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = "mysql://root:@localhost:3306/kahonyn"
+}
+
+// ============================================================
+// MODÈLE USERS
+// ============================================================
+model users {
+  id             String             @id @default(cuid())
+  phone          String             @unique
+  name           String?
+  email          String?            @unique
+  password       String?
+  role           String             @default("user")
+  coins          Int                @default(0)
+  avatar         String?
+  bio            String?            @db.Text
+  totalEarnings  Int                @default(0)
+  totalWithdrawn Int                @default(0)
+  isActive       Boolean            @default(true)
+  emailVerified  DateTime?
+  lastLogin      DateTime?
+  createdAt      DateTime           @default(now()) @map("createdAt")
+  updatedAt      DateTime           @updatedAt @map("updatedAt")
+  earnings       creator_earnings[]
+  purchases      purchases[]
+  progress       userProgress[]
+  videos         videos[]
+  withdrawals    withdrawals[]
+  likes          userLikes[]
+  saves          userSaves[]
+  subscriptions  subscriptions[]
+  coinTransactions coinTransactions[]
+
+  @@map("users")
+}
+
+// ============================================================
+// MODÈLE VIDEOS (UNIFIÉ)
+// ============================================================
+model videos {
+  id            String             @id @default(cuid())
+  title         String
+  description   String?            @db.Text
+  url           String
+  thumbnail     String?
+  duration      Int?
+  price         Int                @default(100)
+  views         Int                @default(0)
+  purchases     Int                @default(0)
+  status        String             @default("pending")
+  creatorId     String
+  isSeries      Boolean            @default(false)
+  parentId      String?
+  episodeNumber Int?
+  startTime     Int?
+  endTime       Int?
+  publicId      String?
+  category      String             @default("all")
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  earnings      creator_earnings[]
+  transactions  purchases[]
+  progress      userProgress[]
+  likes         userLikes[]
+  saves         userSaves[]
+  creator       users              @relation(fields: [creatorId], references: [id])
+  parent        videos?            @relation("SeriesEpisodes", fields: [parentId], references: [id])
+  episodes      videos[]           @relation("SeriesEpisodes")
+
+  @@map("videos")
+}
+
+// ============================================================
+// MODÈLE PURCHASES
+// ============================================================
+model purchases {
+  id            String   @id @default(cuid())
+  userId        String
+  videoId       String
+  amount        Int
+  status        String   @default("completed")
+  transactionId String?  @unique
+  createdAt     DateTime @default(now())
+  user          users    @relation(fields: [userId], references: [id])
+  video         videos   @relation(fields: [videoId], references: [id])
+
+  @@unique([userId, videoId])
+  @@map("purchases")
+}
+
+// ============================================================
+// MODÈLE CREATOR_EARNINGS
+// ============================================================
+model creator_earnings {
+  id        String    @id @default(cuid())
+  creatorId String
+  videoId   String
+  amount    Int
+  status    String    @default("pending")
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+  creator   users     @relation(fields: [creatorId], references: [id])
+  video     videos    @relation(fields: [videoId], references: [id])
+
+  @@map("creator_earnings")
+}
+
+// ============================================================
+// MODÈLE WITHDRAWALS
+// ============================================================
+model withdrawals {
+  id          String    @id @default(cuid())
+  creatorId   String
+  amount      Int
+  phone       String
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  creator     users     @relation(fields: [creatorId], references: [id])
+
+  @@map("withdrawals")
+}
+
+// ============================================================
+// MODÈLE USER_PROGRESS
+// ============================================================
+model userProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  episodeId   String
+  currentTime Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        users    @relation(fields: [userId], references: [id])
+  episode     videos   @relation(fields: [episodeId], references: [id])
+
+  @@unique([userId, episodeId])
+  @@map("user_progress")
+}
+
+// ============================================================
+// MODÈLE USER_LIKES
+// ============================================================
+model userLikes {
+  id        String   @id @default(cuid())
+  userId    String
+  episodeId String
+  createdAt DateTime @default(now())
+
+  user    users  @relation(fields: [userId], references: [id])
+  episode videos @relation(fields: [episodeId], references: [id])
+
+  @@unique([userId, episodeId])
+  @@map("user_likes")
+}
+
+// ============================================================
+// MODÈLE USER_SAVES
+// ============================================================
+model userSaves {
+  id        String   @id @default(cuid())
+  userId    String
+  episodeId String
+  createdAt DateTime @default(now())
+
+  user    users  @relation(fields: [userId], references: [id])
+  episode videos @relation(fields: [episodeId], references: [id])
+
+  @@unique([userId, episodeId])
+  @@map("user_saves")
+}
+
+// ============================================================
+// MODÈLE SUBSCRIPTIONS (Abonnements)
+// ============================================================
+model subscriptions {
+  id          String   @id @default(cuid())
+  userId      String
+  plan        String   // monthly, quarterly, yearly
+  status      String   @default("active") // active, cancelled, expired
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  autoRenew   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        users    @relation(fields: [userId], references: [id])
+
+  @@map("subscriptions")
+}
+
+// ============================================================
+// MODÈLE COIN_PACKS (Packs de coins)
+// ============================================================
+model coinPacks {
+  id          String   @id @default(cuid())
+  name        String
+  coins       Int
+  price       Int      // prix en FCFA
+  bonus       Int      @default(0)
+  isPopular   Boolean  @default(false)
+  isVip       Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  transactions coinTransactions[]
+
+  @@map("coin_packs")
+}
+
+// ============================================================
+// MODÈLE COIN_TRANSACTIONS
+// ============================================================
+model coinTransactions {
+  id            String   @id @default(cuid())
+  userId        String
+  packId        String?
+  amount        Int      // nombre de coins
+  price         Int      // prix payé en FCFA
+  status        String   @default("pending") // pending, completed, failed
+  transactionId String?  @unique
+  paymentMethod String   @default("orange_money")
+  createdAt     DateTime @default(now())
+
+  user        users     @relation(fields: [userId], references: [id])
+  pack        coinPacks? @relation(fields: [packId], references: [id])
+
+  @@map("coin_transactions")
+}
