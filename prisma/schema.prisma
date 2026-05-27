@@ -4,21 +4,21 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://root:@localhost:3306/kahonyn"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================
 // MODÈLE USERS
 // ============================================================
 model users {
-  id             String             @id @default(cuid())
-  phone          String             @unique
-  name           String?
-  email          String?            @unique
-  password       String?
-  role           String             @default("user")
+  id             String             @id @default(cuid()) @db.VarChar(191)
+  phone          String             @unique @db.VarChar(191)
+  name           String?            @db.VarChar(191)
+  email          String?            @unique @db.VarChar(191)
+  password       String?            @db.VarChar(191)
+  role           String             @default("user") @db.VarChar(50)
   coins          Int                @default(0)
-  avatar         String?
+  avatar         String?            @db.VarChar(500)
   bio            String?            @db.Text
   totalEarnings  Int                @default(0)
   totalWithdrawn Int                @default(0)
@@ -44,24 +44,24 @@ model users {
 // MODÈLE VIDEOS (UNIFIÉ)
 // ============================================================
 model videos {
-  id            String             @id @default(cuid())
-  title         String
+  id            String             @id @default(cuid()) @db.VarChar(191)
+  title         String             @db.VarChar(255)
   description   String?            @db.Text
-  url           String
-  thumbnail     String?
+  url           String             @db.VarChar(500)
+  thumbnail     String?            @db.VarChar(500)
   duration      Int?
   price         Int                @default(100)
   views         Int                @default(0)
   purchases     Int                @default(0)
-  status        String             @default("pending")
-  creatorId     String
+  status        String             @default("pending") @db.VarChar(50)
+  creatorId     String             @db.VarChar(191)
   isSeries      Boolean            @default(false)
-  parentId      String?
+  parentId      String?            @db.VarChar(191)
   episodeNumber Int?
   startTime     Int?
   endTime       Int?
-  publicId      String?
-  category      String             @default("all")
+  publicId      String?            @db.VarChar(191)
+  category      String             @default("all") @db.VarChar(50)
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   earnings      creator_earnings[]
@@ -73,6 +73,11 @@ model videos {
   parent        videos?            @relation("SeriesEpisodes", fields: [parentId], references: [id])
   episodes      videos[]           @relation("SeriesEpisodes")
 
+  @@index([creatorId])
+  @@index([parentId])
+  @@index([status])
+  @@index([category])
+  @@index([isSeries])
   @@map("videos")
 }
 
@@ -80,17 +85,19 @@ model videos {
 // MODÈLE PURCHASES
 // ============================================================
 model purchases {
-  id            String   @id @default(cuid())
-  userId        String
-  videoId       String
+  id            String   @id @default(cuid()) @db.VarChar(191)
+  userId        String   @db.VarChar(191)
+  videoId       String   @db.VarChar(191)
   amount        Int
-  status        String   @default("completed")
-  transactionId String?  @unique
+  status        String   @default("completed") @db.VarChar(50)
+  transactionId String?  @unique @db.VarChar(191)
   createdAt     DateTime @default(now())
   user          users    @relation(fields: [userId], references: [id])
   video         videos   @relation(fields: [videoId], references: [id])
 
   @@unique([userId, videoId])
+  @@index([userId])
+  @@index([videoId])
   @@map("purchases")
 }
 
@@ -98,16 +105,18 @@ model purchases {
 // MODÈLE CREATOR_EARNINGS
 // ============================================================
 model creator_earnings {
-  id        String    @id @default(cuid())
-  creatorId String
-  videoId   String
+  id        String    @id @default(cuid()) @db.VarChar(191)
+  creatorId String    @db.VarChar(191)
+  videoId   String    @db.VarChar(191)
   amount    Int
-  status    String    @default("pending")
+  status    String    @default("pending") @db.VarChar(50)
   createdAt DateTime  @default(now())
   paidAt    DateTime?
   creator   users     @relation(fields: [creatorId], references: [id])
   video     videos    @relation(fields: [videoId], references: [id])
 
+  @@index([creatorId])
+  @@index([videoId])
   @@map("creator_earnings")
 }
 
@@ -115,15 +124,16 @@ model creator_earnings {
 // MODÈLE WITHDRAWALS
 // ============================================================
 model withdrawals {
-  id          String    @id @default(cuid())
-  creatorId   String
+  id          String    @id @default(cuid()) @db.VarChar(191)
+  creatorId   String    @db.VarChar(191)
   amount      Int
-  phone       String
-  status      String    @default("pending")
+  phone       String    @db.VarChar(50)
+  status      String    @default("pending") @db.VarChar(50)
   createdAt   DateTime  @default(now())
   processedAt DateTime?
   creator     users     @relation(fields: [creatorId], references: [id])
 
+  @@index([creatorId])
   @@map("withdrawals")
 }
 
@@ -131,9 +141,9 @@ model withdrawals {
 // MODÈLE USER_PROGRESS
 // ============================================================
 model userProgress {
-  id          String   @id @default(cuid())
-  userId      String
-  episodeId   String
+  id          String   @id @default(cuid()) @db.VarChar(191)
+  userId      String   @db.VarChar(191)
+  episodeId   String   @db.VarChar(191)
   currentTime Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -141,6 +151,8 @@ model userProgress {
   episode     videos   @relation(fields: [episodeId], references: [id])
 
   @@unique([userId, episodeId])
+  @@index([userId])
+  @@index([episodeId])
   @@map("user_progress")
 }
 
@@ -148,15 +160,17 @@ model userProgress {
 // MODÈLE USER_LIKES
 // ============================================================
 model userLikes {
-  id        String   @id @default(cuid())
-  userId    String
-  episodeId String
+  id        String   @id @default(cuid()) @db.VarChar(191)
+  userId    String   @db.VarChar(191)
+  episodeId String   @db.VarChar(191)
   createdAt DateTime @default(now())
 
   user    users  @relation(fields: [userId], references: [id])
   episode videos @relation(fields: [episodeId], references: [id])
 
   @@unique([userId, episodeId])
+  @@index([userId])
+  @@index([episodeId])
   @@map("user_likes")
 }
 
@@ -164,15 +178,17 @@ model userLikes {
 // MODÈLE USER_SAVES
 // ============================================================
 model userSaves {
-  id        String   @id @default(cuid())
-  userId    String
-  episodeId String
+  id        String   @id @default(cuid()) @db.VarChar(191)
+  userId    String   @db.VarChar(191)
+  episodeId String   @db.VarChar(191)
   createdAt DateTime @default(now())
 
   user    users  @relation(fields: [userId], references: [id])
   episode videos @relation(fields: [episodeId], references: [id])
 
   @@unique([userId, episodeId])
+  @@index([userId])
+  @@index([episodeId])
   @@map("user_saves")
 }
 
@@ -180,10 +196,10 @@ model userSaves {
 // MODÈLE SUBSCRIPTIONS (Abonnements)
 // ============================================================
 model subscriptions {
-  id          String   @id @default(cuid())
-  userId      String
-  plan        String   // monthly, quarterly, yearly
-  status      String   @default("active") // active, cancelled, expired
+  id          String   @id @default(cuid()) @db.VarChar(191)
+  userId      String   @db.VarChar(191)
+  plan        String   @db.VarChar(50) // monthly, quarterly, yearly
+  status      String   @default("active") @db.VarChar(50) // active, cancelled, expired
   startDate   DateTime @default(now())
   endDate     DateTime
   autoRenew   Boolean  @default(true)
@@ -192,6 +208,7 @@ model subscriptions {
 
   user        users    @relation(fields: [userId], references: [id])
 
+  @@index([userId])
   @@map("subscriptions")
 }
 
@@ -199,8 +216,8 @@ model subscriptions {
 // MODÈLE COIN_PACKS (Packs de coins)
 // ============================================================
 model coinPacks {
-  id          String   @id @default(cuid())
-  name        String
+  id          String   @id @default(cuid()) @db.VarChar(191)
+  name        String   @db.VarChar(191)
   coins       Int
   price       Int      // prix en FCFA
   bonus       Int      @default(0)
@@ -217,18 +234,20 @@ model coinPacks {
 // MODÈLE COIN_TRANSACTIONS
 // ============================================================
 model coinTransactions {
-  id            String   @id @default(cuid())
-  userId        String
-  packId        String?
+  id            String   @id @default(cuid()) @db.VarChar(191)
+  userId        String   @db.VarChar(191)
+  packId        String?  @db.VarChar(191)
   amount        Int      // nombre de coins
   price         Int      // prix payé en FCFA
-  status        String   @default("pending") // pending, completed, failed
-  transactionId String?  @unique
-  paymentMethod String   @default("orange_money")
+  status        String   @default("pending") @db.VarChar(50) // pending, completed, failed
+  transactionId String?  @unique @db.VarChar(191)
+  paymentMethod String   @default("orange_money") @db.VarChar(50)
   createdAt     DateTime @default(now())
 
   user        users     @relation(fields: [userId], references: [id])
   pack        coinPacks? @relation(fields: [packId], references: [id])
 
+  @@index([userId])
+  @@index([packId])
   @@map("coin_transactions")
 }
