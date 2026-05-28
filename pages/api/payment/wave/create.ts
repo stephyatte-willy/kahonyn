@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '../../api/auth/[...nextauth]'
+import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+
+// Force Node.js runtime (pas de pré-rendu)
+export const runtime = 'nodejs'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -20,7 +23,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Données incomplètes' })
     }
 
-    // Créer la transaction en base
     const transaction = await prisma.coinTransactions.create({
       data: {
         userId: session.user.id,
@@ -32,8 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    // Générer l'URL de paiement Wave (simulation pour test)
-    // En production, remplacer par l'API réelle Wave
     const paymentUrl = `https://wave.com/pay?amount=${amount}&currency=XOF&reference=${transaction.id}`
 
     await prisma.coinTransactions.update({

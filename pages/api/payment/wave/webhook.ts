@@ -1,6 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 
+export const runtime = 'nodejs'
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' })
@@ -9,7 +11,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { reference, status, transactionId } = req.body
 
-    // Trouver la transaction
     const transaction = await prisma.coinTransactions.findUnique({
       where: { id: reference },
       include: { pack: true }
@@ -20,7 +21,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (status === 'completed') {
-      // Mettre à jour la transaction
       await prisma.coinTransactions.update({
         where: { id: transaction.id },
         data: {
@@ -30,7 +30,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
-      // Ajouter les coins à l'utilisateur
       await prisma.users.update({
         where: { id: transaction.userId },
         data: { coins: { increment: transaction.amount } }
