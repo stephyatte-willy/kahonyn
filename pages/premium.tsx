@@ -13,13 +13,13 @@ import {
   SparklesIcon,
   GiftIcon,
   StarIcon,
-  ArrowPathIcon,
   CloudArrowDownIcon,
   EyeIcon,
   ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import WavePaymentModal from '../components/WavePaymentModal'
 import toast, { Toaster } from 'react-hot-toast'
 
 interface CoinPack {
@@ -37,10 +37,11 @@ export default function PremiumPage() {
   const [coinPacks, setCoinPacks] = useState<CoinPack[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
-  const [selectedPack, setSelectedPack] = useState<CoinPack | null>(null)
   const [processing, setProcessing] = useState(false)
   const [activeFooterTab, setActiveFooterTab] = useState('premium')
   const [userSubscription, setUserSubscription] = useState<any>(null)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null)
 
   useEffect(() => {
     fetchCoinPacks()
@@ -124,40 +125,13 @@ export default function PremiumPage() {
     }
   }
 
-  const handleBuyCoins = async (pack: CoinPack) => {
+  const handleBuyCoins = (pack: CoinPack) => {
     if (!session) {
       toast.error('Connectez-vous pour acheter')
       return
     }
-
-    setSelectedPack(pack)
-    setProcessing(true)
-
-    if (!confirm(`Acheter ${pack.name} (${pack.price.toLocaleString()} FCFA) pour ${pack.coins + pack.bonus} coins ?`)) {
-      setProcessing(false)
-      setSelectedPack(null)
-      return
-    }
-
-    try {
-      const res = await fetch('/api/premium/buy-coins', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packId: pack.id })
-      })
-      const data = await res.json()
-      if (res.ok) {
-        toast.success(data.message)
-        await update()
-      } else {
-        toast.error(data.error || 'Erreur')
-      }
-    } catch (error) {
-      toast.error('Erreur réseau')
-    } finally {
-      setProcessing(false)
-      setSelectedPack(null)
-    }
+    setSelectedCoinPack(pack)
+    setIsPaymentModalOpen(true)
   }
 
   const footerTabs = [
@@ -352,12 +326,30 @@ export default function PremiumPage() {
           </div>
           <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
             <h3 className="font-semibold text-white mb-1">Paiement sécurisé ?</h3>
-            <p className="text-xs text-gray-400">Nos paiements sont sécurisés via Orange Money et MTN Mobile Money.</p>
+            <p className="text-xs text-gray-400">Nos paiements sont sécurisés via Wave.</p>
           </div>
         </div>
       </div>
 
-      {/* Footer fixe - mode clair */}
+      {/* Modale de paiement Wave */}
+      {isPaymentModalOpen && selectedCoinPack && (
+        <WavePaymentModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => {
+            setIsPaymentModalOpen(false)
+            setSelectedCoinPack(null)
+          }}
+          pack={selectedCoinPack}
+          onSuccess={() => {
+            setIsPaymentModalOpen(false)
+            setSelectedCoinPack(null)
+            update()
+            toast.success('Coins ajoutés avec succès !')
+          }}
+        />
+      )}
+
+      {/* Footer fixe */}
       <Footer footerTabs={footerTabs} activeFooterTab={activeFooterTab} setActiveFooterTab={setActiveFooterTab} />
     </div>
   )
