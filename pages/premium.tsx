@@ -116,10 +116,10 @@ export default function PremiumPage() {
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-[#F5F0E8]">
         <Navbar />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6B35]"></div>
         </div>
       </div>
     )
@@ -128,20 +128,20 @@ export default function PremiumPage() {
   const isSubscribed = userSubscription?.status === 'active'
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 pb-20 text-white">
+    <div className="min-h-screen bg-[#F5F0E8] pb-20">
       <Navbar />
       <Toaster position="top-right" />
 
-      {/* En-tête */}
-      <div className="sticky top-12 z-20 bg-gray-900/95 backdrop-blur-xl border-b border-gray-800">
+      {/* En-tête - fond sombre conservé */}
+      <div className="sticky top-12 z-20 bg-[#0D0D1A]/95 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-md shadow-amber-500/20">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#D4A855] to-[#E5C87B] rounded-xl flex items-center justify-center shadow-md shadow-[#D4A855]/20">
               <TrophyIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">Kahonyn Primes</h1>
-              <p className="text-xs text-gray-400">
+              <h1 className="text-lg font-bold text-white">Kahonyn Primes</h1>
+              <p className="text-xs text-[#D4A855]/60">
                 {session ? (
                   <>Solde: {(session.user as any)?.coins || 0} coins</>
                 ) : (
@@ -156,12 +156,12 @@ export default function PremiumPage() {
       {/* Section Abonnements */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-white mb-2">🚀 Passez à Kahonyn Primes</h2>
-          <p className="text-gray-400">Profitez d'avantages exclusifs et économisez sur vos achats</p>
+          <h2 className="text-2xl font-bold text-[#5C3D2E] mb-2">🚀 Passez à Kahonyn Primes</h2>
+          <p className="text-[#8B5A2B]/70">Profitez d'avantages exclusifs et économisez sur vos achats</p>
           {isSubscribed && (
-            <div className="inline-flex items-center gap-2 mt-3 px-3 py-1 bg-green-100 rounded-full">
+            <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-green-50 rounded-full border border-green-200">
               <CheckCircleIcon className="w-4 h-4 text-green-600" />
-              <span className="text-xs text-green-600">Abonnement actif jusqu'au {new Date(userSubscription.endDate).toLocaleDateString()}</span>
+              <span className="text-xs text-green-700">Abonnement actif jusqu'au {new Date(userSubscription.endDate).toLocaleDateString()}</span>
             </div>
           )}
         </div>
@@ -170,51 +170,51 @@ export default function PremiumPage() {
           {subscriptionPlans.map((plan) => (
             <div 
               key={plan.id}
-              className={`relative bg-gray-900/95 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-2xl border border-gray-800 ${
-                plan.popular ? 'ring-2 ring-amber-500 shadow-lg shadow-amber-500/20' : ''
+              className={`relative bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl border ${
+                plan.popular ? 'ring-2 ring-[#FF6B35] shadow-lg shadow-[#FF6B35]/10 border-[#FF6B35]/20' : 'border-[#D4A855]/10 hover:border-[#D4A855]/30'
               }`}
             >
               {plan.popular && (
-                <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">
                   Populaire
                 </div>
               )}
               {plan.bestValue && (
-                <div className="absolute top-0 right-0 bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                <div className="absolute top-0 right-0 bg-[#5C3D2E] text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">
                   Meilleure valeur
                 </div>
               )}
               <div className="p-6">
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-bold text-[#5C3D2E] mb-2">{plan.name}</h3>
                 <div className="mb-4">
-                  <span className="text-3xl font-bold text-amber-500">{plan.price.toLocaleString()}</span>
-                  <span className="text-gray-400"> FCFA</span>
+                  <span className="text-3xl font-bold text-[#FF6B35]">{plan.price.toLocaleString()}</span>
+                  <span className="text-[#8B5A2B]/60"> FCFA</span>
                 </div>
-                <ul className="space-y-2 mb-6 text-sm text-gray-600">
-                  <li className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                <ul className="space-y-2 mb-6 text-sm">
+                  <li className="flex items-center gap-2 text-[#5C3D2E]">
+                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
                     Accès illimité pendant {plan.days} jours
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                  <li className="flex items-center gap-2 text-[#5C3D2E]">
+                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
                     +{plan.coinsBonus} coins offerts
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                  <li className="flex items-center gap-2 text-[#5C3D2E]">
+                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
                     Badge exclusif
                   </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500" />
+                  <li className="flex items-center gap-2 text-[#5C3D2E]">
+                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
                     20% de réduction sur tous les épisodes
                   </li>
                 </ul>
                 <button
                   onClick={() => handleSubscribe(plan)}
                   disabled={processing || isSubscribed}
-                  className={`w-full py-2 rounded-lg font-semibold transition-all duration-300 ${
+                  className={`w-full py-2.5 rounded-xl font-semibold transition-all duration-300 ${
                     isSubscribed
-                      ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/20'
+                      ? 'bg-[#E8D5B5] text-[#8B5A2B]/60 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white hover:shadow-lg hover:shadow-[#FF6B35]/20'
                   }`}
                 >
                   {processing && selectedPlan === plan.id ? 'Traitement...' : isSubscribed ? 'Déjà abonné' : 'Souscrire'}
@@ -226,70 +226,70 @@ export default function PremiumPage() {
       </div>
 
       {/* Section Avantages VIP */}
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-800">
-        <h2 className="text-xl font-bold text-white mb-6 text-center">✨ Avantages VIP</h2>
+      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
+        <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">✨ Avantages VIP</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {vipBenefits.map((benefit, index) => (
-            <div key={index} className="text-center p-4 bg-gray-900/95 rounded-xl shadow-sm border border-gray-800">
-              <benefit.icon className="w-8 h-8 text-amber-500 mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-white">{benefit.title}</h3>
-              <p className="text-[10px] text-gray-400 mt-1">{benefit.desc}</p>
+            <div key={index} className="text-center p-4 bg-white rounded-xl shadow-sm border border-[#D4A855]/10 hover:shadow-md transition">
+              <benefit.icon className="w-7 h-7 text-[#FF6B35] mx-auto mb-2" />
+              <h3 className="text-sm font-semibold text-[#5C3D2E]">{benefit.title}</h3>
+              <p className="text-[10px] text-[#8B5A2B]/60 mt-1">{benefit.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Section Packs de coins */}
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-800">
-        <h2 className="text-xl font-bold text-white mb-6 text-center">💰 Acheter des coins</h2>
+      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
+        <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">💰 Acheter des coins</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {coinPacks.map((pack) => (
             <div 
               key={pack.id}
-              className={`bg-gray-900/95 rounded-xl p-4 text-center transition-all duration-300 hover:shadow-2xl border border-gray-800 cursor-pointer ${
-                pack.isPopular ? 'ring-2 ring-amber-500 shadow-md shadow-amber-500/20' : ''
+              className={`bg-white rounded-xl p-4 text-center transition-all duration-300 hover:shadow-xl cursor-pointer ${
+                pack.isPopular ? 'ring-2 ring-[#FF6B35] shadow-md shadow-[#FF6B35]/10' : 'border border-[#D4A855]/10 hover:border-[#D4A855]/30'
               }`}
               onClick={() => handleBuyCoins(pack)}
             >
               {pack.isPopular && (
-                <div className="text-amber-500 text-xs font-bold mb-1">⭐ Populaire</div>
+                <div className="text-[#FF6B35] text-xs font-bold mb-1">⭐ Populaire</div>
               )}
-              <div className="text-2xl font-bold text-white">{pack.coins + pack.bonus}</div>
-              <div className="text-xs text-gray-400 mb-2">coins</div>
+              <div className="text-2xl font-bold text-[#5C3D2E]">{pack.coins + pack.bonus}</div>
+              <div className="text-xs text-[#8B5A2B]/60 mb-2">coins</div>
               {pack.bonus > 0 && (
                 <div className="text-green-600 text-[10px] font-semibold mb-1">+{pack.bonus} offerts</div>
               )}
-              <div className="text-amber-500 font-bold">{pack.price.toLocaleString()} FCFA</div>
-              <div className="text-[10px] text-gray-400 mt-1">{Math.round((pack.coins + pack.bonus) / pack.price * 1000)} coins/1000 FCFA</div>
+              <div className="text-[#FF6B35] font-bold">{pack.price.toLocaleString()} FCFA</div>
+              <div className="text-[10px] text-[#8B5A2B]/60 mt-1">{Math.round((pack.coins + pack.bonus) / pack.price * 1000)} coins/1000 FCFA</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Section FAQ */}
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-gray-800">
-        <h2 className="text-xl font-bold text-white mb-6 text-center">❓ Questions fréquentes</h2>
+      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
+        <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">❓ Questions fréquentes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
-            <h3 className="font-semibold text-white mb-1">Comment utiliser mes coins ?</h3>
-            <p className="text-xs text-gray-400">Les coins permettent d'acheter des épisodes et des films sur la plateforme.</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
+            <h3 className="font-semibold text-[#5C3D2E] mb-1">Comment utiliser mes coins ?</h3>
+            <p className="text-xs text-[#8B5A2B]/60">Les coins permettent d'acheter des épisodes et des films sur la plateforme.</p>
           </div>
-          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
-            <h3 className="font-semibold text-white mb-1">Puis-je résilier mon abonnement ?</h3>
-            <p className="text-xs text-gray-400">Oui, vous pouvez annuler votre abonnement à tout moment depuis votre profil.</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
+            <h3 className="font-semibold text-[#5C3D2E] mb-1">Puis-je résilier mon abonnement ?</h3>
+            <p className="text-xs text-[#8B5A2B]/60">Oui, vous pouvez annuler votre abonnement à tout moment depuis votre profil.</p>
           </div>
-          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
-            <h3 className="font-semibold text-white mb-1">Les coins expirent-ils ?</h3>
-            <p className="text-xs text-gray-400">Non, vos coins restent valables indéfiniment sur votre compte.</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
+            <h3 className="font-semibold text-[#5C3D2E] mb-1">Les coins expirent-ils ?</h3>
+            <p className="text-xs text-[#8B5A2B]/60">Non, vos coins restent valables indéfiniment sur votre compte.</p>
           </div>
-          <div className="bg-gray-900/95 rounded-xl p-4 shadow-sm border border-gray-800">
-            <h3 className="font-semibold text-white mb-1">Paiement sécurisé ?</h3>
-            <p className="text-xs text-gray-400">Nos paiements sont sécurisés via Wave.</p>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
+            <h3 className="font-semibold text-[#5C3D2E] mb-1">Paiement sécurisé ?</h3>
+            <p className="text-xs text-[#8B5A2B]/60">Nos paiements sont sécurisés via Wave.</p>
           </div>
         </div>
       </div>
 
-      {/* Modale de paiement Wave */}
+      {/* Modales de paiement */}
       {isPaymentModalOpen && selectedCoinPack && (
         <WavePaymentModal
           isOpen={isPaymentModalOpen}
@@ -308,24 +308,23 @@ export default function PremiumPage() {
       )}
 
       {isSubscriptionModalOpen && selectedSubscriptionPlan && (
-  <SubscriptionPaymentModal
-    isOpen={isSubscriptionModalOpen}
-    onClose={() => {
-      setIsSubscriptionModalOpen(false)
-      setSelectedSubscriptionPlan(null)
-    }}
-    plan={selectedSubscriptionPlan}
-    onSuccess={() => {
-      setIsSubscriptionModalOpen(false)
-      setSelectedSubscriptionPlan(null)
-      fetchUserSubscription()
-      update()
-      toast.success('Abonnement activé avec succès !')
-    }}
-  />
-)}
+        <SubscriptionPaymentModal
+          isOpen={isSubscriptionModalOpen}
+          onClose={() => {
+            setIsSubscriptionModalOpen(false)
+            setSelectedSubscriptionPlan(null)
+          }}
+          plan={selectedSubscriptionPlan}
+          onSuccess={() => {
+            setIsSubscriptionModalOpen(false)
+            setSelectedSubscriptionPlan(null)
+            fetchUserSubscription()
+            update()
+            toast.success('Abonnement activé avec succès !')
+          }}
+        />
+      )}
 
-      {/* Footer fixe */}
       <Footer footerTabs={footerTabs} activeFooterTab={activeFooterTab} setActiveFooterTab={setActiveFooterTab} />
     </div>
   )
