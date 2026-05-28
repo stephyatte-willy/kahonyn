@@ -36,6 +36,7 @@ model users {
   saves          userSaves[]
   subscriptions  subscriptions[]
   coinTransactions coinTransactions[]
+  subscriptionTransactions subscriptionTransactions[]
 
   @@map("users")
 }
@@ -242,7 +243,7 @@ model coinTransactions {
   status        String   @default("pending") @db.VarChar(50) // pending, completed, failed
   transactionId String?  @unique @db.VarChar(191)
   paymentMethod String   @default("orange_money") @db.VarChar(50)
-  paymentUrl    String?  @db.VarChar(500) // ← AJOUTER CETTE LIGNE
+  paymentUrl    String?  @db.VarChar(500)
   createdAt     DateTime @default(now())
   completedAt   DateTime?
 
@@ -253,4 +254,26 @@ model coinTransactions {
   @@index([packId])
   @@index([status])
   @@map("coin_transactions")
+}
+
+// ============================================================
+// MODÈLE SUBSCRIPTION_TRANSACTIONS (Paiements d'abonnement)
+// ============================================================
+model subscriptionTransactions {
+  id            String   @id @default(cuid()) @db.VarChar(191)
+  userId        String   @db.VarChar(191)
+  plan          String   @db.VarChar(50) // monthly, quarterly, yearly
+  amount        Int      // prix payé en FCFA
+  status        String   @default("pending") @db.VarChar(50) // pending, completed, failed
+  transactionId String?  @unique @db.VarChar(191)
+  paymentMethod String   @default("wave") @db.VarChar(50)
+  paymentUrl    String?  @db.VarChar(500)
+  createdAt     DateTime @default(now())
+  completedAt   DateTime?
+
+  user        users     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+  @@map("subscription_transactions")
 }

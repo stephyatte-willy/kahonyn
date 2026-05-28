@@ -21,6 +21,7 @@ import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import WavePaymentModal from '../components/WavePaymentModal'
 import toast, { Toaster } from 'react-hot-toast'
+import SubscriptionPaymentModal from '../components/SubscriptionPaymentModal'
 
 interface CoinPack {
   id: string
@@ -42,6 +43,8 @@ export default function PremiumPage() {
   const [userSubscription, setUserSubscription] = useState<any>(null)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null)
+  const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false)
+  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<any>(null)
 
   useEffect(() => {
     fetchCoinPacks()
@@ -71,59 +74,14 @@ export default function PremiumPage() {
     }
   }
 
-  const handleSubscribe = async (plan: string) => {
-    if (!session) {
-      toast.error('Connectez-vous pour souscrire')
-      return
-    }
-
-    setSelectedPlan(plan)
-    setProcessing(true)
-
-    let price = 0
-    let planName = ''
-    switch (plan) {
-      case 'monthly':
-        price = 5000
-        planName = 'Mensuel'
-        break
-      case 'quarterly':
-        price = 13500
-        planName = 'Trimestriel'
-        break
-      case 'yearly':
-        price = 48000
-        planName = 'Annuel'
-        break
-    }
-
-    if (!confirm(`Souscrire à l'offre ${planName} (${price.toLocaleString()} FCFA) ?`)) {
-      setProcessing(false)
-      setSelectedPlan(null)
-      return
-    }
-
-    try {
-      const res = await fetch('/api/premium/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan })
-      })
-      const data = await res.json()
-      if (res.ok) {
-        toast.success(data.message)
-        fetchUserSubscription()
-        await update()
-      } else {
-        toast.error(data.error || 'Erreur')
-      }
-    } catch (error) {
-      toast.error('Erreur réseau')
-    } finally {
-      setProcessing(false)
-      setSelectedPlan(null)
-    }
+  const handleSubscribe = (plan: any) => {
+  if (!session) {
+    toast.error('Connectez-vous pour souscrire')
+    return
   }
+  setSelectedSubscriptionPlan(plan)
+  setIsSubscriptionModalOpen(true)
+}
 
   const handleBuyCoins = (pack: CoinPack) => {
     if (!session) {
@@ -348,6 +306,24 @@ export default function PremiumPage() {
           }}
         />
       )}
+
+      {isSubscriptionModalOpen && selectedSubscriptionPlan && (
+  <SubscriptionPaymentModal
+    isOpen={isSubscriptionModalOpen}
+    onClose={() => {
+      setIsSubscriptionModalOpen(false)
+      setSelectedSubscriptionPlan(null)
+    }}
+    plan={selectedSubscriptionPlan}
+    onSuccess={() => {
+      setIsSubscriptionModalOpen(false)
+      setSelectedSubscriptionPlan(null)
+      fetchUserSubscription()
+      update()
+      toast.success('Abonnement activé avec succès !')
+    }}
+  />
+)}
 
       {/* Footer fixe */}
       <Footer footerTabs={footerTabs} activeFooterTab={activeFooterTab} setActiveFooterTab={setActiveFooterTab} />
