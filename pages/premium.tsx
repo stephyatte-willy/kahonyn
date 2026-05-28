@@ -75,13 +75,13 @@ export default function PremiumPage() {
   }
 
   const handleSubscribe = (plan: any) => {
-  if (!session) {
-    toast.error('Connectez-vous pour souscrire')
-    return
+    if (!session) {
+      toast.error('Connectez-vous pour souscrire')
+      return
+    }
+    setSelectedSubscriptionPlan(plan)
+    setIsSubscriptionModalOpen(true)
   }
-  setSelectedSubscriptionPlan(plan)
-  setIsSubscriptionModalOpen(true)
-}
 
   const handleBuyCoins = (pack: CoinPack) => {
     if (!session) {
@@ -175,7 +175,7 @@ export default function PremiumPage() {
               }`}
             >
               {plan.popular && (
-                <div className="absolute top-0 right-0 bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                   Populaire
                 </div>
               )}
@@ -209,12 +209,12 @@ export default function PremiumPage() {
                   </li>
                 </ul>
                 <button
-                  onClick={() => handleSubscribe(plan.id)}
+                  onClick={() => handleSubscribe(plan)}
                   disabled={processing || isSubscribed}
                   className={`w-full py-2 rounded-lg font-semibold transition-all duration-300 ${
                     isSubscribed
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-kahonyn-energie to-orange-500 text-white hover:shadow-md'
+                      ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:shadow-lg hover:shadow-amber-500/20'
                   }`}
                 >
                   {processing && selectedPlan === plan.id ? 'Traitement...' : isSubscribed ? 'Déjà abonné' : 'Souscrire'}
@@ -259,7 +259,7 @@ export default function PremiumPage() {
               {pack.bonus > 0 && (
                 <div className="text-green-600 text-[10px] font-semibold mb-1">+{pack.bonus} offerts</div>
               )}
-              <div className="text-kahonyn-energie font-bold">{pack.price.toLocaleString()} FCFA</div>
+              <div className="text-amber-500 font-bold">{pack.price.toLocaleString()} FCFA</div>
               <div className="text-[10px] text-gray-400 mt-1">{Math.round((pack.coins + pack.bonus) / pack.price * 1000)} coins/1000 FCFA</div>
             </div>
           ))}
