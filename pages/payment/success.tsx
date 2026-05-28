@@ -38,12 +38,16 @@ export default function PaymentSuccess() {
           <p className="text-gray-400 mb-4">
             Vos coins ont été ajoutés à votre compte.
           </p>
+          <div className="bg-gray-800 rounded-lg p-3 mb-6">
+            <p className="text-xs text-gray-400">ID Transaction</p>
+            <p className="text-sm text-gray-300 font-mono break-all">{transactionId}</p>
+          </div>
           <p className="text-sm text-gray-500 mb-6">
             Redirection dans {countdown} secondes...
           </p>
           <Link
             href="/premium"
-            className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition"
+            className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition inline-block"
           >
             Retour aux primes
           </Link>

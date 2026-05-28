@@ -34,11 +34,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    // POUR LE TEST (simulation) : au lieu d'utiliser l'API Wave réelle,
-    // on simule un paiement réussi directement
-    // En production, remplacer par un appel réel à l'API Wave
+    // Récupérer l'URL de base (fonctionne localhost et Vercel)
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://kahonyn.vercel.app'
     
-    // SIMULATION : Marquer la transaction comme complétée directement
+    // Simuler un paiement réussi
     await prisma.coinTransactions.update({
       where: { id: transaction.id },
       data: {
@@ -53,12 +52,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: { coins: { increment: coins } }
     })
 
-    // Simuler une URL de redirection (page de succès)
-    const successUrl = `${process.env.NEXTAUTH_URL}/payment/success?transactionId=${transaction.id}`
+    // Utiliser l'URL dynamique
+    const successUrl = `${baseUrl}/payment/success?transactionId=${transaction.id}`
 
     return res.status(200).json({
       success: true,
-      paymentUrl: successUrl, // Redirige vers la page de succès
+      paymentUrl: successUrl,
       transactionId: transaction.id,
       isSimulation: true
     })

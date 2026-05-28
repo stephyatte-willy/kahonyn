@@ -19,7 +19,7 @@ export default function PaymentCancel() {
           </p>
           <Link
             href="/premium"
-            className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition"
+            className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-2 rounded-lg hover:shadow-lg transition inline-block"
           >
             Retour aux primes
           </Link>
