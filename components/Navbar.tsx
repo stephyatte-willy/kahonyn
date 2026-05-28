@@ -7,28 +7,73 @@ import {
   ArrowRightOnRectangleIcon, 
   MagnifyingGlassIcon,
   UserCircleIcon,
-  Bars3Icon,
-  XMarkIcon,
-  SparklesIcon
+  SparklesIcon,
+  GiftIcon,
+  ChevronDownIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import AuthSlidePanel from './AuthSlidePanel'
+
+interface Category {
+  id: string
+  label: string
+  icon: string
+}
 
 interface NavbarProps {
   searchTerm?: string
   onSearchChange?: (value: string) => void
+  activeCategory?: string
+  onCategoryChange?: (category: string) => void
+  categories?: Category[]
+  allCategories?: Category[]
 }
 
-export default function Navbar({ searchTerm = '', onSearchChange }: NavbarProps) {
+const horizontalCategories = [
+  { id: 'popular', label: 'Populaires', icon: '🔥' },
+  { id: 'anime', label: 'Animé', icon: '🎌' },
+  { id: 'unpublished', label: 'Inédit', icon: '✨' },
+  { id: 'ranking', label: 'Classement', icon: '🏆' },
+  { id: 'dubbed', label: 'Doublés', icon: '🎤' },
+  { id: 'vip', label: 'VIP', icon: '👑' },
+  { id: 'women', label: 'Femmes', icon: '👩' },
+  { id: 'men', label: 'Hommes', icon: '👨' },
+]
+
+export default function Navbar({ 
+  searchTerm = '', 
+  onSearchChange, 
+  activeCategory = 'popular',
+  onCategoryChange,
+  categories = horizontalCategories,
+  allCategories
+}: NavbarProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const [localSearch, setLocalSearch] = useState(searchTerm)
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [authPanelOpen, setAuthPanelOpen] = useState(false)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const modalRef = useRef<HTMLDivElement>(null)
   
   const hideNavbar = router.pathname === '/login' || router.pathname === '/register'
   const isAdmin = session?.user?.role === 'admin'
+
+  // Utiliser allCategories si fourni, sinon utiliser categories
+  const displayAllCategories = allCategories || categories
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setShowCategoryModal(false)
+      }
+    }
+    if (showCategoryModal) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showCategoryModal])
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
@@ -36,6 +81,11 @@ export default function Navbar({ searchTerm = '', onSearchChange }: NavbarProps)
     if (onSearchChange) {
       onSearchChange(value)
     }
+  }
+
+  const handleCategorySelect = (categoryId: string) => {
+    onCategoryChange?.(categoryId)
+    setShowCategoryModal(false)
   }
 
   const openLogin = () => {
@@ -50,144 +100,170 @@ export default function Navbar({ searchTerm = '', onSearchChange }: NavbarProps)
 
   if (hideNavbar) return null
 
-  const menuItems = [
-    { label: 'Accueil', href: '/' },
-    { label: 'Pour vous', href: '/for-you' },
-    { label: 'Ma liste', href: '/my-list' },
-    { label: 'Primes', href: '/premium' },
-    ...(isAdmin ? [{ label: 'Admin', href: '/admin/videos/pending' }] : []),
-    { label: 'Profil', href: '/profile' },
-  ]
-
   return (
     <>
-      <nav className="bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-2xl border-b border-white/[0.06] sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-xl shadow-[#FF6B35]/25 group-hover:shadow-[#FF6B35]/40 group-hover:scale-105 transition-all duration-500">
-                <SparklesIcon className="w-6 h-6 text-white" />
-              </div>
-              <div className="hidden sm:block">
-                <h1 className="font-bold text-lg text-white tracking-tight leading-tight">Kahonyn</h1>
-                <p className="text-[9px] text-[#D4A855]/60 font-medium tracking-[0.2em] uppercase">Mini-séries</p>
-              </div>
-            </Link>
+      {/* Navbar fixe avec les couleurs sombres originales */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-2xl shadow-lg shadow-black/20">
+        {/* Partie supérieure : Logo + Recherche + Actions */}
+        <div className="border-b border-white/[0.06]">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4">
+            <div className="flex items-center justify-between h-12 sm:h-14">
+              
+              {/* Logo */}
+              <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-xl shadow-[#FF6B35]/25 group-hover:shadow-[#FF6B35]/40 group-hover:scale-105 transition-all duration-500">
+                  <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="font-bold text-sm sm:text-base text-white tracking-tight leading-tight">Kahonyn</h1>
+                  <p className="text-[8px] sm:text-[9px] text-[#D4A855]/60 font-medium tracking-[0.15em] uppercase">Mini-séries</p>
+                </div>
+              </Link>
 
-            {/* Barre de recherche */}
-            <div className="hidden md:flex flex-1 max-w-md mx-8">
-              <div className="relative w-full">
-                <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35]/10 to-[#D4A855]/10 rounded-full blur-md opacity-50"></div>
+              {/* Barre de recherche */}
+              <div className="flex-1 max-w-[160px] sm:max-w-[250px] md:max-w-md mx-2 sm:mx-4">
                 <div className="relative">
-                  <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4A855]/50" />
-                  <input
-                    type="text"
-                    placeholder="Rechercher..."
-                    value={localSearch}
-                    onChange={handleSearchChange}
-                    className="w-full pl-11 pr-5 py-2.5 text-sm bg-[#1E1E3A]/80 border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35]/40 outline-none transition-all text-white placeholder-[#D4A855]/30 backdrop-blur-sm"
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35]/10 to-[#D4A855]/10 rounded-full blur-md opacity-50 hidden sm:block"></div>
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D4A855]/50" />
+                    <input
+                      type="text"
+                      placeholder="Rechercher..."
+                      value={localSearch}
+                      onChange={handleSearchChange}
+                      className="w-full pl-8 sm:pl-10 pr-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-[#1E1E3A]/80 border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35]/40 outline-none transition-all text-white placeholder-[#D4A855]/30 backdrop-blur-sm"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Actions utilisateur */}
-            <div className="hidden md:flex items-center gap-3">
-              {session ? (
-                <>
-                  <div className="flex items-center gap-2.5 px-4 py-2 bg-[#1E1E3A]/80 rounded-xl border border-white/[0.06] backdrop-blur-sm">
-                    <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
-                      <UserCircleIcon className="w-4 h-4 text-white" />
+              {/* Boutons */}
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Bouton Bonus en mobile */}
+                <button className="md:hidden flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#0D0D1A] rounded-full text-[10px] font-bold shadow-lg shadow-[#D4A855]/20 active:scale-95 transition-transform">
+                  <GiftIcon className="w-3.5 h-3.5" />
+                  <span>Bonus</span>
+                </button>
+
+                {/* Actions desktop */}
+                <div className="hidden md:flex items-center gap-3">
+                  {session ? (
+                    <>
+                      <div className="flex items-center gap-2.5 px-4 py-2 bg-[#1E1E3A]/80 rounded-xl border border-white/[0.06] backdrop-blur-sm">
+                        <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
+                          <UserCircleIcon className="w-4 h-4 text-white" />
+                        </div>
+                        <span className="text-sm text-white/90 font-medium">
+                          {session.user?.name || session.user?.phone || 'User'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => signOut()}
+                        className="flex items-center gap-2 px-3.5 py-2 text-sm text-[#D4A855]/70 hover:text-[#FF6B35] transition-colors rounded-xl hover:bg-[#1E1E3A]/50"
+                      >
+                        <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                        <span className="hidden lg:inline">Sortir</span>
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={openLogin}
+                        className="px-5 py-2.5 text-sm font-medium text-[#D4A855] hover:text-white transition rounded-xl hover:bg-[#1E1E3A]/50 border border-white/[0.06]"
+                      >
+                        Connexion
+                      </button>
+                      <button
+                        onClick={openRegister}
+                        className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl shadow-lg shadow-[#FF6B35]/20 hover:shadow-[#FF6B35]/30 transition-all"
+                      >
+                        Inscription
+                      </button>
                     </div>
-                    <span className="text-sm text-white/90 font-medium">
-                      {session.user?.name || session.user?.phone || 'User'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => signOut()}
-                    className="flex items-center gap-2 px-3.5 py-2 text-sm text-[#D4A855]/70 hover:text-[#FF6B35] transition-colors rounded-xl hover:bg-[#1E1E3A]/50"
-                  >
-                    <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    <span className="hidden lg:inline">Sortir</span>
-                  </button>
-                </>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={openLogin}
-                    className="px-5 py-2.5 text-sm font-medium text-[#D4A855] hover:text-white transition rounded-xl hover:bg-[#1E1E3A]/50 border border-white/[0.06]"
-                  >
-                    Connexion
-                  </button>
-                  <button
-                    onClick={openRegister}
-                    className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl shadow-lg shadow-[#FF6B35]/20 hover:shadow-[#FF6B35]/30 transition-all"
-                  >
-                    Inscription
-                  </button>
+                  )}
                 </div>
-              )}
-            </div>
-
-            {/* Menu mobile */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-xl text-[#D4A855] hover:bg-[#1E1E3A]/50 transition"
-            >
-              {mobileMenuOpen ? <XMarkIcon className="w-5 h-5" /> : <Bars3Icon className="w-5 h-5" />}
-            </button>
-          </div>
-
-          {/* Recherche mobile */}
-          <div className="md:hidden pb-3">
-            <div className="relative w-full">
-              <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#D4A855]/50" />
-              <input
-                type="text"
-                placeholder="Rechercher..."
-                value={localSearch}
-                onChange={handleSearchChange}
-                className="w-full pl-11 pr-4 py-2.5 text-sm bg-[#1E1E3A]/80 border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/20 outline-none transition text-white placeholder-[#D4A855]/30"
-              />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Menu mobile */}
-        {mobileMenuOpen && (
-          <div className="md:hidden bg-[#1A1A35]/95 backdrop-blur-2xl border-t border-white/[0.06] py-3 px-4 shadow-2xl">
-            <div className="flex flex-col space-y-1">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="px-4 py-3 text-[#D4A855]/80 hover:bg-[#1E1E3A]/50 rounded-xl transition text-sm font-medium"
+        {/* Partie inférieure : Catégories avec bouton dropdown */}
+        <div className="bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-xl border-b border-white/[0.06]">
+          <div className="max-w-7xl mx-auto px-2 sm:px-4">
+            <div className="flex items-center gap-1 overflow-x-auto py-2.5 scrollbar-hide">
+              {/* Afficher les premières catégories (toutes sauf la dernière) */}
+              {categories.slice(0, -1).map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.id)}
+                  className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all duration-300 ${
+                    activeCategory === cat.id
+                      ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
+                      : 'bg-white/[0.04] text-[#D4A855]/70 hover:bg-white/[0.08] hover:text-[#D4A855] border border-white/[0.04]'
+                  }`}
                 >
-                  {item.label}
-                </Link>
-              ))}
-              {!session && (
-                <>
-                  <button onClick={() => { setMobileMenuOpen(false); openLogin() }} className="px-4 py-3 text-[#D4A855] hover:bg-[#1E1E3A]/50 rounded-xl transition text-sm font-medium text-left">
-                    Connexion
-                  </button>
-                  <button onClick={() => { setMobileMenuOpen(false); openRegister() }} className="px-4 py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl text-center text-sm font-medium mt-1">
-                    Inscription
-                  </button>
-                </>
-              )}
-              {session && (
-                <button onClick={() => { signOut(); setMobileMenuOpen(false) }} className="px-4 py-3 text-red-400 hover:bg-red-500/5 rounded-xl transition text-sm text-left">
-                  Déconnexion
+                  <span className="mr-1.5">{cat.icon}</span>
+                  {cat.label}
                 </button>
-              )}
+              ))}
+              
+              {/* Bouton Catégories avec dropdown */}
+              <button
+                onClick={() => setShowCategoryModal(true)}
+                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
+                  showCategoryModal 
+                    ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
+                    : 'bg-white/[0.04] text-[#D4A855]/70 hover:bg-white/[0.08] hover:text-[#D4A855] border border-white/[0.04]'
+                }`}
+              >
+                <span>📂</span>
+                <span>Catégories</span>
+                <ChevronDownIcon className={`w-3 h-3 transition-transform duration-300 ${showCategoryModal ? 'rotate-180' : ''}`} />
+              </button>
             </div>
           </div>
-        )}
+        </div>
       </nav>
+
+      {/* Modal toutes les catégories */}
+      {showCategoryModal && (
+        <>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={() => setShowCategoryModal(false)} />
+          <div ref={modalRef} className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#1A1A35] to-[#202045] rounded-t-[2.5rem] z-50 animate-slideUp max-h-[80vh] overflow-hidden shadow-2xl border-t border-white/[0.06]">
+            <div className="sticky top-0 bg-[#1A1A35]/95 backdrop-blur-xl p-6 border-b border-white/[0.04] flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Toutes les catégories</h2>
+                <p className="text-xs text-[#D4A855]/50 mt-0.5">Choisissez votre univers</p>
+              </div>
+              <button onClick={() => setShowCategoryModal(false)} className="p-2.5 hover:bg-white/[0.05] rounded-xl transition">
+                <XMarkIcon className="w-5 h-5 text-[#D4A855]" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[70vh] p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {displayAllCategories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => handleCategorySelect(cat.id)}
+                    className={`flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 ${
+                      activeCategory === cat.id
+                        ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
+                        : 'bg-white/[0.04] text-[#D4A855]/80 hover:bg-white/[0.08] hover:text-[#D4A855] border border-white/[0.04]'
+                    }`}
+                  >
+                    <span className="text-2xl">{cat.icon}</span>
+                    <span className="font-medium text-sm">{cat.label}</span>
+                    {activeCategory === cat.id && <span className="ml-auto text-white">✦</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Espaceur pour compenser la navbar fixe */}
+      <div className="h-[88px] sm:h-[96px]" />
 
       <AuthSlidePanel isOpen={authPanelOpen} onClose={() => setAuthPanelOpen(false)} initialMode={authMode} />
     </>
