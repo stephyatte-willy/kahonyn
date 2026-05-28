@@ -28,7 +28,7 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
                   className={`relative flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all duration-200 ${
                     isActive 
                       ? 'text-[#FF6B35]' 
-                      : 'text-[#D4A855]/70 hover:text-[#D4A855]'
+                      : 'text-white/70 hover:text-white'
                   }`}
                 >
                   <div className={`p-1 rounded-lg transition-all duration-200 ${
@@ -36,9 +36,7 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
                   }`}>
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <span className={`text-[9px] sm:text-[10px] font-medium tracking-wide ${
-                    isActive ? 'opacity-100' : 'opacity-70'
-                  }`}>
+                  <span className="text-[9px] sm:text-[10px] font-bold tracking-wide">
                     {tab.label}
                   </span>
                 </Link>

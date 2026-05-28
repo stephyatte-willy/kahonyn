@@ -56,11 +56,11 @@ export default function Navbar({
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   
   const hideNavbar = router.pathname === '/login' || router.pathname === '/register'
   const isAdmin = session?.user?.role === 'admin'
 
-  // Utiliser allCategories si fourni, sinon utiliser categories
   const displayAllCategories = allCategories || categories
 
   useEffect(() => {
@@ -116,7 +116,7 @@ export default function Navbar({
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="font-bold text-sm sm:text-base text-white tracking-tight leading-tight">Kahonyn</h1>
-                  <p className="text-[8px] sm:text-[9px] text-[#D4A855]/60 font-medium tracking-[0.15em] uppercase">Mini-séries</p>
+                  <p className="text-[8px] sm:text-[9px] text-white/80 font-bold tracking-[0.15em] uppercase">Mini-séries</p>
                 </div>
               </Link>
 
@@ -125,13 +125,13 @@ export default function Navbar({
                 <div className="relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35]/10 to-[#D4A855]/10 rounded-full blur-md opacity-50 hidden sm:block"></div>
                   <div className="relative">
-                    <MagnifyingGlassIcon className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D4A855]/50" />
+                    <MagnifyingGlassIcon className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/60" />
                     <input
                       type="text"
                       placeholder="Rechercher..."
                       value={localSearch}
                       onChange={handleSearchChange}
-                      className="w-full pl-8 sm:pl-10 pr-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-[#1E1E3A]/80 border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35]/40 outline-none transition-all text-white placeholder-[#D4A855]/30 backdrop-blur-sm"
+                      className="w-full pl-8 sm:pl-10 pr-3 py-1.5 sm:py-2 text-xs sm:text-sm bg-[#1E1E3A]/80 border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35]/40 outline-none transition-all text-white font-bold placeholder-white/40 backdrop-blur-sm"
                     />
                   </div>
                 </div>
@@ -153,13 +153,13 @@ export default function Navbar({
                         <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
                           <UserCircleIcon className="w-4 h-4 text-white" />
                         </div>
-                        <span className="text-sm text-white/90 font-medium">
+                        <span className="text-sm text-white font-bold">
                           {session.user?.name || session.user?.phone || 'User'}
                         </span>
                       </div>
                       <button
                         onClick={() => signOut()}
-                        className="flex items-center gap-2 px-3.5 py-2 text-sm text-[#D4A855]/70 hover:text-[#FF6B35] transition-colors rounded-xl hover:bg-[#1E1E3A]/50"
+                        className="flex items-center gap-2 px-3.5 py-2 text-sm text-white/70 hover:text-white font-bold transition-colors rounded-xl hover:bg-[#1E1E3A]/50"
                       >
                         <ArrowRightOnRectangleIcon className="w-4 h-4" />
                         <span className="hidden lg:inline">Sortir</span>
@@ -169,13 +169,13 @@ export default function Navbar({
                     <div className="flex gap-2">
                       <button
                         onClick={openLogin}
-                        className="px-5 py-2.5 text-sm font-medium text-[#D4A855] hover:text-white transition rounded-xl hover:bg-[#1E1E3A]/50 border border-white/[0.06]"
+                        className="px-5 py-2.5 text-sm font-bold text-white/80 hover:text-white transition rounded-xl hover:bg-[#1E1E3A]/50 border border-white/[0.06]"
                       >
                         Connexion
                       </button>
                       <button
                         onClick={openRegister}
-                        className="px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl shadow-lg shadow-[#FF6B35]/20 hover:shadow-[#FF6B35]/30 transition-all"
+                        className="px-5 py-2.5 text-sm font-bold bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl shadow-lg shadow-[#FF6B35]/20 hover:shadow-[#FF6B35]/30 transition-all"
                       >
                         Inscription
                       </button>
@@ -187,39 +187,45 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Partie inférieure : Catégories avec bouton dropdown */}
+        {/* Partie inférieure : Catégories avec bouton dropdown FIXE à droite */}
         <div className="bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-xl border-b border-white/[0.06]">
-          <div className="max-w-7xl mx-auto px-2 sm:px-4">
-            <div className="flex items-center gap-1 overflow-x-auto py-2.5 scrollbar-hide">
-              {/* Afficher les premières catégories (toutes sauf la dernière) */}
-              {categories.slice(0, -1).map((cat) => (
+          <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
+            <div className="flex items-center py-2.5">
+              {/* Zone de défilement des catégories */}
+              <div className="flex-1 overflow-x-auto scrollbar-hide" ref={scrollContainerRef}>
+                <div className="flex items-center gap-1 pr-2">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleCategorySelect(cat.id)}
+                      className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-300 ${
+                        activeCategory === cat.id
+                          ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
+                          : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/[0.04]'
+                      }`}
+                    >
+                      <span className="mr-1.5">{cat.icon}</span>
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Bouton Catégories FIXE à droite */}
+              <div className="flex-shrink-0 pl-1 border-l border-white/[0.06]">
                 <button
-                  key={cat.id}
-                  onClick={() => handleCategorySelect(cat.id)}
-                  className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all duration-300 ${
-                    activeCategory === cat.id
+                  onClick={() => setShowCategoryModal(true)}
+                  className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
+                    showCategoryModal 
                       ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
-                      : 'bg-white/[0.04] text-[#D4A855]/70 hover:bg-white/[0.08] hover:text-[#D4A855] border border-white/[0.04]'
+                      : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/[0.04]'
                   }`}
                 >
-                  <span className="mr-1.5">{cat.icon}</span>
-                  {cat.label}
+                  <span>📂</span>
+                  <span>Catégories</span>
+                  <ChevronDownIcon className={`w-3 h-3 transition-transform duration-300 ${showCategoryModal ? 'rotate-180' : ''}`} />
                 </button>
-              ))}
-              
-              {/* Bouton Catégories avec dropdown */}
-              <button
-                onClick={() => setShowCategoryModal(true)}
-                className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-medium whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
-                  showCategoryModal 
-                    ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
-                    : 'bg-white/[0.04] text-[#D4A855]/70 hover:bg-white/[0.08] hover:text-[#D4A855] border border-white/[0.04]'
-                }`}
-              >
-                <span>📂</span>
-                <span>Catégories</span>
-                <ChevronDownIcon className={`w-3 h-3 transition-transform duration-300 ${showCategoryModal ? 'rotate-180' : ''}`} />
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -232,11 +238,11 @@ export default function Navbar({
           <div ref={modalRef} className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#1A1A35] to-[#202045] rounded-t-[2.5rem] z-50 animate-slideUp max-h-[80vh] overflow-hidden shadow-2xl border-t border-white/[0.06]">
             <div className="sticky top-0 bg-[#1A1A35]/95 backdrop-blur-xl p-6 border-b border-white/[0.04] flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-semibold text-white">Toutes les catégories</h2>
-                <p className="text-xs text-[#D4A855]/50 mt-0.5">Choisissez votre univers</p>
+                <h2 className="text-lg font-bold text-white">Toutes les catégories</h2>
+                <p className="text-xs text-white/60 font-bold mt-0.5">Choisissez votre univers</p>
               </div>
               <button onClick={() => setShowCategoryModal(false)} className="p-2.5 hover:bg-white/[0.05] rounded-xl transition">
-                <XMarkIcon className="w-5 h-5 text-[#D4A855]" />
+                <XMarkIcon className="w-5 h-5 text-white" />
               </button>
             </div>
             <div className="overflow-y-auto max-h-[70vh] p-6">
@@ -248,11 +254,11 @@ export default function Navbar({
                     className={`flex items-center gap-3 p-4 rounded-2xl transition-all duration-300 ${
                       activeCategory === cat.id
                         ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
-                        : 'bg-white/[0.04] text-[#D4A855]/80 hover:bg-white/[0.08] hover:text-[#D4A855] border border-white/[0.04]'
+                        : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/[0.04]'
                     }`}
                   >
                     <span className="text-2xl">{cat.icon}</span>
-                    <span className="font-medium text-sm">{cat.label}</span>
+                    <span className="font-bold text-sm">{cat.label}</span>
                     {activeCategory === cat.id && <span className="ml-auto text-white">✦</span>}
                   </button>
                 ))}

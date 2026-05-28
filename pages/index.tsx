@@ -92,7 +92,6 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Erreur fetchCategories:', error)
-      // Garder les catégories par défaut
     }
   }
 
@@ -145,7 +144,7 @@ export default function Home() {
               </div>
               <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#FF6B35] animate-bounce"></div>
             </div>
-            <p className="text-gray-700 text-sm font-medium">Chargement...</p>
+            <p className="text-gray-900 font-bold text-sm">Chargement...</p>
           </div>
         </div>
       </div>
@@ -173,13 +172,13 @@ export default function Home() {
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900">Séries populaires</h2>
-                <p className="text-[10px] sm:text-[11px] text-gray-700 flex items-center gap-1">
+                <p className="text-[10px] sm:text-[11px] text-gray-700 font-bold flex items-center gap-1">
                   <FireIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   {series.length} séries
                 </p>
               </div>
             </div>
-            <Link href="/series" className="px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-[#FF6B35] hover:bg-[#FF6B35]/10 rounded-lg transition border border-[#FF6B35]/30">
+            <Link href="/series" className="px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-[#FF6B35] hover:bg-[#FF6B35]/10 rounded-lg transition border border-[#FF6B35]/30">
               Voir tout →
             </Link>
           </div>
@@ -224,11 +223,11 @@ export default function Home() {
                   </div>
                   
                   <div className="p-1.5 sm:p-2">
-                    <h3 className="font-semibold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#FF6B35] transition duration-200 leading-tight">
+                    <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#FF6B35] transition duration-200 leading-tight">
                       {serie.title}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[8px] sm:text-[9px] text-gray-600 font-medium flex items-center gap-0.5">
+                      <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
                         <FireIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                         {serie.totalViews?.toLocaleString() || 0}
                       </span>
@@ -251,13 +250,13 @@ export default function Home() {
               </div>
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-gray-900">Films à l'affiche</h2>
-                <p className="text-[10px] sm:text-[11px] text-gray-700 flex items-center gap-1">
+                <p className="text-[10px] sm:text-[11px] text-gray-700 font-bold flex items-center gap-1">
                   <ClockIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   {movies.length} films
                 </p>
               </div>
             </div>
-            <Link href="/movies" className="px-2.5 py-1 text-[10px] sm:text-[11px] font-semibold text-[#D4A855] hover:bg-[#D4A855]/10 rounded-lg transition border border-[#D4A855]/30">
+            <Link href="/movies" className="px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-[#D4A855] hover:bg-[#D4A855]/10 rounded-lg transition border border-[#D4A855]/30">
               Voir tout →
             </Link>
           </div>
@@ -302,11 +301,11 @@ export default function Home() {
                   </div>
                   
                   <div className="p-1.5 sm:p-2">
-                    <h3 className="font-semibold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#D4A855] transition duration-200 leading-tight">
+                    <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#D4A855] transition duration-200 leading-tight">
                       {movie.title}
                     </h3>
                     <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[8px] sm:text-[9px] text-gray-600 font-medium flex items-center gap-0.5">
+                      <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
                         <ClockIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
                         {movie.duration || '--'} min
                       </span>
@@ -326,7 +325,7 @@ export default function Home() {
             <span className="text-2xl sm:text-3xl">🎬</span>
           </div>
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Encore un peu de patience</h3>
-          <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+          <p className="text-xs sm:text-sm text-gray-600 font-bold max-w-md mx-auto">
             Notre équipe prépare du contenu incroyable pour vous. Revenez très bientôt !
           </p>
         </div>
