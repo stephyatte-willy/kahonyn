@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 
-// Force Node.js runtime (pas de pré-rendu)
 export const runtime = 'nodejs'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -23,6 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Données incomplètes' })
     }
 
+    // Créer la transaction en base
     const transaction = await prisma.coinTransactions.create({
       data: {
         userId: session.user.id,
@@ -34,17 +34,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    const paymentUrl = `https://wave.com/pay?amount=${amount}&currency=XOF&reference=${transaction.id}`
-
+    // POUR LE TEST (simulation) : au lieu d'utiliser l'API Wave réelle,
+    // on simule un paiement réussi directement
+    // En production, remplacer par un appel réel à l'API Wave
+    
+    // SIMULATION : Marquer la transaction comme complétée directement
     await prisma.coinTransactions.update({
       where: { id: transaction.id },
-      data: { paymentUrl }
+      data: {
+        status: 'completed',
+        completedAt: new Date()
+      }
     })
+
+    // Ajouter les coins à l'utilisateur
+    await prisma.users.update({
+      where: { id: session.user.id },
+      data: { coins: { increment: coins } }
+    })
+
+    // Simuler une URL de redirection (page de succès)
+    const successUrl = `${process.env.NEXTAUTH_URL}/payment/success?transactionId=${transaction.id}`
 
     return res.status(200).json({
       success: true,
-      paymentUrl,
-      transactionId: transaction.id
+      paymentUrl: successUrl, // Redirige vers la page de succès
+      transactionId: transaction.id,
+      isSimulation: true
     })
   } catch (error) {
     console.error('Erreur création paiement:', error)

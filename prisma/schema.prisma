@@ -242,12 +242,15 @@ model coinTransactions {
   status        String   @default("pending") @db.VarChar(50) // pending, completed, failed
   transactionId String?  @unique @db.VarChar(191)
   paymentMethod String   @default("orange_money") @db.VarChar(50)
+  paymentUrl    String?  @db.VarChar(500) // ← AJOUTER CETTE LIGNE
   createdAt     DateTime @default(now())
+  completedAt   DateTime?
 
   user        users     @relation(fields: [userId], references: [id])
   pack        coinPacks? @relation(fields: [packId], references: [id])
 
   @@index([userId])
   @@index([packId])
+  @@index([status])
   @@map("coin_transactions")
 }

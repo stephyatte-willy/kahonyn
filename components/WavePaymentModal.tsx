@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import { XMarkIcon, CreditCardIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, CreditCardIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
 interface WavePaymentModalProps {
@@ -40,6 +40,7 @@ export default function WavePaymentModal({ isOpen, onClose, pack, onSuccess }: W
       })
       const data = await res.json()
       if (res.ok && data.paymentUrl) {
+        // Rediriger vers l'URL de paiement (simulation ou réelle)
         window.location.href = data.paymentUrl
       } else {
         setError(data.error || 'Erreur lors de la création du paiement')
@@ -57,7 +58,6 @@ export default function WavePaymentModal({ isOpen, onClose, pack, onSuccess }: W
       
       <div className="fixed bottom-0 left-0 right-0 md:inset-0 md:flex md:items-center md:justify-center z-50 animate-slideUp md:animate-fadeIn">
         <div className="bg-white rounded-t-3xl md:rounded-3xl shadow-2xl max-w-md w-full mx-auto overflow-hidden">
-          {/* Header */}
           <div className="bg-gradient-to-r from-kahonyn-terre to-kahonyn-energie p-4 text-white">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -73,9 +73,7 @@ export default function WavePaymentModal({ isOpen, onClose, pack, onSuccess }: W
             </p>
           </div>
 
-          {/* Contenu */}
           <div className="p-6">
-            {/* Récapitulatif */}
             <div className="bg-gradient-to-br from-kahonyn-lumiere to-kahonyn-sable rounded-xl p-4 mb-6 text-center">
               <p className="text-sm text-gray-500">Vous recevrez</p>
               <p className="text-3xl font-bold text-kahonyn-energie">{totalCoins.toLocaleString()} coins</p>
@@ -84,7 +82,6 @@ export default function WavePaymentModal({ isOpen, onClose, pack, onSuccess }: W
               )}
             </div>
 
-            {/* Informations Wave */}
             <div className="bg-blue-50 rounded-xl p-4 mb-6">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -96,12 +93,11 @@ export default function WavePaymentModal({ isOpen, onClose, pack, onSuccess }: W
                 </div>
               </div>
               <p className="text-xs text-gray-600">
-                Vous serez redirigé vers Wave pour finaliser votre paiement.
-                Une fois le paiement confirmé, vos coins seront ajoutés instantanément.
+                🔄 Mode test : Le paiement est simulé pour le moment.<br />
+                En production, vous serez redirigé vers Wave.
               </p>
             </div>
 
-            {/* Erreur */}
             {error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-600 text-sm">
                 <ExclamationTriangleIcon className="w-4 h-4" />
@@ -109,7 +105,6 @@ export default function WavePaymentModal({ isOpen, onClose, pack, onSuccess }: W
               </div>
             )}
 
-            {/* Bouton de paiement */}
             <button
               onClick={handleWavePayment}
               disabled={loading}
