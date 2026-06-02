@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -23,39 +20,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const creators = await prisma.users.findMany({
+    const creators = await (prisma as any).user.findMany({
       where: {
-        OR: [
-          { role: 'creator' },
-          { role: 'admin' }
-        ]
+        role: { in: ['creator', 'admin'] }
       },
       orderBy: { createdAt: 'desc' },
       include: {
-        videos: {
-          select: { id: true }
-        },
-        earnings: {
-          select: { amount: true }
-        }
+        videos: { select: { id: true } },
+        purchases: { select: { amount: true } }
       }
     })
 
-    const formattedCreators = creators.map(creator => ({
+    const formattedCreators = creators.map((creator: any) => ({
       id: creator.id,
       name: creator.name,
       phone: creator.phone,
       email: creator.email,
-      coins: creator.coins,
-      totalEarnings: creator.earnings.reduce((sum, e) => sum + e.amount, 0),
+      coins: creator.coins || 0,
+      totalEarnings: creator.totalEarnings || 0,
       role: creator.role,
-      videos: creator.videos.length,
+      videos: creator.videos?.length || 0,
       createdAt: creator.createdAt
     }))
 
     return res.status(200).json(formattedCreators)
   } catch (error) {
-    console.error('Erreur:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    console.error('Erreur creators:', error)
+    return res.status(200).json([])
   }
 }

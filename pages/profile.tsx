@@ -1,22 +1,26 @@
 "use client"
 
 import { useSession } from 'next-auth/react'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import UserLayout from '../components/UserLayout'
+import ProfileLayout from '../components/ProfileLayout'
+import { AvatarModal, PasswordModal, StatCard, ProfileField } from '../components/ProfileComponents'
 import { 
   UserIcon, 
   PhoneIcon, 
   EnvelopeIcon, 
-  CalendarIcon, 
   PencilIcon,
-  CameraIcon,
   KeyIcon,
+  CurrencyDollarIcon,
+  ShoppingBagIcon,
+  HeartIcon,
+  VideoCameraIcon,
   EyeIcon,
-  EyeSlashIcon,
-  XMarkIcon
+  LockClosedIcon
 } from '@heroicons/react/24/outline'
-import toast, { Toaster } from 'react-hot-toast'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import Navbar from '../components/Navbar'
+import toast from 'react-hot-toast'
 
 interface UserProfile {
   id: string
@@ -28,54 +32,106 @@ interface UserProfile {
   avatar: string
   coins: number
   totalEarnings: number
+  totalVideos?: number
+  totalViews?: number
+  totalPurchases?: number
+  favorites?: number
   createdAt: string
 }
 
 export default function Profile() {
   const { data: session, update } = useSession()
   const router = useRouter()
+  const { isAuthorized, isLoading: authLoading } = useRequireAuth()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false)
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  })
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     bio: ''
   })
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (!session) {
-      router.push('/login')
-      return
-    }
+    if (!isAuthorized) return
     fetchProfile()
-  }, [session, router])
+  }, [isAuthorized])
 
   const fetchProfile = async () => {
     try {
       const res = await fetch('/api/user/profile')
+      
+      // Vérifier si la réponse est OK
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Erreur serveur')
+      }
+      
       const data = await res.json()
-      setProfile(data)
-      setFormData({
+      console.log('📦 Données profil reçues:', data)
+      
+      // Vérifier que les données sont valides
+      if (!data || typeof data !== 'object') {
+        throw new Error('Données invalides')
+      }
+      
+      // S'assurer que toutes les propriétés existent
+      const safeProfile: UserProfile = {
+        id: data.id || session?.user?.id || '',
+        phone: data.phone || (session?.user as any)?.phone || '',
         name: data.name || '',
         email: data.email || '',
-        bio: data.bio || ''
+        role: data.role || 'client',
+        bio: data.bio || '',
+        avatar: data.avatar || '',
+        coins: data.coins || 0,
+        totalEarnings: data.totalEarnings || 0,
+        totalVideos: data.totalVideos || 0,
+        totalViews: data.totalViews || 0,
+        totalPurchases: data.totalPurchases || 0,
+        favorites: data.favorites || 0,
+        createdAt: data.createdAt || new Date().toISOString(),
+      }
+      
+      setProfile(safeProfile)
+      setFormData({
+        name: safeProfile.name || '',
+        email: safeProfile.email || '',
+        bio: safeProfile.bio || ''
       })
     } catch (error) {
-      console.error('Erreur:', error)
-      toast.error('Impossible de charger le profil')
+      console.error('❌ Erreur fetchProfile:', error)
+      toast.error('Impossible de charger le profil', { duration: 2500 })
+      
+      // Créer un profil minimal à partir de la session
+      if (session?.user) {
+        const fallbackProfile: UserProfile = {
+          id: (session.user as any).id || '',
+          phone: (session.user as any).phone || '',
+          name: session.user.name || '',
+          email: session.user.email || '',
+          role: (session.user as any).role || 'client',
+          bio: '',
+          avatar: session.user.image || '',
+          coins: 0,
+          totalEarnings: 0,
+          totalVideos: 0,
+          totalViews: 0,
+          totalPurchases: 0,
+          favorites: 0,
+          createdAt: new Date().toISOString(),
+        }
+        setProfile(fallbackProfile)
+        setFormData({
+          name: fallbackProfile.name,
+          email: fallbackProfile.email,
+          bio: ''
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -89,412 +145,236 @@ export default function Profile() {
         body: JSON.stringify(formData)
       })
       if (res.ok) {
-        toast.success('Profil mis à jour')
+        toast.success('Profil mis à jour', { duration: 2000 })
         setEditing(false)
         fetchProfile()
         await update()
       } else {
-        toast.error('Erreur lors de la mise à jour')
+        const data = await res.json().catch(() => ({}))
+        toast.error(data.error || 'Erreur lors de la mise à jour', { duration: 2500 })
       }
     } catch (error) {
-      toast.error('Erreur réseau')
+      toast.error('Erreur réseau', { duration: 2500 })
     }
   }
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Veuillez sélectionner une image')
-      return
-    }
-
+  const handleAvatarUpload = async (file: File) => {
     setUploadingAvatar(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const res = await fetch('/api/upload-avatar', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Erreur upload')
-      }
-
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload-avatar', { method: 'POST', body: fd })
+      if (!res.ok) throw new Error('Erreur upload')
       const data = await res.json()
-      
       if (data.success) {
-        // Mettre à jour le profil localement
         setProfile(prev => prev ? { ...prev, avatar: data.avatar } : null)
-        toast.success('Photo de profil mise à jour')
+        toast.success('Photo mise à jour', { duration: 2000 })
         setIsAvatarModalOpen(false)
-        // Rafraîchir la session
         await update()
       }
     } catch (error) {
-      console.error('Erreur avatar:', error)
-      toast.error(error instanceof Error ? error.message : 'Erreur lors de l\'upload')
+      toast.error('Erreur lors de l\'upload', { duration: 2500 })
     } finally {
       setUploadingAvatar(false)
     }
   }
 
-  const handlePasswordChange = async () => {
-    if (!passwordForm.newPassword || !passwordForm.currentPassword) {
-      toast.error('Veuillez remplir tous les champs')
-      return
-    }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('Les nouveaux mots de passe ne correspondent pas')
-      return
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      toast.error('Le mot de passe doit avoir au moins 6 caractères')
-      return
-    }
-
+  const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
     setPasswordLoading(true)
     try {
       const res = await fetch('/api/user/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword
-        })
+        body: JSON.stringify({ currentPassword, newPassword })
       })
-
       const data = await res.json()
-
       if (res.ok) {
-        toast.success('Mot de passe modifié avec succès')
+        toast.success('Mot de passe modifié', { duration: 2000 })
         setIsPasswordModalOpen(false)
-        setPasswordForm({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        })
       } else {
-        toast.error(data.error || 'Erreur lors du changement')
+        toast.error(data.error || 'Erreur', { duration: 2500 })
       }
     } catch (error) {
-      toast.error('Erreur réseau')
+      toast.error('Erreur réseau', { duration: 2500 })
     } finally {
       setPasswordLoading(false)
     }
   }
 
-  if (loading) {
+  // Message si non connecté
+  if (!isAuthorized && !authLoading) {
     return (
-      <UserLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+      <div className="min-h-screen bg-[#F5F0E8]">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center h-[80vh] px-4">
+          <div className="w-20 h-20 rounded-2xl bg-white/80 border border-[#D4A855]/20 flex items-center justify-center mb-6 shadow-sm">
+            <LockClosedIcon className="w-10 h-10 text-[#FF6B35]" />
+          </div>
+          <h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Accès restreint</h2>
+          <p className="text-sm text-[#8B5A2B]/80 text-center max-w-sm">
+            Connectez-vous pour accéder à votre profil et gérer vos informations personnelles
+          </p>
         </div>
-      </UserLayout>
+      </div>
     )
   }
 
-  if (!profile) return null
+  if (loading || authLoading) {
+    return (
+      <ProfileLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6B35]"></div>
+        </div>
+      </ProfileLayout>
+    )
+  }
+
+  // Si pas de profil après chargement, afficher une erreur
+  if (!profile) {
+    return (
+      <ProfileLayout title="Mon Profil" activeTab="profile">
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="text-5xl mb-4">😕</div>
+          <h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Profil inaccessible</h2>
+          <p className="text-sm text-[#8B5A2B]/80 text-center">
+            Impossible de charger vos informations. Veuillez réessayer.
+          </p>
+          <button
+            onClick={fetchProfile}
+            className="mt-4 px-5 py-2.5 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl font-bold hover:shadow-lg transition"
+          >
+            Réessayer
+          </button>
+        </div>
+      </ProfileLayout>
+    )
+  }
 
   const isCreator = profile.role === 'creator'
+  const isAdmin = profile.role === 'admin'
+
+  // Valeurs sécurisées pour l'affichage
+  const displayName = profile.name || profile.phone || 'Utilisateur'
+  const displayPhone = profile.phone || 'Non renseigné'
+  const displayInitial = (profile.name?.[0] || profile.phone?.[0] || 'U').toUpperCase()
+  const memberSince = profile.createdAt 
+    ? new Date(profile.createdAt).toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })
+    : 'Date inconnue'
 
   return (
-    <UserLayout>
-      <Toaster position="top-right" toastOptions={{
-        style: { background: '#1A1A1A', color: '#FFF8F0', borderRadius: '16px' },
-        success: { iconTheme: { primary: '#FF6B35', secondary: '#1A1A1A' } },
-        error: { iconTheme: { primary: '#FF6B35', secondary: '#1A1A1A' } },
-      }} />
-      
-      <div className="max-w-4xl mx-auto">
-        {/* En-tête avec avatar cliquable */}
-        <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-6 text-white mb-6">
+    <ProfileLayout 
+      title="Mon Profil" 
+      subtitle={isCreator ? 'Créateur de contenu' : isAdmin ? 'Administrateur' : 'Client'}
+      activeTab="profile"
+    >
+      <div className="space-y-6">
+        {/* En-tête Avatar */}
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-sm">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsAvatarModalOpen(true)}
-              className="relative group cursor-pointer"
+              className="relative group flex-shrink-0"
             >
-              <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-3xl font-bold overflow-hidden">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center text-2xl font-bold text-white overflow-hidden border-2 border-[#FF6B35]/30">
                 {profile.avatar ? (
                   <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span>{(profile.name?.[0] || profile.phone[0] || 'U').toUpperCase()}</span>
+                  <span>{displayInitial}</span>
                 )}
               </div>
               <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <CameraIcon className="w-6 h-6 text-white" />
+                <span className="text-white text-xs font-bold">Modifier</span>
               </div>
             </button>
             <div>
-              <h1 className="text-2xl font-bold">{profile.name || profile.phone}</h1>
-              <p className="opacity-90 capitalize">{isCreator ? 'Créateur de contenu' : 'Utilisateur'}</p>
-              <p className="text-sm opacity-75 mt-1">Membre depuis {new Date(profile.createdAt).toLocaleDateString()}</p>
+              <h2 className="text-lg font-bold text-gray-900">{displayName}</h2>
+              <p className="text-sm text-gray-600 font-bold">{displayPhone}</p>
+              <p className="text-xs text-gray-500 mt-1">Membre depuis {memberSince}</p>
             </div>
           </div>
         </div>
 
+        {/* Statistiques selon le rôle */}
+        <div className="grid grid-cols-2 gap-3">
+          {isCreator ? (
+            <>
+              <StatCard icon={VideoCameraIcon} label="Vidéos" value={profile.totalVideos || 0} color="text-blue-600" bgColor="bg-blue-100" />
+              <StatCard icon={EyeIcon} label="Vues" value={(profile.totalViews || 0).toLocaleString()} color="text-green-600" bgColor="bg-green-100" />
+              <StatCard icon={CurrencyDollarIcon} label="Gains" value={`${(profile.totalEarnings || 0).toLocaleString()} FCFA`} color="text-[#FF6B35]" bgColor="bg-[#FF6B35]/10" />
+              <StatCard icon={CurrencyDollarIcon} label="Coins" value={profile.coins || 0} color="text-[#D4A855]" bgColor="bg-[#D4A855]/10" />
+            </>
+          ) : (
+            <>
+              <StatCard icon={ShoppingBagIcon} label="Achetés" value={profile.totalPurchases || 0} color="text-purple-600" bgColor="bg-purple-100" />
+              <StatCard icon={CurrencyDollarIcon} label="Coins" value={profile.coins || 0} color="text-[#D4A855]" bgColor="bg-[#D4A855]/10" />
+              <StatCard icon={HeartIcon} label="Favoris" value={profile.favorites || 0} color="text-red-600" bgColor="bg-red-100" />
+              <StatCard icon={EyeIcon} label="Vues" value={(profile.totalViews || 0).toLocaleString()} color="text-green-600" bgColor="bg-green-100" />
+            </>
+          )}
+        </div>
+
         {/* Informations personnelles */}
-        <div className="bg-white rounded-xl shadow-sm p-6">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Informations personnelles</h2>
+            <h3 className="text-base font-bold text-gray-900">Informations personnelles</h3>
             <div className="flex gap-2">
               <button
                 onClick={() => setIsPasswordModalOpen(true)}
-                className="flex items-center gap-1 text-blue-500 hover:text-blue-600 text-sm"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-[#1A1A35] rounded-lg hover:bg-[#2A2A45] transition"
               >
-                <KeyIcon className="w-4 h-4" />
-                Changer mot de passe
+                <KeyIcon className="w-3.5 h-3.5" />
+                Mot de passe
               </button>
               <button
                 onClick={() => setEditing(!editing)}
-                className="flex items-center gap-1 text-orange-500 hover:text-orange-600"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-[#FF6B35] rounded-lg hover:bg-[#FF8C5A] transition"
               >
-                <PencilIcon className="w-4 h-4" />
+                <PencilIcon className="w-3.5 h-3.5" />
                 {editing ? 'Annuler' : 'Modifier'}
               </button>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <UserIcon className="w-5 h-5 text-gray-400" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-400">Nom complet</p>
-                {editing ? (
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full mt-1 p-1 border rounded focus:ring-orange-500 focus:border-orange-500"
-                  />
-                ) : (
-                  <p className="text-gray-800">{profile.name || 'Non renseigné'}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <PhoneIcon className="w-5 h-5 text-gray-400" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-400">Téléphone</p>
-                <p className="text-gray-800">{profile.phone}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-              <EnvelopeIcon className="w-5 h-5 text-gray-400" />
-              <div className="flex-1">
-                <p className="text-xs text-gray-400">Email</p>
-                {editing ? (
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full mt-1 p-1 border rounded focus:ring-orange-500 focus:border-orange-500"
-                  />
-                ) : (
-                  <p className="text-gray-800">{profile.email || 'Non renseigné'}</p>
-                )}
-              </div>
-            </div>
-
+          <div className="space-y-3">
+            <ProfileField icon={UserIcon} label="Nom complet" value={formData.name} editing={editing} onChange={(val) => setFormData({ ...formData, name: val })} />
+            <ProfileField icon={PhoneIcon} label="Téléphone" value={displayPhone} />
+            <ProfileField icon={EnvelopeIcon} label="Email" value={formData.email} editing={editing} type="email" onChange={(val) => setFormData({ ...formData, email: val })} />
             {isCreator && (
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <CalendarIcon className="w-5 h-5 text-gray-400" />
-                <div className="flex-1">
-                  <p className="text-xs text-gray-400">Bio / Présentation</p>
-                  {editing ? (
-                    <textarea
-                      value={formData.bio}
-                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                      rows={3}
-                      className="w-full mt-1 p-1 border rounded focus:ring-orange-500 focus:border-orange-500"
-                    />
-                  ) : (
-                    <p className="text-gray-800">{profile.bio || 'Aucune présentation'}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {editing && (
-              <button
-                onClick={handleSave}
-                className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition mt-4"
-              >
-                Enregistrer les modifications
-              </button>
+              <ProfileField icon={PencilIcon} label="Bio / Présentation" value={formData.bio} editing={editing} onChange={(val) => setFormData({ ...formData, bio: val })} multiline />
             )}
           </div>
+
+          {editing && (
+            <button
+              onClick={handleSave}
+              className="w-full mt-4 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white py-3 rounded-xl font-bold hover:shadow-lg hover:shadow-[#FF6B35]/20 transition"
+            >
+              Enregistrer les modifications
+            </button>
+          )}
         </div>
-
-        {/* Statistiques (pour créateurs) */}
-        {isCreator && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-            <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-              <p className="text-2xl font-bold text-green-600">{profile.totalEarnings?.toLocaleString() || 0} FCFA</p>
-              <p className="text-sm text-gray-500">Gains totaux</p>
-            </div>
-            <div className="bg-white rounded-xl shadow-sm p-4 text-center">
-              <p className="text-2xl font-bold text-orange-500">{profile.coins?.toLocaleString() || 0}</p>
-              <p className="text-sm text-gray-500">Mes coins</p>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Modal upload avatar */}
+      {/* Modals */}
       {isAvatarModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fadeInUp">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Photo de profil</h2>
-              <button
-                onClick={() => setIsAvatarModalOpen(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-32 h-32 mx-auto bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center text-4xl font-bold mb-4 overflow-hidden">
-                {profile?.avatar ? (
-                  <img src={profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span>{(profile?.name?.[0] || profile?.phone[0] || 'U').toUpperCase()}</span>
-                )}
-              </div>
-              
-              <p className="text-gray-600 mb-4">
-                Choisissez une photo pour votre profil
-              </p>
-              
-              <input
-                type="file"
-                accept="image/*"
-                ref={fileInputRef}
-                onChange={handleAvatarUpload}
-                className="hidden"
-              />
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploadingAvatar}
-                className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <CameraIcon className="w-5 h-5" />
-                {uploadingAvatar ? 'Upload en cours...' : 'Choisir une image'}
-              </button>
-              
-              <button
-                onClick={() => setIsAvatarModalOpen(false)}
-                className="w-full mt-3 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
-              >
-                Annuler
-              </button>
-            </div>
-          </div>
-        </div>
+        <AvatarModal
+          isOpen={isAvatarModalOpen}
+          onClose={() => setIsAvatarModalOpen(false)}
+          currentAvatar={profile.avatar}
+          userName={displayName}
+          onUpload={handleAvatarUpload}
+          uploading={uploadingAvatar}
+        />
       )}
 
-      {/* Modal changement mot de passe */}
       {isPasswordModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fadeInUp">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800">Changer le mot de passe</h2>
-              <button
-                onClick={() => setIsPasswordModalOpen(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mot de passe actuel
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none pr-10"
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nouveau mot de passe
-                </label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none pr-10"
-                    placeholder="•••••••• (min 6 caractères)"
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-orange-500"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirmer le mot de passe
-                </label>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handlePasswordChange}
-                  disabled={passwordLoading}
-                  className="flex-1 bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition disabled:opacity-50"
-                >
-                  {passwordLoading ? 'Changement...' : 'Changer le mot de passe'}
-                </button>
-                <button
-                  onClick={() => setIsPasswordModalOpen(false)}
-                  className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition"
-                >
-                  Annuler
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PasswordModal
+          isOpen={isPasswordModalOpen}
+          onClose={() => setIsPasswordModalOpen(false)}
+          onSubmit={handlePasswordChange}
+          loading={passwordLoading}
+        />
       )}
-    </UserLayout>
+    </ProfileLayout>
   )
 }

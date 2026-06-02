@@ -10,11 +10,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  // CORRECTION : Utiliser la session
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -29,17 +27,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID série requis' })
     }
 
+    // Construire l'objet de mise à jour
     const updateData: any = {}
-    if (price !== undefined) updateData.price = price
+    if (price !== undefined) updateData.price = parseInt(price)
     if (status !== undefined) updateData.status = status
     if (category !== undefined) updateData.category = category
 
-    await prisma.videos.updateMany({
-      where: { parentId: seriesId },
+    // CORRECTION : prisma.video.updateMany avec seriesId
+    await (prisma as any).video.updateMany({
+      where: { seriesId: seriesId },
       data: updateData
     })
 
-    return res.status(200).json({ success: true })
+    return res.status(200).json({ 
+      success: true,
+      message: `${Object.keys(updateData).length} champ(s) mis à jour pour tous les épisodes`
+    })
   } catch (error) {
     console.error('Erreur update-series-episodes:', error)
     return res.status(500).json({ error: 'Erreur serveur' })

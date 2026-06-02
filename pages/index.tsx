@@ -17,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import Image from 'next/image'
 
 interface Series {
   id: string
@@ -137,15 +138,22 @@ export default function Home() {
           allCategories={allCategories}
         />
         <div className="flex items-center justify-center h-[70vh]">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF6B35]/20 to-[#D4A855]/20 border border-[#D4A855]/20 flex items-center justify-center animate-pulse">
-                <SparklesIcon className="w-7 h-7 text-[#D4A855]" />
-              </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-[#FF6B35] animate-bounce"></div>
-            </div>
-            <p className="text-gray-900 font-bold text-sm">Chargement...</p>
-          </div>
+          <div className="flex flex-col items-center gap-5">
+  <div className="relative">
+    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 animate-pulse border border-[#D4A855]/20">
+      <Image
+        src="/logo-kahonyn.png"
+        alt="Kahonyn"
+        width={48}
+        height={48}
+        className="object-contain"
+        priority
+      />
+    </div>
+    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#FF6B35] animate-bounce"></div>
+  </div>
+  <p className="text-[#8B5A2B]/80 text-sm font-bold">Chargement...</p>
+</div>
         </div>
       </div>
     )

@@ -1,10 +1,13 @@
-import NextAuth from 'next-auth'
+// pages/api/auth/[...nextauth].ts
+import NextAuth, { AuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
+import GoogleProvider from 'next-auth/providers/google'
+import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import type { NextAuthOptions } from 'next-auth'
 
-// Définir les types personnalisés
+// ==================== DÉCLARATION DES TYPES ====================
+
 declare module 'next-auth' {
   interface Session {
     user: {
@@ -13,6 +16,7 @@ declare module 'next-auth' {
       role: string
       name?: string | null
       email?: string | null
+      image?: string | null
     }
   }
 
@@ -20,8 +24,6 @@ declare module 'next-auth' {
     id: string
     phone: string
     role: string
-    name?: string | null
-    email?: string | null
   }
 }
 
@@ -33,75 +35,156 @@ declare module 'next-auth/jwt' {
   }
 }
 
-export const authOptions: NextAuthOptions = {
+// ==================== CONFIGURATION ====================
+
+export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma as any) as any,
+  
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    }),
+    
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        phone: { label: 'Téléphone', type: 'tel' },
-        password: { label: 'Mot de passe', type: 'password' }
+        phone: { 
+          label: 'Téléphone', 
+          type: 'tel' 
+        },
+        password: { 
+          label: 'Mot de passe', 
+          type: 'password'
+        }
       },
       async authorize(credentials) {
         if (!credentials?.phone || !credentials?.password) {
-          return null
+          throw new Error('Téléphone et mot de passe requis')
         }
 
-        const cleanPhone = credentials.phone.replace(/[\s\-+]/g, '').slice(-10)
-
         try {
-          const user = await prisma.users.findUnique({
+          // Nettoyer le téléphone : garder uniquement les chiffres
+          const cleanPhone = credentials.phone.replace(/\D/g, '')
+          
+          console.log('🔍 Recherche utilisateur avec téléphone:', cleanPhone)
+
+          // Rechercher l'utilisateur
+          const user = await (prisma as any).user.findUnique({
             where: { phone: cleanPhone }
           })
 
-          if (!user || !user.password) {
-            return null
+          console.log('👤 Utilisateur trouvé:', user ? 'Oui' : 'Non')
+
+          if (!user) {
+            throw new Error('Aucun compte trouvé avec ce numéro')
           }
 
-          const isValid = await bcrypt.compare(credentials.password, user.password)
-          if (!isValid) {
-            return null
+          if (!user.password) {
+            throw new Error('Ce compte utilise la connexion Google. Veuillez vous connecter avec Google.')
           }
 
+          // Vérifier le mot de passe
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          )
+
+          console.log('🔑 Mot de passe valide:', isPasswordValid)
+
+          if (!isPasswordValid) {
+            throw new Error('Mot de passe incorrect')
+          }
+
+          // Retourner l'utilisateur
           return {
             id: user.id,
             phone: user.phone,
             name: user.name,
             email: user.email,
-            role: user.role
+            role: user.role || 'client',
+            image: user.avatar,
           }
         } catch (error) {
-          console.error('Erreur authorize:', error)
-          return null
+          console.error('❌ Erreur authorize:', error)
+          if (error instanceof Error) {
+            throw error
+          }
+          throw new Error('Erreur lors de la connexion')
         }
       }
     })
   ],
-  pages: {
-    signIn: '/login',
-    error: '/login',
-  },
+
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 jours
+    maxAge: 30 * 24 * 60 * 60,
   },
+
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.id = user.id
-        token.phone = user.phone
-        token.role = user.role
+        token.phone = user.phone || ''
+        token.role = user.role || 'client'
       }
+
+      if (account?.provider === 'google' && token.email) {
+        try {
+          const existingUser = await (prisma as any).user.findUnique({
+            where: { email: token.email }
+          })
+          if (existingUser) {
+            token.id = existingUser.id
+            token.role = existingUser.role || 'client'
+            token.phone = existingUser.phone || ''
+          }
+        } catch (error) {
+          console.error('Erreur sync Google:', error)
+        }
+      }
+
+      if (trigger === 'update' && token.id) {
+        try {
+          const freshUser = await (prisma as any).user.findUnique({
+            where: { id: token.id }
+          })
+          if (freshUser) {
+            token.role = freshUser.role
+            token.phone = freshUser.phone
+            token.name = freshUser.name
+            token.email = freshUser.email
+            token.picture = freshUser.avatar
+          }
+        } catch (error) {
+          console.error('Erreur refresh:', error)
+        }
+      }
+
       return token
     },
+
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.phone = token.phone as string
-        session.user.role = token.role as string
+        session.user.id = token.id
+        session.user.phone = token.phone
+        session.user.role = token.role
       }
       return session
+    },
+
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith('/')) return `${baseUrl}${url}`
+      if (new URL(url).origin === baseUrl) return url
+      return baseUrl
     }
   },
+
+  pages: {
+    signIn: '/',
+    error: '/',
+  },
+
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === 'development',
 }

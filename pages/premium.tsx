@@ -15,13 +15,15 @@ import {
   StarIcon,
   CloudArrowDownIcon,
   EyeIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { useRequireAuth } from '../hooks/useRequireAuth'
 import WavePaymentModal from '../components/WavePaymentModal'
-import toast, { Toaster } from 'react-hot-toast'
 import SubscriptionPaymentModal from '../components/SubscriptionPaymentModal'
+import toast from 'react-hot-toast'
 
 interface CoinPack {
   id: string
@@ -35,9 +37,9 @@ interface CoinPack {
 
 export default function PremiumPage() {
   const { data: session, update } = useSession()
+  const { isAuthorized, isLoading: authLoading } = useRequireAuth()
   const [coinPacks, setCoinPacks] = useState<CoinPack[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
   const [activeFooterTab, setActiveFooterTab] = useState('premium')
   const [userSubscription, setUserSubscription] = useState<any>(null)
@@ -47,17 +49,23 @@ export default function PremiumPage() {
   const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<any>(null)
 
   useEffect(() => {
+    if (!isAuthorized) return
     fetchCoinPacks()
     fetchUserSubscription()
-  }, [])
+  }, [isAuthorized])
 
   const fetchCoinPacks = async () => {
     try {
       const res = await fetch('/api/premium/coin-packs')
       const data = await res.json()
-      setCoinPacks(data)
+      if (Array.isArray(data)) {
+        setCoinPacks(data)
+      } else {
+        setCoinPacks([])
+      }
     } catch (error) {
       console.error('Erreur:', error)
+      setCoinPacks([])
     } finally {
       setLoading(false)
     }
@@ -75,19 +83,11 @@ export default function PremiumPage() {
   }
 
   const handleSubscribe = (plan: any) => {
-    if (!session) {
-      toast.error('Connectez-vous pour souscrire')
-      return
-    }
     setSelectedSubscriptionPlan(plan)
     setIsSubscriptionModalOpen(true)
   }
 
   const handleBuyCoins = (pack: CoinPack) => {
-    if (!session) {
-      toast.error('Connectez-vous pour acheter')
-      return
-    }
     setSelectedCoinPack(pack)
     setIsPaymentModalOpen(true)
   }
@@ -114,7 +114,25 @@ export default function PremiumPage() {
     { icon: ShieldCheckIcon, title: 'Sans publicité', desc: 'Navigation sans pub' }
   ]
 
-  if (loading) {
+  // Message si non connecté
+  if (!isAuthorized && !authLoading) {
+    return (
+      <div className="min-h-screen bg-[#F5F0E8]">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center h-[80vh] px-4">
+          <div className="w-20 h-20 rounded-2xl bg-white/80 border border-[#D4A855]/20 flex items-center justify-center mb-6 shadow-sm">
+            <LockClosedIcon className="w-10 h-10 text-[#FF6B35]" />
+          </div>
+          <h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Accès restreint</h2>
+          <p className="text-sm text-[#8B5A2B]/80 text-center max-w-sm">
+            Connectez-vous pour accéder aux offres premium et acheter des coins
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading || authLoading) {
     return (
       <div className="min-h-screen bg-[#F5F0E8]">
         <Navbar />
@@ -130,9 +148,8 @@ export default function PremiumPage() {
   return (
     <div className="min-h-screen bg-[#F5F0E8] pb-20">
       <Navbar />
-      <Toaster position="top-right" />
 
-      {/* En-tête - fond sombre conservé */}
+      {/* En-tête */}
       <div className="sticky top-12 z-20 bg-[#0D0D1A]/95 backdrop-blur-xl border-b border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
@@ -142,11 +159,7 @@ export default function PremiumPage() {
             <div>
               <h1 className="text-lg font-bold text-white">Kahonyn Primes</h1>
               <p className="text-xs text-[#D4A855]/60">
-                {session ? (
-                  <>Solde: {(session.user as any)?.coins || 0} coins</>
-                ) : (
-                  'Connectez-vous pour accéder aux primes'
-                )}
+                Solde: {(session?.user as any)?.coins || 0} coins
               </p>
             </div>
           </div>
@@ -217,7 +230,7 @@ export default function PremiumPage() {
                       : 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white hover:shadow-lg hover:shadow-[#FF6B35]/20'
                   }`}
                 >
-                  {processing && selectedPlan === plan.id ? 'Traitement...' : isSubscribed ? 'Déjà abonné' : 'Souscrire'}
+                  {isSubscribed ? 'Déjà abonné' : 'Souscrire'}
                 </button>
               </div>
             </div>
@@ -260,7 +273,6 @@ export default function PremiumPage() {
                 <div className="text-green-600 text-[10px] font-semibold mb-1">+{pack.bonus} offerts</div>
               )}
               <div className="text-[#FF6B35] font-bold">{pack.price.toLocaleString()} FCFA</div>
-              <div className="text-[10px] text-[#8B5A2B]/60 mt-1">{Math.round((pack.coins + pack.bonus) / pack.price * 1000)} coins/1000 FCFA</div>
             </div>
           ))}
         </div>
@@ -270,22 +282,17 @@ export default function PremiumPage() {
       <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
         <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">❓ Questions fréquentes</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
-            <h3 className="font-semibold text-[#5C3D2E] mb-1">Comment utiliser mes coins ?</h3>
-            <p className="text-xs text-[#8B5A2B]/60">Les coins permettent d'acheter des épisodes et des films sur la plateforme.</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
-            <h3 className="font-semibold text-[#5C3D2E] mb-1">Puis-je résilier mon abonnement ?</h3>
-            <p className="text-xs text-[#8B5A2B]/60">Oui, vous pouvez annuler votre abonnement à tout moment depuis votre profil.</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
-            <h3 className="font-semibold text-[#5C3D2E] mb-1">Les coins expirent-ils ?</h3>
-            <p className="text-xs text-[#8B5A2B]/60">Non, vos coins restent valables indéfiniment sur votre compte.</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
-            <h3 className="font-semibold text-[#5C3D2E] mb-1">Paiement sécurisé ?</h3>
-            <p className="text-xs text-[#8B5A2B]/60">Nos paiements sont sécurisés via Wave.</p>
-          </div>
+          {[
+            { q: 'Comment utiliser mes coins ?', a: 'Les coins permettent d\'acheter des épisodes et des films sur la plateforme.' },
+            { q: 'Puis-je résilier mon abonnement ?', a: 'Oui, vous pouvez annuler votre abonnement à tout moment depuis votre profil.' },
+            { q: 'Les coins expirent-ils ?', a: 'Non, vos coins restent valables indéfiniment sur votre compte.' },
+            { q: 'Paiement sécurisé ?', a: 'Nos paiements sont sécurisés via Wave et Mobile Money.' }
+          ].map((faq, i) => (
+            <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
+              <h3 className="font-semibold text-[#5C3D2E] mb-1">{faq.q}</h3>
+              <p className="text-xs text-[#8B5A2B]/60">{faq.a}</p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -302,7 +309,7 @@ export default function PremiumPage() {
             setIsPaymentModalOpen(false)
             setSelectedCoinPack(null)
             update()
-            toast.success('Coins ajoutés avec succès !')
+            toast.success('Coins ajoutés avec succès !', { duration: 2000 })
           }}
         />
       )}
@@ -320,7 +327,7 @@ export default function PremiumPage() {
             setSelectedSubscriptionPlan(null)
             fetchUserSubscription()
             update()
-            toast.success('Abonnement activé avec succès !')
+            toast.success('Abonnement activé avec succès !', { duration: 2000 })
           }}
         />
       )}

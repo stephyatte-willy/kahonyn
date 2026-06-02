@@ -5,16 +5,8 @@ import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
-
-  if (!session) {
-    return res.status(401).json({ error: 'Non authentifié' })
-  }
-
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  
+  if (!session || (session.user as any)?.role !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -26,19 +18,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { id, name, email, coins } = req.body
 
     if (!id) {
-      return res.status(400).json({ error: 'UserId requis' })
+      return res.status(400).json({ error: 'ID utilisateur requis' })
     }
 
-    const user = await prisma.users.update({
+    await (prisma as any).user.update({
       where: { id },
       data: {
-        name: name || undefined,
-        email: email || undefined,
-        coins: coins !== undefined ? coins : undefined
+        ...(name !== undefined && { name }),
+        ...(email !== undefined && { email }),
+        ...(coins !== undefined && { coins: parseInt(coins) }),
       }
     })
 
-    return res.status(200).json({ success: true, user })
+    return res.status(200).json({ success: true })
   } catch (error) {
     console.error('Erreur update-user:', error)
     return res.status(500).json({ error: 'Erreur serveur' })

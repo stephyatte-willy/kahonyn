@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -25,74 +22,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const series = await prisma.videos.findFirst({
-      where: { id: seriesId, isSeries: true, parentId: null }
+    const series = await (prisma as any).video.findFirst({
+      where: { id: seriesId }
     })
 
     if (!series) {
       return res.status(404).json({ error: 'Série non trouvée' })
     }
 
-    let result
-
     switch (action) {
       case 'delete':
-        // Supprimer tous les épisodes puis la série
-        await prisma.videos.deleteMany({
-          where: { parentId: seriesId }
-        })
-        result = await prisma.videos.delete({
-          where: { id: seriesId }
-        })
+        await (prisma as any).video.deleteMany({ where: { seriesId } })
+        await (prisma as any).video.delete({ where: { id: seriesId } })
         break
 
       case 'archive':
-        // Archiver la série et tous ses épisodes
-        await prisma.videos.updateMany({
-          where: { parentId: seriesId },
-          data: { status: 'archived', updatedAt: new Date() }
+        await (prisma as any).video.updateMany({
+          where: { seriesId },
+          data: { status: 'archived' }
         })
-        result = await prisma.videos.update({
+        await (prisma as any).video.update({
           where: { id: seriesId },
-          data: { status: 'archived', updatedAt: new Date() }
+          data: { status: 'archived' }
         })
         break
 
       case 'restore':
-        // Restaurer la série et tous ses épisodes
-        await prisma.videos.updateMany({
-          where: { parentId: seriesId },
-          data: { status: 'approved', updatedAt: new Date() }
+        await (prisma as any).video.updateMany({
+          where: { seriesId },
+          data: { status: 'approved' }
         })
-        result = await prisma.videos.update({
+        await (prisma as any).video.update({
           where: { id: seriesId },
-          data: { status: 'approved', updatedAt: new Date() }
-        })
-        break
-
-      case 'update-price':
-        // Changer le prix de tous les épisodes
-        const { price } = data
-        await prisma.videos.updateMany({
-          where: { parentId: seriesId },
-          data: { price, updatedAt: new Date() }
-        })
-        result = await prisma.videos.update({
-          where: { id: seriesId },
-          data: { updatedAt: new Date() }
-        })
-        break
-
-      case 'update-category':
-        // Changer la catégorie de la série et de tous les épisodes
-        const { category } = data
-        await prisma.videos.updateMany({
-          where: { parentId: seriesId },
-          data: { category, updatedAt: new Date() }
-        })
-        result = await prisma.videos.update({
-          where: { id: seriesId },
-          data: { category, updatedAt: new Date() }
+          data: { status: 'approved' }
         })
         break
 
@@ -100,7 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Action non reconnue' })
     }
 
-    return res.status(200).json({ success: true, result })
+    return res.status(200).json({ success: true })
   } catch (error) {
     console.error('Erreur manage-series:', error)
     return res.status(500).json({ error: 'Erreur serveur' })

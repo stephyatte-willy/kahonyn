@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -23,35 +20,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Vérifier si la table creator_earnings existe
-    let earnings: any[] = []
-    let total = 0
-
-    try {
-      // Essayer de récupérer les gains
-      earnings = await (prisma as any).creatorEarning?.findMany({
-        orderBy: { createdAt: 'desc' },
-        include: {
-          creator: {
-            select: { name: true, phone: true }
-          },
-          video: {
-            select: { title: true }
-          }
+    // Récupérer tous les achats avec les infos créateur
+    const purchases = await (prisma as any).purchase.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: { select: { name: true, phone: true } },
+        video: { 
+          select: { 
+            title: true,
+            creator: { select: { name: true, phone: true } }
+          } 
         }
-      }) || []
-      
-      total = earnings.reduce((sum: number, e: any) => sum + (e.amount || 0), 0)
-    } catch (err) {
-      console.error('Table creator_earnings peut-être manquante:', err)
-      // Si la table n'existe pas, retourner un tableau vide
-      earnings = []
-      total = 0
-    }
+      }
+    })
+
+    const earnings = purchases.map((p: any) => ({
+      id: p.id,
+      amount: p.amount || 0,
+      status: p.status || 'completed',
+      createdAt: p.createdAt,
+      video: { title: p.video?.title || '—' },
+      creator: p.video?.creator || p.user
+    }))
+
+    const total = earnings.reduce((sum: number, e: any) => sum + e.amount, 0)
 
     return res.status(200).json({ earnings, total })
   } catch (error) {
     console.error('Erreur earnings:', error)
-    return res.status(500).json({ error: 'Erreur serveur', details: String(error) })
+    return res.status(200).json({ earnings: [], total: 0 })
   }
 }

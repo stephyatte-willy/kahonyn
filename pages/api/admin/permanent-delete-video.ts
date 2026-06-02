@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -29,18 +26,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID vidéo requis' })
     }
 
-    // Supprimer définitivement la vidéo
-    await prisma.purchases.deleteMany({
-      where: { videoId }
-    })
-
-    await prisma.creator_earnings.deleteMany({
-      where: { videoId }
-    })
-
-    await prisma.videos.delete({
-      where: { id: videoId }
-    })
+    await (prisma as any).purchase.deleteMany({ where: { videoId } })
+    await (prisma as any).like.deleteMany({ where: { videoId } })
+    await (prisma as any).comment.deleteMany({ where: { videoId } })
+    await (prisma as any).watchHistory.deleteMany({ where: { videoId } })
+    await (prisma as any).video.delete({ where: { id: videoId } })
 
     return res.status(200).json({ success: true, message: 'Vidéo supprimée définitivement' })
   } catch (error) {

@@ -1,13 +1,13 @@
 "use client"
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { 
   ArrowRightOnRectangleIcon, 
   MagnifyingGlassIcon,
   UserCircleIcon,
-  SparklesIcon,
   GiftIcon,
   ChevronDownIcon,
   XMarkIcon
@@ -28,6 +28,7 @@ interface NavbarProps {
   onCategoryChange?: (category: string) => void
   categories?: Category[]
   allCategories?: Category[]
+  hideCategories?: boolean
 }
 
 const horizontalCategories = [
@@ -47,7 +48,8 @@ export default function Navbar({
   activeCategory = 'popular',
   onCategoryChange,
   categories = horizontalCategories,
-  allCategories
+  allCategories,
+  hideCategories = false
 }: NavbarProps) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -59,7 +61,6 @@ export default function Navbar({
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   
   const hideNavbar = router.pathname === '/login' || router.pathname === '/register'
-  const isAdmin = session?.user?.role === 'admin'
 
   const displayAllCategories = allCategories || categories
 
@@ -88,13 +89,8 @@ export default function Navbar({
     setShowCategoryModal(false)
   }
 
-  const openLogin = () => {
-    setAuthMode('login')
-    setAuthPanelOpen(true)
-  }
-
-  const openRegister = () => {
-    setAuthMode('register')
+  const openAuth = (mode: 'login' | 'register') => {
+    setAuthMode(mode)
     setAuthPanelOpen(true)
   }
 
@@ -102,17 +98,23 @@ export default function Navbar({
 
   return (
     <>
-      {/* Navbar fixe avec les couleurs sombres originales */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-2xl shadow-lg shadow-black/20">
         {/* Partie supérieure : Logo + Recherche + Actions */}
-        <div className="border-b border-white/[0.06]">
+        <div className={`${!hideCategories ? 'border-b border-white/[0.06]' : ''}`}>
           <div className="max-w-7xl mx-auto px-3 sm:px-4">
             <div className="flex items-center justify-between h-12 sm:h-14">
               
               {/* Logo */}
-              <Link href="/" className="flex items-center gap-2 flex-shrink-0 group">
-                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-xl shadow-[#FF6B35]/25 group-hover:shadow-[#FF6B35]/40 group-hover:scale-105 transition-all duration-500">
-                  <SparklesIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+                <div className="relative w-8 h-8 sm:w-9 sm:h-9">
+                  <Image
+                    src="/logo-kahonyn.png"
+                    alt="Kahonyn"
+                    width={36}
+                    height={36}
+                    className="object-contain group-hover:scale-105 transition-transform duration-300"
+                    priority
+                  />
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="font-bold text-sm sm:text-base text-white tracking-tight leading-tight">Kahonyn</h1>
@@ -121,9 +123,8 @@ export default function Navbar({
               </Link>
 
               {/* Barre de recherche */}
-              <div className="flex-1 max-w-[160px] sm:max-w-[250px] md:max-w-md mx-2 sm:mx-4">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B35]/10 to-[#D4A855]/10 rounded-full blur-md opacity-50 hidden sm:block"></div>
+              {!hideCategories && (
+                <div className="flex-1 max-w-[160px] sm:max-w-[250px] md:max-w-md mx-2 sm:mx-4">
                   <div className="relative">
                     <MagnifyingGlassIcon className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/60" />
                     <input
@@ -135,17 +136,37 @@ export default function Navbar({
                     />
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Boutons */}
+              {hideCategories && <div className="flex-1" />}
+
+              {/* Boutons droite */}
               <div className="flex items-center gap-1.5 sm:gap-2">
-                {/* Bouton Bonus en mobile */}
-                <button className="md:hidden flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#0D0D1A] rounded-full text-[10px] font-bold shadow-lg shadow-[#D4A855]/20 active:scale-95 transition-transform">
-                  <GiftIcon className="w-3.5 h-3.5" />
-                  <span>Bonus</span>
+                {/* Icône Bonus */}
+                <button className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] rounded-full shadow-lg shadow-[#D4A855]/20 active:scale-95 hover:scale-105 transition-transform">
+                  <GiftIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D0D1A]" />
                 </button>
 
-                {/* Actions desktop */}
+                {/* Mobile : Profil/Déconnexion */}
+                <div className="md:hidden">
+                  {session ? (
+                    <button
+                      onClick={() => signOut()}
+                      className="flex items-center justify-center w-8 h-8 bg-red-500/20 rounded-full hover:bg-red-500/30 active:scale-95 transition-all"
+                    >
+                      <ArrowRightOnRectangleIcon className="w-4 h-4 text-red-400" />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => openAuth('login')}
+                      className="flex items-center justify-center w-8 h-8 bg-white/10 rounded-full hover:bg-white/20 active:scale-95 transition-all"
+                    >
+                      <UserCircleIcon className="w-4 h-4 text-white" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Desktop : Actions */}
                 <div className="hidden md:flex items-center gap-3">
                   {session ? (
                     <>
@@ -168,13 +189,13 @@ export default function Navbar({
                   ) : (
                     <div className="flex gap-2">
                       <button
-                        onClick={openLogin}
+                        onClick={() => openAuth('login')}
                         className="px-5 py-2.5 text-sm font-bold text-white/80 hover:text-white transition rounded-xl hover:bg-[#1E1E3A]/50 border border-white/[0.06]"
                       >
                         Connexion
                       </button>
                       <button
-                        onClick={openRegister}
+                        onClick={() => openAuth('register')}
                         className="px-5 py-2.5 text-sm font-bold bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl shadow-lg shadow-[#FF6B35]/20 hover:shadow-[#FF6B35]/30 transition-all"
                       >
                         Inscription
@@ -187,51 +208,51 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Partie inférieure : Catégories avec bouton dropdown FIXE à droite */}
-        <div className="bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-xl border-b border-white/[0.06]">
-          <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
-            <div className="flex items-center py-2.5">
-              {/* Zone de défilement des catégories */}
-              <div className="flex-1 overflow-x-auto scrollbar-hide" ref={scrollContainerRef}>
-                <div className="flex items-center gap-1 pr-2">
-                  {categories.map((cat) => (
+        {/* Barre des catégories - CENTRÉE */}
+        {!hideCategories && (
+          <div className="bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-xl border-b border-white/[0.06]">
+            <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
+              <div className="flex items-center justify-center py-2.5">
+                <div className="overflow-x-auto scrollbar-hide" ref={scrollContainerRef}>
+                  <div className="flex items-center justify-center gap-1 px-2">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        onClick={() => handleCategorySelect(cat.id)}
+                        className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-300 ${
+                          activeCategory === cat.id
+                            ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
+                            : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/[0.04]'
+                        }`}
+                      >
+                        <span className="mr-1.5">{cat.icon}</span>
+                        {cat.label}
+                      </button>
+                    ))}
+                    
                     <button
-                      key={cat.id}
-                      onClick={() => handleCategorySelect(cat.id)}
-                      className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-300 ${
-                        activeCategory === cat.id
+                      onClick={() => setShowCategoryModal(true)}
+                      className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
+                        showCategoryModal 
                           ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
                           : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/[0.04]'
                       }`}
                     >
-                      <span className="mr-1.5">{cat.icon}</span>
-                      {cat.label}
+                      <span>📂</span>
+                      <span>Catégories</span>
+                      <ChevronDownIcon className={`w-3 h-3 transition-transform duration-300 ${showCategoryModal ? 'rotate-180' : ''}`} />
                     </button>
-                  ))}
+                  </div>
                 </div>
-              </div>
-              
-              {/* Bouton Catégories FIXE à droite */}
-              <div className="flex-shrink-0 pl-1 border-l border-white/[0.06]">
-                <button
-                  onClick={() => setShowCategoryModal(true)}
-                  className={`flex-shrink-0 px-3.5 py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all duration-300 flex items-center gap-1.5 ${
-                    showCategoryModal 
-                      ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white shadow-lg shadow-[#FF6B35]/20'
-                      : 'bg-white/[0.04] text-white/80 hover:bg-white/[0.08] hover:text-white border border-white/[0.04]'
-                  }`}
-                >
-                  <span>📂</span>
-                  <span>Catégories</span>
-                  <ChevronDownIcon className={`w-3 h-3 transition-transform duration-300 ${showCategoryModal ? 'rotate-180' : ''}`} />
-                </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </nav>
 
-      {/* Modal toutes les catégories */}
+      <div className={hideCategories ? 'h-[48px] sm:h-[56px]' : 'h-[88px] sm:h-[96px]'} />
+
+      {/* Modal catégories */}
       {showCategoryModal && (
         <>
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={() => setShowCategoryModal(false)} />
@@ -268,10 +289,12 @@ export default function Navbar({
         </>
       )}
 
-      {/* Espaceur pour compenser la navbar fixe */}
-      <div className="h-[88px] sm:h-[96px]" />
-
-      <AuthSlidePanel isOpen={authPanelOpen} onClose={() => setAuthPanelOpen(false)} initialMode={authMode} />
+      <AuthSlidePanel 
+        isOpen={authPanelOpen} 
+        onClose={() => setAuthPanelOpen(false)} 
+        initialMode={authMode}
+        onSwitchMode={setAuthMode}
+      />
     </>
   )
 }

@@ -1,0 +1,233 @@
+components/ProfileLayout.tsx(63,93): error TS2353: Object literal may only specify known properties, and 'adminOnly' does not exist in type '{ id: string; label: string; icon: ForwardRefExoticComponent<Omit<SVGProps<SVGSVGElement>, "ref"> & { title?: string | undefined; titleId?: string | undefined; } & RefAttributes<SVGSVGElement>>; href: string; }'.
+components/ProfileLayout.tsx(69,88): error TS2353: Object literal may only specify known properties, and 'requiresAuth' does not exist in type '{ id: string; label: string; icon: ForwardRefExoticComponent<Omit<SVGProps<SVGSVGElement>, "ref"> & { title?: string | undefined; titleId?: string | undefined; } & RefAttributes<SVGSVGElement>>; href: string; }'.
+components/ProfileLayout.tsx(81,83): error TS2353: Object literal may only specify known properties, and 'requiresAuth' does not exist in type '{ id: string; label: string; icon: ForwardRefExoticComponent<Omit<SVGProps<SVGSVGElement>, "ref"> & { title?: string | undefined; titleId?: string | undefined; } & RefAttributes<SVGSVGElement>>; href: string; }'.
+lib/videoAccess.ts(10,30): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+lib/videoAccess.ts(38,33): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+lib/videoAccess.ts(52,41): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+lib/videoAccess.ts(71,37): error TS2551: Property 'subscriptions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'subscription'?
+lib/videoAccess.ts(104,18): error TS2353: Object literal may only specify known properties, and 'episodeNumber' does not exist in type 'VideoWhereInput'.
+lib/videoAccess.ts(109,25): error TS2339: Property 'episodes' does not exist on type '{ id: string; title: string; description: string | null; coverImage: string | null; price: number; freeEpisodes: number; totalEpisodes: number; totalViews: number; status: string; category: string; ... 5 more ...; creatorId: string; }'.
+lib/videoAccess.ts(113,26): error TS2339: Property 'episodes' does not exist on type '{ id: string; title: string; description: string | null; coverImage: string | null; price: number; freeEpisodes: number; totalEpisodes: number; totalViews: number; status: string; category: string; ... 5 more ...; creatorId: string; }'.
+lib/videoAccess.ts(132,33): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/admin/all-videos.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/all-videos.ts(27,34): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/all-videos.ts(43,39): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/approve-delete-request.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/approve-delete-request.ts(36,39): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/approve-series.ts(11,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/approve-series.ts(19,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/approve-series.ts(27,20): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/approve-series.ts(44,18): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/approve-video.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/approve-video.ts(32,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/create-admin.ts(20,36): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/create-admin.ts(43,37): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/create-admin.ts(53,40): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/create-admin.ts(65,33): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/creators.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/creators.ts(26,35): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/creators.ts(44,44): error TS7006: Parameter 'creator' implicitly has an 'any' type.
+pages/api/admin/creators.ts(50,47): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/admin/creators.ts(50,52): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/admin/delete-video.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/delete-video.ts(33,18): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/admin/delete-video.ts(38,18): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/admin/delete-video.ts(43,18): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/earnings.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/manage-series.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/manage-series.ts(28,33): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(41,22): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(44,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(51,22): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(55,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(63,22): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(67,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(76,22): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(80,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(89,22): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/manage-series.ts(93,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/pending-videos.ts(13,29): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/pending-videos.ts(27,40): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/permanent-delete-video.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/permanent-delete-video.ts(33,18): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/admin/permanent-delete-video.ts(37,18): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/admin/permanent-delete-video.ts(41,18): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/process-withdrawal.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/reject-video.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/reject-video.ts(32,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/settings.ts(23,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/split-video.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/split-video.ts(32,38): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/split-video.ts(41,14): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/split-video.ts(65,36): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/stats.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/stats.ts(27,39): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/stats.ts(28,41): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/stats.ts(29,42): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/stats.ts(31,42): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/admin/stats.ts(34,45): error TS2339: Property 'withdrawals' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/admin/stats.ts(37,40): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/stats.ts(38,37): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/toggle-user-active.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/toggle-user-active.ts(32,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-series-episodes.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-series-episodes.ts(37,18): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/update-user-role.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-user-role.ts(37,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-user.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-user.ts(32,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-video-status.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-video-status.ts(38,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/update-video.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/update-video.ts(32,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/admin/users.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/users.ts(26,32): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/admin/users.ts(36,38): error TS7006: Parameter 'user' implicitly has an 'any' type.
+pages/api/admin/users.ts(43,44): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/admin/users.ts(43,49): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/admin/users.ts(44,48): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/admin/users.ts(44,53): error TS7006: Parameter 'w' implicitly has an 'any' type.
+pages/api/admin/withdrawals.ts(13,30): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/auth/[...nextauth].ts(10,5): error TS2687: All declarations of 'user' must have identical modifiers.
+pages/api/auth/[...nextauth].ts(52,37): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/creator/earnings.ts(24,35): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/creator/earnings.ts(35,36): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/creator/earnings.ts(35,41): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/creator/earnings.ts(37,15): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/creator/earnings.ts(38,16): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/creator/earnings.ts(38,21): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/creator/earnings.ts(40,15): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/creator/earnings.ts(41,16): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/creator/earnings.ts(41,21): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/creator/request-delete.ts(28,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/creator/request-delete.ts(39,39): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/creator/videos.ts(22,33): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/creator/videos.ts(32,40): error TS7006: Parameter 'video' implicitly has an 'any' type.
+pages/api/cron/delete-expired.ts(16,41): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/cron/delete-expired.ts(29,20): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/cron/delete-expired.ts(30,20): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/cron/delete-expired.ts(31,20): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/cron/hide-deleted-videos.ts(17,39): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/cron/hide-deleted-videos.ts(27,20): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/payment/wave/create.ts(26,38): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/payment/wave/create.ts(41,18): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/payment/wave/create.ts(50,18): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/payment/wave/subscribe.ts(46,38): error TS2339: Property 'subscriptionTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/payment/wave/subscribe.ts(58,18): error TS2339: Property 'subscriptionTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/payment/wave/subscribe.ts(67,47): error TS2551: Property 'subscriptions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'subscription'?
+pages/api/payment/wave/subscribe.ts(80,20): error TS2551: Property 'subscriptions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'subscription'?
+pages/api/payment/wave/subscribe.ts(89,20): error TS2551: Property 'subscriptions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'subscription'?
+pages/api/payment/wave/subscribe.ts(102,18): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/payment/wave/webhook.ts(14,38): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/payment/wave/webhook.ts(24,20): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/payment/wave/webhook.ts(33,20): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/payment/wave/webhook.ts(38,20): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/premium/buy-coins.ts(24,31): error TS2551: Property 'coinPacks' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'coinPack'?
+pages/api/premium/buy-coins.ts(35,38): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/premium/buy-coins.ts(47,18): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/premium/buy-coins.ts(53,18): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/premium/coin-packs.ts(10,36): error TS2551: Property 'coinPacks' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'coinPack'?
+pages/api/premium/subscribe.ts(32,47): error TS2551: Property 'subscriptions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'subscription'?
+pages/api/premium/subscribe.ts(49,39): error TS2551: Property 'subscriptions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'subscription'?
+pages/api/premium/subscribe.ts(61,18): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/premium/subscribe.ts(67,18): error TS2551: Property 'coinTransactions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean '$transaction'?
+pages/api/premium/user-subscription.ts(18,39): error TS2551: Property 'subscriptions' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'subscription'?
+pages/api/public/most-viewed.ts(10,37): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/new-releases.ts(10,38): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/new-releases.ts(27,50): error TS7006: Parameter 'series' implicitly has an 'any' type.
+pages/api/public/recommendations.ts(21,36): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/public/recommendations.ts(46,41): error TS7006: Parameter 'p' implicitly has an 'any' type.
+pages/api/public/recommendations.ts(49,40): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/recommendations.ts(67,48): error TS7006: Parameter 'r' implicitly has an 'any' type.
+pages/api/public/recommendations.ts(89,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/recommendations.ts(96,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/recommendations.ts(106,39): error TS7006: Parameter 's' implicitly has an 'any' type.
+pages/api/public/recommendations.ts(123,31): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/recommendations.ts(139,22): error TS7006: Parameter 's' implicitly has an 'any' type.
+pages/api/public/series.ts(12,33): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/series.ts(31,40): error TS7006: Parameter 'serie' implicitly has an 'any' type.
+pages/api/public/series/[id].ts(19,33): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/series/[id].ts(53,37): error TS7006: Parameter 'ep' implicitly has an 'any' type.
+pages/api/public/trending.ts(11,35): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/trending.ts(29,44): error TS7006: Parameter 'series' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(13,33): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/videos-by-category.ts(41,33): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/public/videos-by-category.ts(62,41): error TS7006: Parameter 'video' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(76,41): error TS7006: Parameter 'video' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(92,29): error TS7006: Parameter 'a' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(92,32): error TS7006: Parameter 'b' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(93,29): error TS7006: Parameter 'a' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(93,32): error TS7006: Parameter 'b' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(98,29): error TS7006: Parameter 'a' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(98,32): error TS7006: Parameter 'b' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(99,29): error TS7006: Parameter 'a' implicitly has an 'any' type.
+pages/api/public/videos-by-category.ts(99,32): error TS7006: Parameter 'b' implicitly has an 'any' type.
+pages/api/public/videos.ts(11,33): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/purchase-episode.ts(25,34): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/purchase-episode.ts(34,43): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/purchase-episode.ts(48,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/purchase-episode.ts(57,18): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/purchase-episode.ts(63,35): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/purchase-episode.ts(73,18): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/purchase-episode.ts(83,18): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/purchase.ts(25,43): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/purchase.ts(39,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/purchase.ts(47,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/purchase.ts(59,18): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/purchase.ts(65,35): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/purchase.ts(75,18): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/purchase.ts(83,18): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/register.ts(24,39): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/register.ts(34,42): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/register.ts(50,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/series/[id]/episodes.ts(12,35): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/upload-avatar.ts(45,38): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/user/change-password.ts(29,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/user/change-password.ts(44,18): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/user/counters.ts(20,37): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/counters.ts(25,37): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/counters.ts(33,33): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/counters.ts(43,33): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/dashboard.ts(18,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/user/dashboard.ts(28,35): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/user/dashboard.ts(33,41): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/user/dashboard.ts(33,46): error TS7006: Parameter 'v' implicitly has an 'any' type.
+pages/api/user/dashboard.ts(34,42): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/dashboard.ts(38,44): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/dashboard.ts(52,38): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/user/like.ts(24,39): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/like.ts(34,20): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/like.ts(43,20): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/like.ts(51,37): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/my-list.ts(19,32): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/my-list.ts(31,32): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/my-list.ts(43,36): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/user/my-list.ts(56,35): error TS7006: Parameter 'like' implicitly has an 'any' type.
+pages/api/user/my-list.ts(70,35): error TS7006: Parameter 'save' implicitly has an 'any' type.
+pages/api/user/my-list.ts(84,43): error TS7006: Parameter 'purchase' implicitly has an 'any' type.
+pages/api/user/profile.ts(16,33): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/user/profile.ts(39,46): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+pages/api/user/profile.ts(39,51): error TS7006: Parameter 'e' implicitly has an 'any' type.
+pages/api/user/profile.ts(59,33): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/user/progress.ts(16,37): error TS2339: Property 'userProgress' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/progress.ts(36,37): error TS2339: Property 'userProgress' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/purchased-episodes.ts(26,36): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/user/purchased-episodes.ts(35,40): error TS7006: Parameter 'p' implicitly has an 'any' type.
+pages/api/user/purchases.ts(18,36): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/user/remove-from-list.ts(25,20): error TS2551: Property 'userLikes' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'series'?
+pages/api/user/remove-from-list.ts(34,20): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/save-progress.ts(24,18): error TS2339: Property 'userProgress' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/save.ts(24,39): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/save.ts(34,20): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/save.ts(43,20): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/user/save.ts(51,37): error TS2339: Property 'userSaves' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/videos.ts(12,35): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/videos.ts(72,34): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/videos.ts(109,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/videos.ts(124,42): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/videos.ts(132,34): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/videos.ts(165,31): error TS2551: Property 'users' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'user'?
+pages/api/videos.ts(180,20): error TS2551: Property 'purchases' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'purchase'?
+pages/api/videos.ts(184,20): error TS2339: Property 'creator_earnings' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+pages/api/videos.ts(188,20): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?
+pages/api/videos/[id].ts(16,32): error TS2551: Property 'videos' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'video'?

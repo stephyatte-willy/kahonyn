@@ -1,11 +1,13 @@
+// pages/creator/earnings.tsx
 "use client"
 
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import UserLayout from '../../components/UserLayout'
+import ProfileLayout from '../../components/ProfileLayout'
+import { StatCard } from '../../components/ProfileComponents'
 import { CurrencyDollarIcon } from '@heroicons/react/24/outline'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 interface Earning {
   id: string
@@ -23,10 +25,7 @@ export default function CreatorEarnings() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (session?.user?.role !== 'creator') {
-      router.push('/')
-      return
-    }
+    if (!session || session.user?.role !== 'creator') { router.push('/'); return }
     fetchEarnings()
   }, [session, router])
 
@@ -43,64 +42,42 @@ export default function CreatorEarnings() {
     }
   }
 
-  if (loading) {
-    return (
-      <UserLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-        </div>
-      </UserLayout>
-    )
-  }
+  if (loading) return <ProfileLayout><div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6B35]"></div></div></ProfileLayout>
 
   return (
-    <UserLayout>
-      <Toaster position="top-right" />
+<ProfileLayout title="Mes gains" subtitle="Suivez vos revenus" activeTab="earnings">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Mes gains</h1>
-          <p className="text-gray-500 text-sm mt-1">Suivez vos revenus générés par vos vidéos</p>
-        </div>
-
-        <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-6 text-white">
-          <p className="text-sm opacity-90">Gain total</p>
+        <div className="bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] rounded-2xl p-6 text-white">
+          <p className="text-sm font-bold opacity-90">Gain total</p>
           <p className="text-3xl font-bold">{total.toLocaleString()} FCFA</p>
-          <p className="text-xs opacity-75 mt-2">Commission plateforme: 30%</p>
+          <p className="text-xs opacity-75 mt-2 font-bold">Commission plateforme: 30%</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-[#D4A855]/10 shadow-sm overflow-hidden">
           {earnings.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">Aucun gain enregistré</div>
+            <div className="p-8 text-center text-gray-600 font-bold">Aucun gain enregistré</div>
           ) : (
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Vidéo</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Montant</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Statut</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold">Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {earnings.map((earning) => (
-                  <tr key={earning.id}>
-                    <td className="px-4 py-3">{earning.video?.title || '—'}</td>
-                    <td className="px-4 py-3 font-semibold text-green-600">{earning.amount.toLocaleString()} FCFA</td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        earning.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {earning.status === 'paid' ? 'Payé' : 'En attente'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm">{new Date(earning.createdAt).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="divide-y divide-[#D4A855]/10">
+              {earnings.map((earning) => (
+                <div key={earning.id} className="p-4 flex justify-between items-center">
+                  <div>
+                    <p className="font-bold text-sm text-gray-900">{earning.video?.title || '—'}</p>
+                    <p className="text-[10px] text-gray-600 font-bold">{new Date(earning.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-green-600">{earning.amount.toLocaleString()} FCFA</p>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      earning.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                    }`}>
+                      {earning.status === 'paid' ? 'Payé' : 'En attente'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
-    </UserLayout>
+    </ProfileLayout>
   )
 }

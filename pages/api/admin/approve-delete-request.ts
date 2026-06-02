@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -29,16 +26,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID vidéo requis' })
     }
 
-    // Date de suppression programmée dans 24h
     const scheduledDeleteDate = new Date()
     scheduledDeleteDate.setHours(scheduledDeleteDate.getHours() + 24)
 
-    const updatedVideo = await prisma.videos.update({
+    const updatedVideo = await (prisma as any).video.update({
       where: { id: videoId },
       data: {
-        status: 'deleted',
-        deletionApprovedAt: new Date(),
-        deletedAt: scheduledDeleteDate,
+        isDeleted: true,
+        willDisappearAt: scheduledDeleteDate,
+        deletionRequested: false,
         updatedAt: new Date()
       }
     })

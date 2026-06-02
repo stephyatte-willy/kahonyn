@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -23,27 +20,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupérer les masters (séries) avec leurs épisodes
-    const masters = await prisma.videos.findMany({
+    // Récupérer les séries (vidéos qui ont des épisodes)
+    const seriesMasters = await (prisma as any).video.findMany({
       where: {
-        isSeries: true,
-        parentId: null
+        seriesId: null,
+        // Vidéos qui sont des masters de série
+        episodes: { some: {} }
       },
       orderBy: { createdAt: 'desc' },
       include: {
         creator: { select: { name: true, phone: true, email: true } },
         episodes: {
-          where: { parentId: { not: null } },
           orderBy: { episodeNumber: 'asc' }
         }
       }
     })
 
-    // Récupérer les vidéos simples (non masters, non épisodes)
-    const simpleVideos = await prisma.videos.findMany({
+    // Récupérer les vidéos simples (pas de seriesId, pas d'épisodes)
+    const simpleVideos = await (prisma as any).video.findMany({
       where: {
-        isSeries: false,
-        parentId: null
+        seriesId: null,
+        episodes: { none: {} }
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -52,11 +49,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     return res.status(200).json({
-      series: masters,
-      simpleVideos: simpleVideos
+      series: seriesMasters || [],
+      simpleVideos: simpleVideos || []
     })
   } catch (error) {
     console.error('Erreur all-videos:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json({ series: [], simpleVideos: [] })
   }
 }

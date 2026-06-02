@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,273 +9,273 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================
-// MODÈLE USERS
-// ============================================================
-model users {
-  id             String             @id @default(cuid()) @db.VarChar(191)
-  phone          String             @unique @db.VarChar(191)
-  name           String?            @db.VarChar(191)
-  email          String?            @unique @db.VarChar(191)
-  password       String?            @db.VarChar(191)
-  role           String             @default("user") @db.VarChar(50)
-  coins          Int                @default(0)
-  avatar         String?            @db.VarChar(500)
-  bio            String?            @db.Text
-  totalEarnings  Int                @default(0)
-  totalWithdrawn Int                @default(0)
-  isActive       Boolean            @default(true)
-  emailVerified  DateTime?
-  lastLogin      DateTime?
-  createdAt      DateTime           @default(now()) @map("createdAt")
-  updatedAt      DateTime           @updatedAt @map("updatedAt")
-  earnings       creator_earnings[]
-  purchases      purchases[]
-  progress       userProgress[]
-  videos         videos[]
-  withdrawals    withdrawals[]
-  likes          userLikes[]
-  saves          userSaves[]
-  subscriptions  subscriptions[]
-  coinTransactions coinTransactions[]
-  subscriptionTransactions subscriptionTransactions[]
+// ==================== UTILISATEURS ====================
 
-  @@map("users")
+model User {
+  id            String    @id @default(cuid())
+  phone         String    @unique
+  name          String?
+  email         String?   @unique
+  password      String?
+  role          String    @default("client") // admin, creator, client
+  bio           String?   @db.Text
+  avatar        String?
+  coins         Int       @default(0)        // Solde de pièces virtuelles pour consommer
+  totalEarnings Float     @default(0)        // Gains réels accumulés (ex: en FCFA) par le créateur
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  accounts           Account[]
+  sessions           Session[]
+  videos             Video[]
+  series             Series[]
+  purchases          Purchase[]
+  subscriptions      Subscription[]
+  watchHistory       WatchHistory[]
+  likes              Like[]
+  comments           Comment[]
+  notifications      Notification[]
+  paymentMethods     PaymentMethod[]
+  withdrawalRequests WithdrawalRequest[]
 }
 
-// ============================================================
-// MODÈLE VIDEOS (UNIFIÉ)
-// ============================================================
-model videos {
-  id            String             @id @default(cuid()) @db.VarChar(191)
-  title         String             @db.VarChar(255)
-  description   String?            @db.Text
-  url           String             @db.VarChar(500)
-  thumbnail     String?            @db.VarChar(500)
-  duration      Int?
-  price         Int                @default(100)
-  views         Int                @default(0)
-  purchases     Int                @default(0)
-  status        String             @default("pending") @db.VarChar(50)
-  creatorId     String             @db.VarChar(191)
-  isSeries      Boolean            @default(false)
-  parentId      String?            @db.VarChar(191)
-  episodeNumber Int?
-  startTime     Int?
-  endTime       Int?
-  publicId      String?            @db.VarChar(191)
-  category      String             @default("all") @db.VarChar(50)
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  earnings      creator_earnings[]
-  transactions  purchases[]
-  progress      userProgress[]
-  likes         userLikes[]
-  saves         userSaves[]
-  creator       users              @relation(fields: [creatorId], references: [id])
-  parent        videos?            @relation("SeriesEpisodes", fields: [parentId], references: [id])
-  episodes      videos[]           @relation("SeriesEpisodes")
+// ==================== AUTH (NextAuth) ====================
 
-  @@index([creatorId])
-  @@index([parentId])
-  @@index([status])
-  @@index([category])
-  @@index([isSeries])
-  @@map("videos")
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
 }
 
-// ============================================================
-// MODÈLE PURCHASES
-// ============================================================
-model purchases {
-  id            String   @id @default(cuid()) @db.VarChar(191)
-  userId        String   @db.VarChar(191)
-  videoId       String   @db.VarChar(191)
-  amount        Int
-  status        String   @default("completed") @db.VarChar(50)
-  transactionId String?  @unique @db.VarChar(191)
-  createdAt     DateTime @default(now())
-  user          users    @relation(fields: [userId], references: [id])
-  video         videos   @relation(fields: [videoId], references: [id])
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==================== CONTENU VIDÉO ====================
+
+model Video {
+  id                String    @id @default(cuid())
+  title             String
+  description       String?   @db.Text
+  thumbnail         String?
+  url               String    // ID public Cloudinary ou URL Cloudinary HLS (.m3u8)
+  duration          Int       @default(0) // secondes
+  price             Int       @default(0) // CORRIGÉ : Prix en PIÈCES VIRTUELLES (ex: 10 pièces l'épisode)
+  freePreview       Boolean   @default(false)
+  previewDuration   Int?      // secondes de preview gratuite
+  views             Int       @default(0)
+  purchasesCount    Int       @default(0)
+  status            String    @default("pending") // pending, approved, rejected, archived
+  category          String    @default("popular")
+  tags              String?   // tags séparés par des virgules
+  deletionRequested Boolean   @default(false)
+  isDeleted         Boolean   @default(false)
+  willDisappearAt   DateTime?
+  rejectionReason   String?   @db.Text
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  creatorId     String
+  creator       User           @relation(fields: [creatorId], references: [id])
+  seriesId      String?
+  series        Series?        @relation(fields: [seriesId], references: [id])
+  purchases     Purchase[]
+  likes         Like[]
+  comments      Comment[]
+  watchHistory  WatchHistory[]
+  notifications Notification[]
+}
+
+model Series {
+  id                String    @id @default(cuid())
+  title             String
+  description       String?   @db.Text
+  coverImage        String?
+  price             Int       @default(0) // CORRIGÉ : Prix global de la série en PIÈCES si achat groupé
+  freeEpisodes      Int       @default(1)
+  totalEpisodes     Int       @default(0)
+  totalViews        Int       @default(0)
+  status            String    @default("pending") // pending, approved, rejected
+  category          String    @default("popular")
+  deletionRequested Boolean   @default(false)
+  isDeleted         Boolean   @default(false)
+  willDisappearAt   DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  creatorId String
+  creator   User      @relation(fields: [creatorId], references: [id])
+  episodes  Video[]
+  purchases Purchase[]
+  likes     Like[]
+  comments  Comment[]
+}
+
+// ==================== ENGAGEMENT ====================
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String?
+  seriesId  String?
+  createdAt DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video  Video?  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  series Series? @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@unique([userId, videoId])
-  @@index([userId])
-  @@index([videoId])
-  @@map("purchases")
+  @@unique([userId, seriesId])
 }
 
-// ============================================================
-// MODÈLE CREATOR_EARNINGS
-// ============================================================
-model creator_earnings {
-  id        String    @id @default(cuid()) @db.VarChar(191)
-  creatorId String    @db.VarChar(191)
-  videoId   String    @db.VarChar(191)
-  amount    Int
-  status    String    @default("pending") @db.VarChar(50)
-  createdAt DateTime  @default(now())
-  paidAt    DateTime?
-  creator   users     @relation(fields: [creatorId], references: [id])
-  video     videos    @relation(fields: [videoId], references: [id])
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  userId    String
+  videoId   String?
+  seriesId  String?
+  parentId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@index([creatorId])
-  @@index([videoId])
-  @@map("creator_earnings")
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video    Video?    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  series   Series?   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
 }
 
-// ============================================================
-// MODÈLE WITHDRAWALS
-// ============================================================
-model withdrawals {
-  id          String    @id @default(cuid()) @db.VarChar(191)
-  creatorId   String    @db.VarChar(191)
-  amount      Int
-  phone       String    @db.VarChar(50)
-  status      String    @default("pending") @db.VarChar(50)
-  createdAt   DateTime  @default(now())
+// ==================== MONÉTISATION ====================
+
+model Purchase {
+  id            String   @id @default(cuid())
+  userId        String
+  videoId       String?
+  seriesId      String?
+  amount        Float    // Montant équivalent si payé directement en monnaie fiscale
+  coinsUsed     Int      @default(0) // Nombre de jetons dépensés pour cet achat
+  status        String   @default("completed") // completed, refunded, pending
+  paymentMethod String   @default("coins")     // coins, orange_money, wave
+  transactionId String?
+  createdAt     DateTime @default(now())
+
+  user   User    @relation(fields: [userId], references: [id])
+  video  Video?  @relation(fields: [videoId], references: [id])
+  series Series? @relation(fields: [seriesId], references: [id])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  plan      String   // monthly, quarterly, yearly
+  status    String   @default("active") // active, cancelled, expired
+  amount    Float    // Prix payé en FCFA
+  startDate DateTime @default(now())
+  endDate   DateTime
+  autoRenew Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model CoinPack {
+  id        String   @id @default(cuid())
+  name      String
+  coins     Int
+  price     Float    // Prix réel en FCFA (ex: 500 FCFA)
+  bonus     Int      @default(0)
+  isPopular Boolean  @default(false)
+  isVip     Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentMethod {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // wave, mobile_money, card
+  phone     String?
+  provider  String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model WithdrawalRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  amount      Float     // Somme en FCFA retirée par le créateur
+  status      String    @default("pending") // pending, approved, rejected, paid
+  method      String    // wave, mobile_money, bank
+  phone       String?
+  notes       String?   @db.Text
   processedAt DateTime?
-  creator     users     @relation(fields: [creatorId], references: [id])
+  createdAt   DateTime  @default(now())
 
-  @@index([creatorId])
-  @@map("withdrawals")
+  user User @relation(fields: [userId], references: [id])
 }
 
-// ============================================================
-// MODÈLE USER_PROGRESS
-// ============================================================
-model userProgress {
-  id          String   @id @default(cuid()) @db.VarChar(191)
-  userId      String   @db.VarChar(191)
-  episodeId   String   @db.VarChar(191)
-  currentTime Float    @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  user        users    @relation(fields: [userId], references: [id])
-  episode     videos   @relation(fields: [episodeId], references: [id])
+// ==================== HISTORIQUE & NOTIFICATIONS ====================
 
-  @@unique([userId, episodeId])
-  @@index([userId])
-  @@index([episodeId])
-  @@map("user_progress")
+model WatchHistory {
+  id            String   @id @default(cuid())
+  userId        String
+  videoId       String
+  seriesId      String?
+  episodeNumber Int?
+  progress      Float    @default(0) // pourcentage 0-100
+  completed     Boolean  @default(false)
+  watchedAt     DateTime @default(now())
+
+  // CORRIGÉ : Ajout des relations manquantes exigées par Prisma
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  // INDEXATION : Accélère le chargement de la reprise de lecture pour l'utilisateur
+  @@index([userId, videoId])
 }
 
-// ============================================================
-// MODÈLE USER_LIKES
-// ============================================================
-model userLikes {
-  id        String   @id @default(cuid()) @db.VarChar(191)
-  userId    String   @db.VarChar(191)
-  episodeId String   @db.VarChar(191)
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String?
+  type      String   // "like", "comment", "system"
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user    users  @relation(fields: [userId], references: [id])
-  episode videos @relation(fields: [episodeId], references: [id])
-
-  @@unique([userId, episodeId])
-  @@index([userId])
-  @@index([episodeId])
-  @@map("user_likes")
-}
-
-// ============================================================
-// MODÈLE USER_SAVES
-// ============================================================
-model userSaves {
-  id        String   @id @default(cuid()) @db.VarChar(191)
-  userId    String   @db.VarChar(191)
-  episodeId String   @db.VarChar(191)
-  createdAt DateTime @default(now())
-
-  user    users  @relation(fields: [userId], references: [id])
-  episode videos @relation(fields: [episodeId], references: [id])
-
-  @@unique([userId, episodeId])
-  @@index([userId])
-  @@index([episodeId])
-  @@map("user_saves")
-}
-
-// ============================================================
-// MODÈLE SUBSCRIPTIONS (Abonnements)
-// ============================================================
-model subscriptions {
-  id          String   @id @default(cuid()) @db.VarChar(191)
-  userId      String   @db.VarChar(191)
-  plan        String   @db.VarChar(50) // monthly, quarterly, yearly
-  status      String   @default("active") @db.VarChar(50) // active, cancelled, expired
-  startDate   DateTime @default(now())
-  endDate     DateTime
-  autoRenew   Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user        users    @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@map("subscriptions")
-}
-
-// ============================================================
-// MODÈLE COIN_PACKS (Packs de coins)
-// ============================================================
-model coinPacks {
-  id          String   @id @default(cuid()) @db.VarChar(191)
-  name        String   @db.VarChar(191)
-  coins       Int
-  price       Int      // prix en FCFA
-  bonus       Int      @default(0)
-  isPopular   Boolean  @default(false)
-  isVip       Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  transactions coinTransactions[]
-
-  @@map("coin_packs")
-}
-
-// ============================================================
-// MODÈLE COIN_TRANSACTIONS
-// ============================================================
-model coinTransactions {
-  id            String   @id @default(cuid()) @db.VarChar(191)
-  userId        String   @db.VarChar(191)
-  packId        String?  @db.VarChar(191)
-  amount        Int      // nombre de coins
-  price         Int      // prix payé en FCFA
-  status        String   @default("pending") @db.VarChar(50) // pending, completed, failed
-  transactionId String?  @unique @db.VarChar(191)
-  paymentMethod String   @default("orange_money") @db.VarChar(50)
-  paymentUrl    String?  @db.VarChar(500)
-  createdAt     DateTime @default(now())
-  completedAt   DateTime?
-
-  user        users     @relation(fields: [userId], references: [id])
-  pack        coinPacks? @relation(fields: [packId], references: [id])
-
-  @@index([userId])
-  @@index([packId])
-  @@index([status])
-  @@map("coin_transactions")
-}
-
-// ============================================================
-// MODÈLE SUBSCRIPTION_TRANSACTIONS (Paiements d'abonnement)
-// ============================================================
-model subscriptionTransactions {
-  id            String   @id @default(cuid()) @db.VarChar(191)
-  userId        String   @db.VarChar(191)
-  plan          String   @db.VarChar(50) // monthly, quarterly, yearly
-  amount        Int      // prix payé en FCFA
-  status        String   @default("pending") @db.VarChar(50) // pending, completed, failed
-  transactionId String?  @unique @db.VarChar(191)
-  paymentMethod String   @default("wave") @db.VarChar(50)
-  paymentUrl    String?  @db.VarChar(500)
-  createdAt     DateTime @default(now())
-  completedAt   DateTime?
-
-  user        users     @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([status])
-  @@map("subscription_transactions")
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video? @relation(fields: [videoId], references: [id], onDelete: Cascade)
 }

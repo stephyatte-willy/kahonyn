@@ -1,3 +1,4 @@
+// pages/api/user/my-list.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]'
@@ -15,35 +16,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // 1. Récupérer les vidéos likées par l'utilisateur
-    const likes = await prisma.userLikes.findMany({
-      where: { userId: session.user.id },
-      include: {
-        episode: {
-          include: {
-            creator: { select: { name: true, phone: true } }
-          }
-        }
-      }
-    })
+    const userId = (session.user as any).id
 
-    // 2. Récupérer les vidéos sauvegardées par l'utilisateur
-    const saves = await prisma.userSaves.findMany({
-      where: { userId: session.user.id },
-      include: {
-        episode: {
-          include: {
-            creator: { select: { name: true, phone: true } }
-          }
-        }
-      }
-    })
-
-    // 3. Récupérer les vidéos achetées par l'utilisateur
-    const purchases = await prisma.purchases.findMany({
-      where: { userId: session.user.id },
+    // 1. Récupérer les likes
+    const likes = await (prisma as any).like.findMany({
+      where: { userId },
       include: {
         video: {
+          include: {
+            creator: { select: { name: true, phone: true } }
+          }
+        },
+        series: {
+          include: {
+            creator: { select: { name: true, phone: true } }
+          }
+        }
+      }
+    })
+
+    // 2. Récupérer les achats
+    const purchases = await (prisma as any).purchase.findMany({
+      where: { userId, status: 'completed' },
+      include: {
+        video: {
+          include: {
+            creator: { select: { name: true, phone: true } }
+          }
+        },
+        series: {
           include: {
             creator: { select: { name: true, phone: true } }
           }
@@ -52,67 +53,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       orderBy: { createdAt: 'desc' }
     })
 
-    // Formater les données
-    const likedVideos = likes.map(like => ({
-      id: like.episode.id,
-      title: like.episode.title,
-      description: like.episode.description,
-      coverImage: like.episode.thumbnail,
-      price: like.episode.price,
-      duration: like.episode.duration,
-      views: like.episode.views,
-      creator: like.episode.creator,
-      type: like.episode.isSeries ? 'series' : 'movie',
-      addedAt: like.createdAt,
-      addedVia: 'like'
-    }))
+    // Formater les likes
+    const likedItems = likes
+      .filter((l: any) => l.video || l.series)
+      .map((like: any) => {
+        const item = like.video || like.series
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description || '',
+          coverImage: like.video ? item.thumbnail : item.coverImage,
+          price: item.price || 0,
+          duration: item.duration || 0,
+          views: item.views || item.totalViews || 0,
+          creator: item.creator || { name: 'Inconnu', phone: '' },
+          type: like.video ? (like.video.seriesId ? 'series' : 'movie') : 'series',
+          addedAt: like.createdAt,
+          addedVia: 'like'
+        }
+      })
 
-    const savedVideos = saves.map(save => ({
-      id: save.episode.id,
-      title: save.episode.title,
-      description: save.episode.description,
-      coverImage: save.episode.thumbnail,
-      price: save.episode.price,
-      duration: save.episode.duration,
-      views: save.episode.views,
-      creator: save.episode.creator,
-      type: save.episode.isSeries ? 'series' : 'movie',
-      addedAt: save.createdAt,
-      addedVia: 'save'
-    }))
+    // Formater les achats
+    const purchasedItems = purchases
+      .filter((p: any) => p.video || p.series)
+      .map((purchase: any) => {
+        const item = purchase.video || purchase.series
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.description || '',
+          coverImage: purchase.video ? item.thumbnail : item.coverImage,
+          price: item.price || 0,
+          duration: item.duration || 0,
+          views: item.views || item.totalViews || 0,
+          creator: item.creator || { name: 'Inconnu', phone: '' },
+          type: purchase.video ? (purchase.video.seriesId ? 'series' : 'movie') : 'series',
+          addedAt: purchase.createdAt,
+          addedVia: 'purchase'
+        }
+      })
 
-    const purchasedVideos = purchases.map(purchase => ({
-      id: purchase.video.id,
-      title: purchase.video.title,
-      description: purchase.video.description,
-      coverImage: purchase.video.thumbnail,
-      price: purchase.video.price,
-      duration: purchase.video.duration,
-      views: purchase.video.views,
-      creator: purchase.video.creator,
-      type: purchase.video.isSeries ? 'series' : 'movie',
-      addedAt: purchase.createdAt,
-      addedVia: 'purchase'
-    }))
-
-    // Fusionner et dédoublonner par ID
-    const allItems = [...likedVideos, ...savedVideos, ...purchasedVideos]
-    const uniqueItems = Array.from(new Map(allItems.map(item => [item.id, item])).values())
+    // Fusionner
+    const allItems = [...likedItems, ...purchasedItems]
     
-    // Trier par date d'ajout (plus récent en premier)
-    uniqueItems.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
+    // Dédoublonner par ID
+    const uniqueItems = Array.from(
+      new Map(allItems.map(item => [item.id, item])).values()
+    )
+    
+    // Trier par date (plus récent en premier)
+    uniqueItems.sort(
+      (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+    )
 
     return res.status(200).json({
       items: uniqueItems,
       stats: {
-        likes: likes.length,
-        saves: saves.length,
-        purchases: purchases.length,
+        likes: likedItems.length,
+        saves: 0,
+        purchases: purchasedItems.length,
         total: uniqueItems.length
       }
     })
   } catch (error) {
     console.error('Erreur my-list:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json({
+      items: [],
+      stats: { likes: 0, saves: 0, purchases: 0, total: 0 }
+    })
   }
 }

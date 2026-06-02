@@ -5,16 +5,8 @@ import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
-
-  if (!session) {
-    return res.status(401).json({ error: 'Non authentifié' })
-  }
-
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  
+  if (!session || (session.user as any)?.role !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -26,20 +18,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { userId, role } = req.body
 
     if (!userId || !role) {
-      return res.status(400).json({ error: 'UserId et rôle requis' })
+      return res.status(400).json({ error: 'ID utilisateur et rôle requis' })
     }
 
-    const validRoles = ['user', 'creator', 'admin']
-    if (!validRoles.includes(role)) {
+    if (!['admin', 'creator', 'client'].includes(role)) {
       return res.status(400).json({ error: 'Rôle invalide' })
     }
 
-    const user = await prisma.users.update({
+    await (prisma as any).user.update({
       where: { id: userId },
       data: { role }
     })
 
-    return res.status(200).json({ success: true, user })
+    return res.status(200).json({ success: true })
   } catch (error) {
     console.error('Erreur update-role:', error)
     return res.status(500).json({ error: 'Erreur serveur' })

@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -26,22 +23,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { withdrawalId } = req.body
 
     if (!withdrawalId) {
-      return res.status(400).json({ error: 'ID de retrait requis' })
+      return res.status(400).json({ error: 'ID retrait requis' })
     }
 
-    // Vérifier si la table existe
-    if (!(prisma as any).withdrawal) {
-      return res.status(500).json({ error: 'Table withdrawals non configurée' })
-    }
-
-    const withdrawal = await (prisma as any).withdrawal.update({
+    // Mettre à jour le statut du retrait
+    await (prisma as any).withdrawalRequest.update({
       where: { id: withdrawalId },
-      data: { status: 'processed', processedAt: new Date() }
+      data: {
+        status: 'paid',
+        processedAt: new Date()
+      }
     })
 
-    return res.status(200).json({ success: true, withdrawal })
+    return res.status(200).json({ success: true, message: 'Retrait traité avec succès' })
   } catch (error) {
-    console.error('Erreur process withdrawal:', error)
-    return res.status(500).json({ error: 'Erreur serveur', details: String(error) })
+    console.error('Erreur process-withdrawal:', error)
+    return res.status(500).json({ error: 'Erreur serveur' })
   }
 }

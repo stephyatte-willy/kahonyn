@@ -2,14 +2,18 @@
 
 import { useSession } from 'next-auth/react'
 import { useEffect, useState } from 'react'
-import UserLayout from '../components/UserLayout'
+import { useRouter } from 'next/router'
+import ProfileLayout from '../components/ProfileLayout'
+import { StatCard } from '../components/ProfileComponents'
 import {
   VideoCameraIcon,
   CurrencyDollarIcon,
   ShoppingBagIcon,
   EyeIcon,
   HeartIcon,
-  ClockIcon
+  ClockIcon,
+  ArrowUpTrayIcon,
+  PlayIcon
 } from '@heroicons/react/24/outline'
 import Link from 'next/link'
 
@@ -20,19 +24,24 @@ interface Stats {
   totalEarnings?: number
   pendingEarnings?: number
   totalCoins?: number
-  favorites?: number  // ← AJOUTER CETTE LIGNE
+  favorites?: number
   recentVideos?: any[]
   recentPurchases?: any[]
 }
 
 export default function Dashboard() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [stats, setStats] = useState<Stats>({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!session) {
+      router.push('/login')
+      return
+    }
     fetchDashboardData()
-  }, [])
+  }, [session, router])
 
   const fetchDashboardData = async () => {
     try {
@@ -50,112 +59,83 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <UserLayout>
+      <ProfileLayout>
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6B35]"></div>
         </div>
-      </UserLayout>
+      </ProfileLayout>
     )
   }
 
   return (
-    <UserLayout>
+    <ProfileLayout 
+  title={`Bienvenue, ${session?.user?.name || session?.user?.phone}`}
+  subtitle={isCreator ? 'Gérez vos vidéos et suivez vos revenus' : 'Découvrez et achetez les meilleures mini-séries'}
+  activeTab="dashboard"
+>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">
-            Bienvenue, {session?.user?.name || session?.user?.phone}
-          </h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {isCreator 
-              ? 'Gérez vos vidéos et suivez vos revenus'
-              : 'Découvrez et achetez les meilleures mini-séries'}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Statistiques */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {isCreator ? (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-                <div className="bg-blue-100 p-3 rounded-xl">
-                  <VideoCameraIcon className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-800">{stats.totalVideos || 0}</p>
-                  <p className="text-sm text-gray-500">Vidéos publiées</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-                <div className="bg-green-100 p-3 rounded-xl">
-                  <EyeIcon className="w-6 h-6 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-800">{stats.totalViews?.toLocaleString() || 0}</p>
-                  <p className="text-sm text-gray-500">Vues totales</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-                <div className="bg-orange-100 p-3 rounded-xl">
-                  <CurrencyDollarIcon className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-orange-600">{stats.totalEarnings?.toLocaleString() || 0} FCFA</p>
-                  <p className="text-sm text-gray-500">Gains totaux</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-                <div className="bg-yellow-100 p-3 rounded-xl">
-                  <ClockIcon className="w-6 h-6 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.pendingEarnings?.toLocaleString() || 0} FCFA</p>
-                  <p className="text-sm text-gray-500">En attente</p>
-                </div>
-              </div>
+              <StatCard icon={VideoCameraIcon} label="Vidéos publiées" value={stats.totalVideos || 0} color="text-blue-600" bgColor="bg-blue-100" />
+              <StatCard icon={EyeIcon} label="Vues totales" value={stats.totalViews?.toLocaleString() || 0} color="text-green-600" bgColor="bg-green-100" />
+              <StatCard icon={CurrencyDollarIcon} label="Gains totaux" value={`${stats.totalEarnings?.toLocaleString() || 0} FCFA`} color="text-[#FF6B35]" bgColor="bg-[#FF6B35]/10" />
+              <StatCard icon={ClockIcon} label="En attente" value={`${stats.pendingEarnings?.toLocaleString() || 0} FCFA`} color="text-yellow-600" bgColor="bg-yellow-100" />
             </>
           ) : (
             <>
-              <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-                <div className="bg-purple-100 p-3 rounded-xl">
-                  <ShoppingBagIcon className="w-6 h-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-800">{stats.totalPurchases || 0}</p>
-                  <p className="text-sm text-gray-500">Vidéos achetées</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-                <div className="bg-amber-100 p-3 rounded-xl">
-                  <CurrencyDollarIcon className="w-6 h-6 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-amber-600">{stats.totalCoins?.toLocaleString() || 0}</p>
-                  <p className="text-sm text-gray-500">Mes coins</p>
-                </div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
-                <div className="bg-red-100 p-3 rounded-xl">
-                  <HeartIcon className="w-6 h-6 text-red-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-800">{stats.favorites || 0}</p>
-                  <p className="text-sm text-gray-500">Favoris</p>
-                </div>
-              </div>
+              <StatCard icon={ShoppingBagIcon} label="Vidéos achetées" value={stats.totalPurchases || 0} color="text-purple-600" bgColor="bg-purple-100" />
+              <StatCard icon={CurrencyDollarIcon} label="Mes coins" value={stats.totalCoins?.toLocaleString() || 0} color="text-[#D4A855]" bgColor="bg-[#D4A855]/10" />
+              <StatCard icon={HeartIcon} label="Favoris" value={stats.favorites || 0} color="text-red-600" bgColor="bg-red-100" />
+              <StatCard icon={EyeIcon} label="Vues" value={stats.totalViews?.toLocaleString() || 0} color="text-green-600" bgColor="bg-green-100" />
             </>
           )}
         </div>
 
+        {/* Actions rapides créateur */}
+        {isCreator && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-sm">
+            <h3 className="text-base font-bold text-gray-900 mb-4">Actions rapides</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Link href="/creator/upload" className="flex flex-col items-center gap-2 p-4 bg-[#EDE4D8] rounded-xl hover:bg-[#E8DCCF] transition text-center">
+                <ArrowUpTrayIcon className="w-6 h-6 text-[#FF6B35]" />
+                <span className="text-xs font-bold text-gray-900">Uploader</span>
+              </Link>
+              <Link href="/creator/videos" className="flex flex-col items-center gap-2 p-4 bg-[#EDE4D8] rounded-xl hover:bg-[#E8DCCF] transition text-center">
+                <VideoCameraIcon className="w-6 h-6 text-[#FF6B35]" />
+                <span className="text-xs font-bold text-gray-900">Mes vidéos</span>
+              </Link>
+              <Link href="/creator/earnings" className="flex flex-col items-center gap-2 p-4 bg-[#EDE4D8] rounded-xl hover:bg-[#E8DCCF] transition text-center">
+                <CurrencyDollarIcon className="w-6 h-6 text-[#FF6B35]" />
+                <span className="text-xs font-bold text-gray-900">Gains</span>
+              </Link>
+              <Link href="/creator/stats" className="flex flex-col items-center gap-2 p-4 bg-[#EDE4D8] rounded-xl hover:bg-[#E8DCCF] transition text-center">
+                <EyeIcon className="w-6 h-6 text-[#FF6B35]" />
+                <span className="text-xs font-bold text-gray-900">Stats</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Dernières vidéos / achats */}
         {isCreator && stats.recentVideos && stats.recentVideos.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Dernières vidéos</h2>
-            <div className="space-y-3">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-base font-bold text-gray-900">Dernières vidéos</h3>
+              <Link href="/creator/videos" className="text-xs font-bold text-[#FF6B35] hover:underline">Voir tout →</Link>
+            </div>
+            <div className="space-y-2">
               {stats.recentVideos.slice(0, 5).map((video: any) => (
-                <div key={video.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{video.title}</p>
-                    <p className="text-sm text-gray-500">{video.views} vues • {video.purchases} achats</p>
+                <div key={video.id} className="flex justify-between items-center p-3 bg-[#EDE4D8] rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <PlayIcon className="w-4 h-4 text-gray-600" />
+                    <div>
+                      <p className="font-bold text-sm text-gray-900">{video.title}</p>
+                      <p className="text-[10px] text-gray-600 font-bold">{video.views} vues • {video.purchases} achats</p>
+                    </div>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs ${
+                  <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${
                     video.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
                   }`}>
                     {video.status === 'approved' ? 'Publiée' : 'En attente'}
@@ -163,32 +143,26 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <Link href="/creator/videos" className="text-orange-500 text-sm mt-3 inline-block hover:underline">
-              Voir toutes mes vidéos →
-            </Link>
           </div>
         )}
 
         {!isCreator && stats.recentPurchases && stats.recentPurchases.length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Derniers achats</h2>
-            <div className="space-y-3">
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-sm">
+            <h3 className="text-base font-bold text-gray-900 mb-4">Derniers achats</h3>
+            <div className="space-y-2">
               {stats.recentPurchases.slice(0, 5).map((purchase: any) => (
-                <div key={purchase.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div key={purchase.id} className="flex justify-between items-center p-3 bg-[#EDE4D8] rounded-xl">
                   <div>
-                    <p className="font-medium">{purchase.video?.title}</p>
-                    <p className="text-sm text-gray-500">Acheté le {new Date(purchase.createdAt).toLocaleDateString()}</p>
+                    <p className="font-bold text-sm text-gray-900">{purchase.video?.title}</p>
+                    <p className="text-[10px] text-gray-600 font-bold">Acheté le {new Date(purchase.createdAt).toLocaleDateString()}</p>
                   </div>
-                  <span className="text-orange-500 font-semibold">{purchase.amount} FCFA</span>
+                  <span className="text-[#FF6B35] font-bold text-sm">{purchase.amount} FCFA</span>
                 </div>
               ))}
             </div>
-            <Link href="/user/purchases" className="text-orange-500 text-sm mt-3 inline-block hover:underline">
-              Voir tous mes achats →
-            </Link>
           </div>
         )}
       </div>
-    </UserLayout>
+    </ProfileLayout>
   )
 }

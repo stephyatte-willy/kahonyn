@@ -22,6 +22,7 @@ import {
   StarIcon
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
+import toast from 'react-hot-toast'
 
 interface UserLayoutProps {
   children: React.ReactNode

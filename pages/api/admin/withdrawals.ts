@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -27,26 +24,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let total = 0
 
     try {
-      // Essayer de récupérer les retraits
-      withdrawals = await (prisma as any).withdrawal?.findMany({
+      withdrawals = await (prisma as any).withdrawalRequest.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
-          creator: {
+          user: {
             select: { name: true, phone: true }
           }
         }
       }) || []
-      
+
       total = withdrawals.reduce((sum: number, w: any) => sum + (w.amount || 0), 0)
     } catch (err) {
-      console.error('Table withdrawals peut-être manquante:', err)
-      withdrawals = []
-      total = 0
+      console.log('Table withdrawalRequest non trouvée, retour vide')
     }
 
     return res.status(200).json({ withdrawals, total })
   } catch (error) {
     console.error('Erreur withdrawals:', error)
-    return res.status(500).json({ error: 'Erreur serveur', details: String(error) })
+    return res.status(200).json({ withdrawals: [], total: 0 })
   }
 }

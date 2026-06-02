@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -23,24 +20,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id, title, description, price, status } = req.body
+    const { id, title, description, price, status, category } = req.body
 
     if (!id) {
       return res.status(400).json({ error: 'ID vidéo requis' })
     }
 
-    const video = await prisma.videos.update({
+    await (prisma as any).video.update({
       where: { id },
       data: {
-        title: title || undefined,
-        description: description || undefined,
-        price: price || undefined,
-        status: status || undefined,
-        updatedAt: new Date()
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(price !== undefined && { price: parseInt(price) }),
+        ...(status !== undefined && { status }),
+        ...(category !== undefined && { category }),
       }
     })
 
-    return res.status(200).json({ success: true, video })
+    return res.status(200).json({ success: true })
   } catch (error) {
     console.error('Erreur update-video:', error)
     return res.status(500).json({ error: 'Erreur serveur' })

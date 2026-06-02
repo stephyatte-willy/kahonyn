@@ -1,3 +1,4 @@
+// pages/api/public/videos-by-category.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 
@@ -9,13 +10,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { category } = req.query
 
   try {
-    // 1. Récupérer les SÉRIES (masters avec épisodes)
-    const series = await prisma.videos.findMany({
+    const categoryFilter = category as string
+
+    // 1. Récupérer les SÉRIES
+    const seriesList = await (prisma as any).series.findMany({
       where: {
-        isSeries: true,
-        parentId: null,
         status: { in: ['approved', 'published'] },
-        ...(category && category !== 'all' && category !== 'ranking' && category !== 'unpublished' ? { category: category as string } : {})
+        ...(categoryFilter && 
+            categoryFilter !== 'all' && 
+            categoryFilter !== 'ranking' && 
+            categoryFilter !== 'unpublished' 
+            ? { category: categoryFilter } 
+            : {})
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -29,21 +35,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         episodes: {
           where: {
-            parentId: { not: null },
             status: { in: ['approved', 'published'] }
           },
-          orderBy: { episodeNumber: 'asc' }
+          orderBy: { createdAt: 'asc' }
         }
       }
     })
 
-    // 2. Récupérer les FILMS SIMPLES (vidéos seules)
-    const movies = await prisma.videos.findMany({
+    // 2. Récupérer les FILMS SIMPLES
+    const movies = await (prisma as any).video.findMany({
       where: {
-        isSeries: false,
-        parentId: null,
         status: 'approved',
-        ...(category && category !== 'all' && category !== 'ranking' && category !== 'unpublished' ? { category: category as string } : {})
+        seriesId: null,
+        ...(categoryFilter && 
+            categoryFilter !== 'all' && 
+            categoryFilter !== 'ranking' && 
+            categoryFilter !== 'unpublished' 
+            ? { category: categoryFilter } 
+            : {})
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -59,44 +68,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     // 3. Formater les séries
-    const formattedSeries = series.map((video) => ({
-      id: video.id,
-      title: video.title,
-      description: video.description,
-      coverImage: video.thumbnail,
-      totalEpisodes: video.episodes?.length || 0,
-      totalViews: video.views || 0,
-      category: video.category,
-      creator: video.creator,
-      createdAt: video.createdAt,
+    const formattedSeries = seriesList.map((s: any) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      coverImage: s.coverImage,
+      totalEpisodes: s.totalEpisodes || s.episodes?.length || 0,
+      totalViews: s.totalViews || 0,
+      category: s.category,
+      creator: s.creator,
+      createdAt: s.createdAt,
       type: 'series' as const
     }))
 
-    // 4. Formater les films simples
-    const formattedMovies = movies.map((video) => ({
-      id: video.id,
-      title: video.title,
-      description: video.description,
-      coverImage: video.thumbnail,
-      duration: video.duration || 0,
-      price: video.price || 0,
-      totalViews: video.views || 0,
-      category: video.category,
-      creator: video.creator,
-      createdAt: video.createdAt,
+    // 4. Formater les films
+    const formattedMovies = movies.map((v: any) => ({
+      id: v.id,
+      title: v.title,
+      description: v.description,
+      coverImage: v.thumbnail,
+      duration: v.duration || 0,
+      price: v.price || 0,
+      totalViews: v.views || 0,
+      category: v.category,
+      creator: v.creator,
+      createdAt: v.createdAt,
       type: 'movie' as const
     }))
 
     // 5. Trier par vues pour "ranking"
-    if (category === 'ranking') {
-      formattedSeries.sort((a, b) => b.totalViews - a.totalViews)
-      formattedMovies.sort((a, b) => b.totalViews - a.totalViews)
+    if (categoryFilter === 'ranking') {
+      formattedSeries.sort((a: any, b: any) => b.totalViews - a.totalViews)
+      formattedMovies.sort((a: any, b: any) => b.totalViews - a.totalViews)
     }
 
-    // 6. Trier par date pour "unpublished"
-    if (category === 'unpublished') {
-      formattedSeries.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      formattedMovies.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    // 6. Trier par date pour "unpublished" (plus récent d'abord)
+    if (categoryFilter === 'unpublished') {
+      formattedSeries.sort(
+        (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      formattedMovies.sort(
+        (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
     }
 
     return res.status(200).json({
@@ -105,6 +118,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   } catch (error) {
     console.error('Erreur videos-by-category:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json({
+      series: [],
+      movies: []
+    })
   }
 }

@@ -1,3 +1,4 @@
+// pages/for-you.tsx
 "use client"
 
 import { useSession } from 'next-auth/react'
@@ -12,10 +13,13 @@ import {
   HomeIcon,
   UserGroupIcon,
   BookmarkIcon,
-  TrophyIcon
+  TrophyIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
+import { useRequireAuth } from '../hooks/useRequireAuth'
+import toast from 'react-hot-toast'
 
 interface Series {
   id: string
@@ -46,6 +50,7 @@ interface Movie {
 
 export default function ForYouPage() {
   const { data: session } = useSession()
+  const { isAuthorized, isLoading } = useRequireAuth()
   const [series, setSeries] = useState<Series[]>([])
   const [movies, setMovies] = useState<Movie[]>([])
   const [loading, setLoading] = useState(true)
@@ -53,19 +58,22 @@ export default function ForYouPage() {
   const [activeFooterTab, setActiveFooterTab] = useState('for-you')
 
   useEffect(() => {
+    if (!isAuthorized) return
     fetchRecommendations()
-  }, [])
+  }, [isAuthorized])
 
   const fetchRecommendations = async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/public/recommendations')
       const data = await res.json()
-      setMovies(data.movies || [])
-      setSeries(data.series || [])
+      setMovies(Array.isArray(data.movies) ? data.movies : [])
+      setSeries(Array.isArray(data.series) ? data.series : [])
       setPreferredCategory(data.preferredCategory || 'tendances')
     } catch (error) {
       console.error('Erreur:', error)
+      setMovies([])
+      setSeries([])
     } finally {
       setLoading(false)
     }
@@ -79,7 +87,25 @@ export default function ForYouPage() {
     { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
   ]
 
-  if (loading) {
+  // Afficher un message si non connecté
+  if (!isAuthorized && !isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F5F0E8]">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center h-[80vh] px-4">
+          <div className="w-20 h-20 rounded-2xl bg-[#EDE4D8] border border-[#D4A855]/20 flex items-center justify-center mb-6">
+            <LockClosedIcon className="w-10 h-10 text-[#FF6B35]" />
+          </div>
+          <h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Accès restreint</h2>
+          <p className="text-sm text-[#8B5A2B]/80 text-center max-w-sm">
+            Connectez-vous pour découvrir des recommandations personnalisées basées sur vos goûts
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-[#F5F0E8]">
         <Navbar />
@@ -104,10 +130,7 @@ export default function ForYouPage() {
             <div>
               <h1 className="text-lg font-bold text-white">Pour vous</h1>
               <p className="text-xs text-[#D4A855]/60">
-                {session 
-                  ? `Recommandations basées sur vos goûts (${preferredCategory})`
-                  : 'Tendances du moment'
-                }
+                Recommandations basées sur vos goûts ({preferredCategory})
               </p>
             </div>
           </div>
@@ -224,7 +247,6 @@ export default function ForYouPage() {
         </div>
       )}
 
-      {/* Message si aucun contenu */}
       {movies.length === 0 && series.length === 0 && (
         <div className="max-w-7xl mx-auto px-4 py-20">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-[#D4A855]/10 shadow-lg shadow-[#8B5A2B]/5">

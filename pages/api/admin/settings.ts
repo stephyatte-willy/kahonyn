@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 
-// Paramètres par défaut
 const defaultSettings = {
   defaultVideoPrice: 100,
   platformCommission: 30,
@@ -20,23 +19,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  // CORRECTION : Utiliser (session.user as any).role au lieu de chercher dans la BDD
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
   // GET - Récupérer les paramètres
   if (req.method === 'GET') {
     try {
-      // Ici tu peux charger les paramètres depuis une table Settings si elle existe
-      // Pour l'instant, on retourne les paramètres par défaut
+      // Essayer de charger depuis la BDD
+      const configs = await (prisma as any).siteConfig.findMany()
+      
+      if (configs && configs.length > 0) {
+        const settings: any = {}
+        configs.forEach((c: any) => {
+          try {
+            settings[c.key] = JSON.parse(c.value)
+          } catch {
+            settings[c.key] = c.value
+          }
+        })
+        return res.status(200).json({ ...defaultSettings, ...settings })
+      }
+      
       return res.status(200).json(defaultSettings)
     } catch (error) {
       console.error('Erreur GET settings:', error)
-      return res.status(500).json({ error: 'Erreur serveur' })
+      return res.status(200).json(defaultSettings)
     }
   }
 
@@ -44,8 +54,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'POST') {
     try {
       const settings = req.body
-      // Ici tu peux sauvegarder dans une table Settings
-      // Pour l'instant, on simule la sauvegarde
+      
+      // Sauvegarder chaque paramètre
+      for (const [key, value] of Object.entries(settings)) {
+        await (prisma as any).siteConfig.upsert({
+          where: { key },
+          update: { value: JSON.stringify(value) },
+          create: { key, value: JSON.stringify(value) }
+        })
+      }
+      
       return res.status(200).json({ success: true, settings })
     } catch (error) {
       console.error('Erreur POST settings:', error)

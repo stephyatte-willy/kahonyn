@@ -1,0 +1,42 @@
+lib/videoAccess.ts(3,29): error TS2307: Cannot find module '@/pages/api/auth/[...nextauth]' or its corresponding type declarations.
+node_modules/next-auth/adapters.d.ts(2,47): error TS2307: Cannot find module '@auth/core/adapters' or its corresponding type declarations.
+node_modules/next-auth/core/lib/cookie.d.ts(31,5): error TS18028: Private identifiers are only available when targeting ECMAScript 2015 and higher.
+node_modules/next-auth/providers/email.d.ts(1,45): error TS2307: Cannot find module 'nodemailer' or its corresponding type declarations.
+node_modules/next-auth/providers/email.d.ts(2,32): error TS2307: Cannot find module 'nodemailer/lib/json-transport/index.js' or its corresponding type declarations.
+node_modules/next-auth/providers/email.d.ts(3,36): error TS2307: Cannot find module 'nodemailer/lib/sendmail-transport/index.js' or its corresponding type declarations.
+node_modules/next-auth/providers/email.d.ts(4,31): error TS2307: Cannot find module 'nodemailer/lib/ses-transport/index.js' or its corresponding type declarations.
+node_modules/next-auth/providers/email.d.ts(5,27): error TS2307: Cannot find module 'nodemailer/lib/smtp-pool/index.js' or its corresponding type declarations.
+node_modules/next-auth/providers/email.d.ts(6,32): error TS2307: Cannot find module 'nodemailer/lib/smtp-transport/index.js' or its corresponding type declarations.
+node_modules/next-auth/providers/email.d.ts(7,34): error TS2307: Cannot find module 'nodemailer/lib/stream-transport/index.js' or its corresponding type declarations.
+node_modules/next/dist/build/webpack/loaders/next-app-loader/index.d.ts(1,13): error TS2613: Module '"next/dist/compiled/webpack/webpack"' has no default export. Did you mean to use 'import { webpack } from "next/dist/compiled/webpack/webpack"' instead?
+node_modules/next/dist/client/components/catch-error.d.ts(2,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/error-boundary.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/http-access-fallback/error-boundary.d.ts(11,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/layout-router.d.ts(3,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/components/segment-cache/cache.d.ts(104,21): error TS2304: Cannot find name 'PromiseWithResolvers'.
+node_modules/next/dist/client/image-component.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/link.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/script.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/client/with-router.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/lib/metadata/metadata.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/next-devtools/userspace/pages/pages-dev-overlay-setup.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/pages/_app.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/pages/_document.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/pages/_error.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/server/app-render/types.d.ts(10,8): error TS1192: Module '"next/dist/compiled/superstruct"' has no default export.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(39,16): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(40,13): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(41,15): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/server/web/spec-extension/adapters/headers.d.ts(42,26): error TS2304: Cannot find name 'HeadersIterator'.
+node_modules/next/dist/shared/lib/app-router-context.shared-runtime.d.ts(4,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/app-router-types.d.ts(7,13): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/dynamic.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/head-manager-context.shared-runtime.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/head.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/image-config-context.shared-runtime.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/loadable-context.shared-runtime.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/loadable.shared-runtime.d.ts(21,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/router-context.shared-runtime.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/server-inserted-html.shared-runtime.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag
+node_modules/next/dist/shared/lib/utils.d.ts(10,13): error TS1192: Module '"fs"' has no default export.
+node_modules/next/dist/styled-jsx/types/global.d.ts(1,8): error TS1259: Module '"C:/Users/1030 G2/Desktop/appliweb/kahonyn/node_modules/@types/react/index"' can only be default-imported using the 'esModuleInterop' flag

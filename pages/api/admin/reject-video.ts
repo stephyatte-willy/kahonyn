@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const admin = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (admin?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -29,14 +26,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID vidéo requis' })
     }
 
-    const video = await prisma.videos.update({
+    await (prisma as any).video.update({
       where: { id: videoId },
       data: {
-        status: 'rejected'
+        status: 'rejected',
+        rejectionReason: reason || 'Non conforme aux critères de qualité'
       }
     })
 
-    return res.status(200).json({ success: true, video })
+    return res.status(200).json({ success: true, message: 'Vidéo rejetée' })
   } catch (error) {
     console.error('Erreur reject-video:', error)
     return res.status(500).json({ error: 'Erreur serveur' })

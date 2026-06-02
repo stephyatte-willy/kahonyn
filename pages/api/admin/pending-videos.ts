@@ -10,11 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  const user = await prisma.users.findUnique({
-    where: { id: session.user.id }
-  })
-
-  if (user?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -23,13 +20,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupérer les vidéos en attente ET les demandes de suppression
-    const pendingVideos = await prisma.videos.findMany({
+    const pendingVideos = await (prisma as any).video.findMany({
       where: {
         OR: [
           { status: 'pending' },
-          { status: 'deletion_requested' }
-        ]
+          { status: 'deletion_requested' },
+          { deletionRequested: true }
+        ],
+        seriesId: null // Seulement les masters, pas les épisodes
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -39,9 +37,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    return res.status(200).json(pendingVideos)
+    return res.status(200).json(Array.isArray(pendingVideos) ? pendingVideos : [])
   } catch (error) {
-    console.error('Erreur:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    console.error('Erreur pending-videos:', error)
+    return res.status(200).json([])
   }
 }

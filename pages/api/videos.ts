@@ -9,11 +9,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ============================================================
   if (req.method === 'GET') {
     try {
-      const videos = await prisma.videos.findMany({
+      const videos = await (prisma as any).video.findMany({
         where: {
           status: 'approved',
-          isSeries: false,
-          parentId: null
+          seriesId: null // Films simples uniquement (pas d'épisodes de série)
         },
         orderBy: { createdAt: 'desc' },
         include: {
@@ -45,7 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Non authentifié' })
     }
 
-    if (session.user?.role !== 'creator' && session.user?.role !== 'admin') {
+    const userRole = (session.user as any)?.role
+    if (userRole !== 'creator' && userRole !== 'admin') {
       return res.status(403).json({ error: 'Non autorisé. Seuls les créateurs peuvent uploader.' })
     }
 
@@ -61,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         category
       } = req.body
 
+      // Validations
       if (!title || !url) {
         return res.status(400).json({ error: 'Le titre et l\'URL sont requis' })
       }
@@ -69,21 +70,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'La durée de la vidéo est invalide' })
       }
 
-      const video = await prisma.videos.create({
+      console.log('📹 Création vidéo:', { title, url, duration, category })
+
+      // Utiliser prisma.video (singulier) au lieu de prisma.videos
+      const video = await (prisma as any).video.create({
         data: {
           title,
           description: description || '',
           url,
           thumbnail: thumbnail || null,
-          duration: duration,
-          price: price || 0,
-          publicId: publicId || null,
+          duration: parseInt(duration) || 0,
+          price: parseFloat(price) || 0,
           category: category || 'popular',
-          isSeries: false,
-          status: 'pending',
-          creatorId: session.user.id
+          status: 'pending', // En attente de validation par l'admin
+          creatorId: (session.user as any).id
         }
       })
+
+      console.log('✅ Vidéo créée:', video.id)
 
       return res.status(201).json({
         success: true,
@@ -91,27 +95,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         video
       })
     } catch (error) {
-      console.error('Erreur POST video:', error)
-      return res.status(500).json({ error: 'Erreur lors de la création de la vidéo' })
+      console.error('❌ Erreur POST video:', error)
+      return res.status(500).json({ 
+        error: 'Erreur lors de la création de la vidéo',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      })
     }
   }
 
   // ============================================================
-  // PUT - Modifier une vidéo (admin seulement)
+  // PUT - Modifier une vidéo (admin ou créateur propriétaire)
   // ============================================================
   if (req.method === 'PUT') {
     const session = await getServerSession(req, res, authOptions)
 
     if (!session) {
       return res.status(401).json({ error: 'Non authentifié' })
-    }
-
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (user?.role !== 'admin') {
-      return res.status(403).json({ error: 'Non autorisé. Réservé aux administrateurs.' })
     }
 
     try {
@@ -121,7 +120,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'ID de la vidéo requis' })
       }
 
-      const existingVideo = await prisma.videos.findUnique({
+      // Vérifier que la vidéo existe
+      const existingVideo = await (prisma as any).video.findUnique({
         where: { id }
       })
 
@@ -129,14 +129,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: 'Vidéo non trouvée' })
       }
 
-      const video = await prisma.videos.update({
+      // Vérifier les droits : admin ou créateur propriétaire
+      const userId = (session.user as any).id
+      const userRole = (session.user as any).role
+
+      if (userRole !== 'admin' && existingVideo.creatorId !== userId) {
+        return res.status(403).json({ error: 'Non autorisé. Vous ne pouvez modifier que vos propres vidéos.' })
+      }
+
+      const video = await (prisma as any).video.update({
         where: { id },
         data: {
-          title: title || undefined,
-          description: description !== undefined ? description : undefined,
-          price: price !== undefined ? price : undefined,
-          status: status || undefined,
-          category: category || undefined,
+          ...(title !== undefined && { title }),
+          ...(description !== undefined && { description }),
+          ...(price !== undefined && { price: parseFloat(price) }),
+          ...(status !== undefined && { status }),
+          ...(category !== undefined && { category }),
           updatedAt: new Date()
         }
       })
@@ -162,11 +170,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: 'Non authentifié' })
     }
 
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id }
-    })
-
-    if (user?.role !== 'admin') {
+    const userRole = (session.user as any)?.role
+    if (userRole !== 'admin') {
       return res.status(403).json({ error: 'Non autorisé. Réservé aux administrateurs.' })
     }
 
@@ -177,15 +182,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'ID de la vidéo requis' })
       }
 
-      await prisma.purchases.deleteMany({
+      // Supprimer les achats liés
+      await (prisma as any).purchase.deleteMany({
         where: { videoId: id }
       })
 
-      await prisma.creator_earnings.deleteMany({
+      // Supprimer les likes liés
+      await (prisma as any).like.deleteMany({
         where: { videoId: id }
       })
 
-      await prisma.videos.delete({
+      // Supprimer les commentaires liés
+      await (prisma as any).comment.deleteMany({
+        where: { videoId: id }
+      })
+
+      // Supprimer l'historique de visionnage
+      await (prisma as any).watchHistory.deleteMany({
+        where: { videoId: id }
+      })
+
+      // Supprimer la vidéo
+      await (prisma as any).video.delete({
         where: { id }
       })
 
