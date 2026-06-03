@@ -20,8 +20,8 @@ model User {
   role          String    @default("client") // admin, creator, client
   bio           String?   @db.Text
   avatar        String?
-  coins         Int       @default(0)        // Solde de pièces virtuelles pour consommer
-  totalEarnings Float     @default(0)        // Gains réels accumulés (ex: en FCFA) par le créateur
+  coins         Int       @default(0)
+  totalEarnings Float     @default(0)
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())
@@ -40,6 +40,7 @@ model User {
   notifications      Notification[]
   paymentMethods     PaymentMethod[]
   withdrawalRequests WithdrawalRequest[]
+  transactions       Transaction[]
 }
 
 // ==================== AUTH (NextAuth) ====================
@@ -87,16 +88,16 @@ model Video {
   title             String
   description       String?   @db.Text
   thumbnail         String?
-  url               String    // ID public Cloudinary ou URL Cloudinary HLS (.m3u8)
-  duration          Int       @default(0) // secondes
-  price             Int       @default(0) // CORRIGÉ : Prix en PIÈCES VIRTUELLES (ex: 10 pièces l'épisode)
+  url               String
+  duration          Int       @default(0)
+  price             Int       @default(0)
   freePreview       Boolean   @default(false)
-  previewDuration   Int?      // secondes de preview gratuite
+  previewDuration   Int?
   views             Int       @default(0)
   purchasesCount    Int       @default(0)
-  status            String    @default("pending") // pending, approved, rejected, archived
+  status            String    @default("pending")
   category          String    @default("popular")
-  tags              String?   // tags séparés par des virgules
+  tags              String?
   deletionRequested Boolean   @default(false)
   isDeleted         Boolean   @default(false)
   willDisappearAt   DateTime?
@@ -104,7 +105,6 @@ model Video {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  // Relations
   creatorId     String
   creator       User           @relation(fields: [creatorId], references: [id])
   seriesId      String?
@@ -121,11 +121,11 @@ model Series {
   title             String
   description       String?   @db.Text
   coverImage        String?
-  price             Int       @default(0) // CORRIGÉ : Prix global de la série en PIÈCES si achat groupé
+  price             Int       @default(0)
   freeEpisodes      Int       @default(1)
   totalEpisodes     Int       @default(0)
   totalViews        Int       @default(0)
-  status            String    @default("pending") // pending, approved, rejected
+  status            String    @default("pending")
   category          String    @default("popular")
   deletionRequested Boolean   @default(false)
   isDeleted         Boolean   @default(false)
@@ -133,7 +133,6 @@ model Series {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  // Relations
   creatorId String
   creator   User      @relation(fields: [creatorId], references: [id])
   episodes  Video[]
@@ -179,52 +178,141 @@ model Comment {
 // ==================== MONÉTISATION ====================
 
 model Purchase {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   userId        String
   videoId       String?
   seriesId      String?
-  amount        Float    // Montant équivalent si payé directement en monnaie fiscale
-  coinsUsed     Int      @default(0) // Nombre de jetons dépensés pour cet achat
-  status        String   @default("completed") // completed, refunded, pending
-  paymentMethod String   @default("coins")     // coins, orange_money, wave
+  amount        Float
+  coinsUsed     Int       @default(0)
+  status        String    @default("completed")
+  paymentMethod String    @default("coins")
   transactionId String?
-  createdAt     DateTime @default(now())
+  refundedAt    DateTime?
+  refundReason  String?
+  createdAt     DateTime  @default(now())
 
   user   User    @relation(fields: [userId], references: [id])
   video  Video?  @relation(fields: [videoId], references: [id])
   series Series? @relation(fields: [seriesId], references: [id])
 }
 
-model Subscription {
-  id        String   @id @default(cuid())
-  userId    String
-  plan      String   // monthly, quarterly, yearly
-  status    String   @default("active") // active, cancelled, expired
-  amount    Float    // Prix payé en FCFA
-  startDate DateTime @default(now())
-  endDate   DateTime
-  autoRenew Boolean  @default(false)
-  createdAt DateTime @default(now())
+// 🆕 NOUVELLE TABLE : Transactions
+model Transaction {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String   @default("coin_purchase")
+  amount        Float    @default(0)
+  coins         Int      @default(0)
+  currency      String   @default("XOF")
+  paymentMethod String   @default("wave")
+  status        String   @default("pending")
+  reference     String?
+  metadata      String?  @db.Text
+  description   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
 }
 
+// 🆕 MODIFIÉ : Subscription avec lien vers SubscriptionPlan
+model Subscription {
+  id               String    @id @default(cuid())
+  userId           String
+  planId           String?
+  plan             String
+  status           String    @default("active")
+  amount           Float     @default(0)
+  startDate        DateTime  @default(now())
+  endDate          DateTime
+  autoRenew        Boolean   @default(false)
+  dailyCoinsClaimed Boolean  @default(false)
+  lastDailyClaim   DateTime?
+  createdAt        DateTime  @default(now())
+
+  user    User              @relation(fields: [userId], references: [id])
+  planRef SubscriptionPlan? @relation(fields: [planId], references: [id])
+}
+
+// 🆕 NOUVELLE TABLE : SubscriptionPlan (abonnements configurables)
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  price       Float    @default(0)
+  priceUSD    Float?
+  duration    Int      @default(30)
+  coinsBonus  Int      @default(0)
+  dailyCoins  Int      @default(0)
+  benefits    String?  @db.Text
+  isPopular   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  color       String?
+  badge       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+// 🆕 MODIFIÉ : CoinPack avec nouveaux champs
 model CoinPack {
-  id        String   @id @default(cuid())
-  name      String
-  coins     Int
-  price     Float    // Prix réel en FCFA (ex: 500 FCFA)
-  bonus     Int      @default(0)
-  isPopular Boolean  @default(false)
-  isVip     Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  coins         Int
+  price         Float
+  priceUSD      Float?
+  priceEUR      Float?
+  bonus         Int      @default(0)
+  isPopular     Boolean  @default(false)
+  isVip         Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  currency      String   @default("XOF")
+  stripePriceId String?
+  waveCheckoutId String?
+  promotionText String?
+  promotionEnd  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// 🆕 NOUVELLE TABLE : VipBenefit (avantages VIP configurables)
+model VipBenefit {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  icon        String
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 🆕 NOUVELLE TABLE : Promotion (bannières/offres)
+model Promotion {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  imageUrl    String?
+  type        String   @default("banner")
+  targetUrl   String?
+  isActive    Boolean  @default(true)
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model PaymentMethod {
   id        String   @id @default(cuid())
   userId    String
-  type      String   // wave, mobile_money, card
+  type      String
   phone     String?
   provider  String?
   isDefault Boolean  @default(false)
@@ -236,9 +324,9 @@ model PaymentMethod {
 model WithdrawalRequest {
   id          String    @id @default(cuid())
   userId      String
-  amount      Float     // Somme en FCFA retirée par le créateur
-  status      String    @default("pending") // pending, approved, rejected, paid
-  method      String    // wave, mobile_money, bank
+  amount      Float
+  status      String    @default("pending")
+  method      String
   phone       String?
   notes       String?   @db.Text
   processedAt DateTime?
@@ -255,15 +343,13 @@ model WatchHistory {
   videoId       String
   seriesId      String?
   episodeNumber Int?
-  progress      Float    @default(0) // pourcentage 0-100
+  progress      Float    @default(0)
   completed     Boolean  @default(false)
   watchedAt     DateTime @default(now())
 
-  // CORRIGÉ : Ajout des relations manquantes exigées par Prisma
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  // INDEXATION : Accélère le chargement de la reprise de lecture pour l'utilisateur
   @@index([userId, videoId])
 }
 
@@ -271,7 +357,7 @@ model Notification {
   id        String   @id @default(cuid())
   userId    String
   videoId   String?
-  type      String   // "like", "comment", "system"
+  type      String   @default("system")
   message   String   @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())

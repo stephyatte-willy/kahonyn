@@ -1,4 +1,3 @@
-// pages/my-list.tsx
 "use client"
 
 import { useSession } from 'next-auth/react'
@@ -13,7 +12,9 @@ import {
   HomeIcon,
   UserGroupIcon,
   TrophyIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  FilmIcon,
+  TvIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
 import Navbar from '../components/Navbar'
@@ -52,7 +53,6 @@ export default function MyListPage() {
   const [filter, setFilter] = useState<'all' | 'like' | 'save' | 'purchase'>('all')
   const [activeFooterTab, setActiveFooterTab] = useState('my-list')
 
-  // Charger les données seulement si autorisé
   useEffect(() => {
     if (!isAuthorized) return
     fetchMyList()
@@ -62,9 +62,7 @@ export default function MyListPage() {
     setLoading(true)
     try {
       const res = await fetch('/api/user/my-list')
-      if (!res.ok) {
-        throw new Error('Erreur réseau')
-      }
+      if (!res.ok) throw new Error('Erreur réseau')
       const data = await res.json()
       setItems(Array.isArray(data.items) ? data.items : [])
       setStats(data.stats || { likes: 0, saves: 0, purchases: 0, total: 0 })
@@ -82,7 +80,11 @@ export default function MyListPage() {
       const res = await fetch('/api/user/remove-from-list', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId, type })
+        body: JSON.stringify({ 
+          episodeId: itemId,
+          itemId: itemId,
+          type 
+        })
       })
       if (res.ok) {
         toast.success('Retiré de votre liste', { duration: 2000 })
@@ -98,6 +100,10 @@ export default function MyListPage() {
   const filteredItems = filter === 'all' 
     ? items 
     : items.filter(item => item.addedVia === filter)
+
+  // Séparer les séries et les films
+  const seriesItems = filteredItems.filter(item => item.type === 'series')
+  const movieItems = filteredItems.filter(item => item.type === 'movie')
 
   const getAddedViaIcon = (via: string) => {
     switch (via) {
@@ -136,7 +142,7 @@ export default function MyListPage() {
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">Accès restreint</h2>
           <p className="text-sm text-gray-600 text-center max-w-sm">
-            Connectez-vous pour accéder à votre liste personnelle de vidéos aimées et achetées
+            Connectez-vous pour accéder à votre liste personnelle
           </p>
         </div>
       </div>
@@ -155,6 +161,114 @@ export default function MyListPage() {
     )
   }
 
+  // ==================== RENDU D'UNE GRILLE ====================
+  // ==================== RENDU D'UNE GRILLE ====================
+const renderGrid = (title: string, IconComponent: React.ElementType, data: ListItem[], accentColor: string) => {
+  if (data.length === 0) return null
+
+  return (
+    <div className="mb-8">
+      {/* Titre de section */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${accentColor} flex items-center justify-center shadow-md`}>
+          <IconComponent className="w-4 h-4 text-white" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-gray-900">{title}</h2>
+          <p className="text-[11px] text-gray-600 font-bold">{data.length} élément{data.length > 1 ? 's' : ''}</p>
+        </div>
+      </div>
+
+      {/* Grille */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
+        {data.map((item) => (
+          <div key={`${item.id}-${item.addedVia}`} className="relative group">
+            <Link 
+              href={item.type === 'series' ? `/series/${item.id}` : `/video/${item.id}`}
+              className="block"
+            >
+              <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#FF6B35]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+                <div className="relative aspect-[3/4] overflow-hidden bg-[#EDE4D8]">
+                  {item.coverImage ? (
+                    <img 
+                      src={item.coverImage} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      {item.type === 'series' ? (
+                        <FilmIcon className="w-10 h-10 text-gray-400" />
+                      ) : (
+                        <PlayIcon className="w-10 h-10 text-gray-400" />
+                      )}
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                    <PlayIcon className="w-8 h-8 text-white drop-shadow-lg" />
+                  </div>
+                  
+                  {/* Badge type */}
+                  <div className="absolute top-1.5 left-1.5">
+                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                      item.type === 'series' 
+                        ? 'bg-purple-500/90 text-white' 
+                        : 'bg-blue-500/90 text-white'
+                    }`}>
+                      {item.type === 'series' ? (
+                        <><FilmIcon className="w-2.5 h-2.5" /> Série</>
+                      ) : (
+                        <><PlayIcon className="w-2.5 h-2.5" /> Film</>
+                      )}
+                    </span>
+                  </div>
+                  
+                  {/* Prix (seulement pour les achats) */}
+                  {item.addedVia === 'purchase' && (
+                    <div className="absolute top-1.5 right-1.5">
+                      <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-gray-900 text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">
+                        {item.price} 🪙
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="p-2">
+                  <h3 className="font-bold text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#FF6B35] transition leading-tight">
+                    {item.title}
+                  </h3>
+                </div>
+              </div>
+            </Link>
+            
+            {/* Badge origine */}
+            <div className="absolute -top-1 -right-1 flex items-center gap-1 bg-white rounded-full px-1.5 py-0.5 shadow-sm border border-[#D4A855]/20 z-10">
+              {getAddedViaIcon(item.addedVia)}
+              <span className="text-[8px] text-gray-700 font-bold">{getAddedViaLabel(item.addedVia)}</span>
+            </div>
+            
+            {/* Bouton supprimer */}
+            {(item.addedVia === 'like' || item.addedVia === 'save') && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  removeFromList(item.id, item.addedVia as 'like' | 'save')
+                }}
+                className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 shadow-md z-10"
+                title="Retirer de la liste"
+              >
+                <TrashIcon className="w-3 h-3 text-white" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
   // ==================== AFFICHAGE : NORMAL ====================
   return (
     <div className="min-h-screen bg-[#F5F0E8] pb-20">
@@ -170,7 +284,9 @@ export default function MyListPage() {
             <div>
               <h1 className="text-lg font-bold text-white">Ma liste</h1>
               <p className="text-xs text-[#D4A855]/60">
-                {stats.total} élément{stats.total !== 1 ? 's' : ''}
+                {stats.total} élément{stats.total !== 1 ? 's' : ''} • 
+                {seriesItems.length} série{seriesItems.length !== 1 ? 's' : ''} • 
+                {movieItems.length} film{movieItems.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -229,98 +345,25 @@ export default function MyListPage() {
         )}
       </div>
 
-      {/* Grille des vidéos */}
-      {filteredItems.length > 0 ? (
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
-            {filteredItems.map((item) => (
-              <div key={item.id} className="relative group">
-                <Link 
-                  href={item.type === 'series' ? `/series/${item.id}` : `/video/${item.id}`}
-                  className="block"
-                >
-                  <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#FF6B35]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-                    <div className="relative aspect-[3/4] overflow-hidden bg-[#EDE4D8]">
-                      {item.coverImage ? (
-                        <img 
-                          src={item.coverImage} 
-                          alt={item.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <span className="text-2xl">🎬</span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                        <PlayIcon className="w-8 h-8 text-white drop-shadow-lg" />
-                      </div>
-                      
-                      {/* Badge type */}
-                      <div className="absolute top-1.5 left-1.5">
-                        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded ${
-                          item.type === 'series' 
-                            ? 'bg-white/95 text-[#FF6B35]' 
-                            : 'bg-gray-900/80 text-white'
-                        }`}>
-                          {item.type === 'series' ? 'Série' : 'Film'}
-                        </span>
-                      </div>
-                      
-                      {/* Prix */}
-                      <div className="absolute top-1.5 right-1.5">
-                        <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-gray-900 text-[8px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">
-                          {item.price} 🪙
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="p-2">
-                      <h3 className="font-bold text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#FF6B35] transition leading-tight">
-                        {item.title}
-                      </h3>
-                      <p className="text-[9px] text-gray-600 line-clamp-1 mt-0.5">
-                        {item.description || 'Aucune description'}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-                
-                {/* Badge origine */}
-                <div className="absolute -top-1 -right-1 flex items-center gap-1 bg-white rounded-full px-1.5 py-0.5 shadow-sm border border-[#D4A855]/20 z-10">
-                  {getAddedViaIcon(item.addedVia)}
-                  <span className="text-[8px] text-gray-700 font-bold">{getAddedViaLabel(item.addedVia)}</span>
-                </div>
-                
-                {/* Bouton supprimer (seulement pour likes et saves) */}
-                {(item.addedVia === 'like' || item.addedVia === 'save') && (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      removeFromList(item.id, item.addedVia as 'like' | 'save')
-                    }}
-                    className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 shadow-md z-10"
-                    title="Retirer de la liste"
-                  >
-                    <TrashIcon className="w-3 h-3 text-white" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        /* Liste vide */
-        <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-12 text-center border border-[#D4A855]/10 shadow-sm">
+      {/* Contenu */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        {filteredItems.length > 0 ? (
+          <>
+            {/* Section SÉRIES */}
+            {renderGrid('Séries', FilmIcon, seriesItems, 'from-purple-500 to-purple-700')}
+            
+            {/* Section FILMS */}
+            {renderGrid('Films', PlayIcon, movieItems, 'from-blue-500 to-blue-700')}
+          </>
+        ) : (
+          /* Liste vide */
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-12 text-center border border-[#D4A855]/10 shadow-sm mt-6">
             <div className="text-5xl mb-4">📭</div>
             <p className="text-gray-900 font-bold text-lg">Votre liste est vide</p>
             <p className="text-sm text-gray-600 mt-2">
               {filter !== 'all' 
                 ? `Aucun élément ${getAddedViaLabel(filter).toLowerCase()}`
-                : 'Aimez ou achetez des vidéos pour les retrouver ici'
+                : 'Aimez, sauvegardez ou achetez des vidéos pour les retrouver ici'
               }
             </p>
             <Link 
@@ -330,8 +373,8 @@ export default function MyListPage() {
               Découvrir des vidéos
             </Link>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       <Footer 
         footerTabs={footerTabs} 

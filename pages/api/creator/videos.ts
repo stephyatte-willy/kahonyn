@@ -6,13 +6,10 @@ import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
+  if (!session) return res.status(401).json({ error: 'Non authentifié' })
 
-  if (!session) {
-    return res.status(401).json({ error: 'Non authentifié' })
-  }
-
-  const userRole = (session.user as any)?.role
-  const userId = (session.user as any)?.id
+  const userId = (session.user as any).id
+  const userRole = (session.user as any).role
 
   if (userRole !== 'creator' && userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
@@ -20,70 +17,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
-      // Récupérer les vidéos du créateur
-      const videos = await (prisma as any).video.findMany({
-        where: {
-          creatorId: userId,
-          seriesId: null // Seulement les films simples, pas les épisodes de série
-        },
+      // Récupérer les séries du créateur
+      const seriesList = await (prisma as any).series.findMany({
+        where: { creatorId: userId },
         orderBy: { createdAt: 'desc' },
         include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              phone: true,
-              avatar: true
-            }
+          episodes: {
+            orderBy: { createdAt: 'asc' }
           }
         }
       })
 
-      // Toujours retourner un tableau, même vide
-      return res.status(200).json(Array.isArray(videos) ? videos : [])
+      // Récupérer les vidéos simples (pas de seriesId)
+      const videos = await (prisma as any).video.findMany({
+        where: {
+          creatorId: userId,
+          seriesId: null,
+          status: { not: 'archived' } // Exclure les masters archivés
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      // Formater les séries
+      const formattedSeries = seriesList.map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        seriesTitle: s.title,
+        description: s.description,
+        thumbnail: s.coverImage,
+        status: s.status,
+        category: s.category,
+        createdAt: s.createdAt,
+        isSeriesMaster: true,
+        totalEpisodes: s.totalEpisodes || s.episodes?.length || 0,
+        episodes: (s.episodes || []).map((ep: any) => ({
+          id: ep.id,
+          title: ep.title,
+          episodeNumber: ep.episodeNumber || 1,
+          duration: ep.duration,
+          price: ep.price,
+          url: ep.url,
+          thumbnail: ep.thumbnail,
+          views: ep.views,
+          purchases: ep.purchasesCount || 0,
+          status: ep.status,
+        }))
+      }))
+
+      // Fusionner
+      const allContent = [...formattedSeries, ...videos]
+
+      return res.status(200).json(Array.isArray(allContent) ? allContent : [])
     } catch (error) {
-      console.error('Erreur GET creator videos:', error)
-      // En cas d'erreur, retourner un tableau vide
+      console.error('Erreur creator videos:', error)
       return res.status(200).json([])
     }
   }
 
-  // POST - Demander la suppression d'une vidéo
+  // POST - Demande de suppression
   if (req.method === 'POST') {
     try {
       const { videoId } = req.body
+      if (!videoId) return res.status(400).json({ error: 'ID requis' })
 
-      if (!videoId) {
-        return res.status(400).json({ error: 'ID de la vidéo requis' })
-      }
-
-      // Vérifier que la vidéo appartient au créateur
-      const video = await (prisma as any).video.findFirst({
-        where: {
-          id: videoId,
-          creatorId: userId
-        }
-      })
-
-      if (!video) {
-        return res.status(404).json({ error: 'Vidéo non trouvée ou non autorisée' })
-      }
-
-      // Marquer la vidéo pour suppression
       await (prisma as any).video.update({
         where: { id: videoId },
-        data: {
-          deletionRequested: true,
-          willDisappearAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
-        }
+        data: { deletionRequested: true }
       })
 
-      return res.status(200).json({
-        success: true,
-        message: 'Demande de suppression envoyée à l\'administration'
-      })
+      return res.status(200).json({ success: true })
     } catch (error) {
-      console.error('Erreur demande suppression:', error)
       return res.status(500).json({ error: 'Erreur serveur' })
     }
   }

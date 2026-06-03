@@ -1,7 +1,6 @@
 "use client"
 
 import { useSession } from 'next-auth/react'
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { 
   HomeIcon,
@@ -10,13 +9,15 @@ import {
   TrophyIcon,
   UserCircleIcon,
   CheckCircleIcon,
+  LockClosedIcon,
   SparklesIcon,
-  GiftIcon,
-  StarIcon,
+  CurrencyDollarIcon,
+  // 🆕 Importer toutes les icônes utilisées dans les avantages VIP
   CloudArrowDownIcon,
   EyeIcon,
+  StarIcon,
+  GiftIcon,
   ShieldCheckIcon,
-  LockClosedIcon
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -25,71 +26,141 @@ import WavePaymentModal from '../components/WavePaymentModal'
 import SubscriptionPaymentModal from '../components/SubscriptionPaymentModal'
 import toast from 'react-hot-toast'
 
+
+// 🆕 Types dynamiques
+interface SubscriptionPlan {
+  id: string
+  name: string
+  description: string
+  price: number
+  duration: number
+  coinsBonus: number
+  dailyCoins: number
+  benefits: string[]
+  isPopular: boolean
+  color: string | null
+  badge: string | null
+}
+
 interface CoinPack {
   id: string
   name: string
+  description: string
   coins: number
   price: number
   bonus: number
   isPopular: boolean
   isVip: boolean
+  promotionText: string | null
+}
+
+interface VipBenefit {
+  id: string
+  title: string
+  description: string
+  icon: string
+}
+
+// Mapping des icônes (car on ne peut pas stocker des composants React en BDD)
+const iconMap: Record<string, React.ElementType> = {
+  'CloudArrowDownIcon': CloudArrowDownIcon,
+  'EyeIcon': EyeIcon,
+  'StarIcon': StarIcon,
+  'GiftIcon': GiftIcon,
+  'ShieldCheckIcon': ShieldCheckIcon,
+  'SparklesIcon': SparklesIcon,
 }
 
 export default function PremiumPage() {
   const { data: session, update } = useSession()
   const { isAuthorized, isLoading: authLoading } = useRequireAuth()
+  
+  // 🆕 États dynamiques
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([])
   const [coinPacks, setCoinPacks] = useState<CoinPack[]>([])
+  const [vipBenefits, setVipBenefits] = useState<VipBenefit[]>([])
   const [loading, setLoading] = useState(true)
-  const [processing, setProcessing] = useState(false)
-  const [activeFooterTab, setActiveFooterTab] = useState('premium')
+  const [userCoins, setUserCoins] = useState(0)
   const [userSubscription, setUserSubscription] = useState<any>(null)
+  const [activeFooterTab, setActiveFooterTab] = useState('premium')
+  
+  // États pour les modales
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [selectedCoinPack, setSelectedCoinPack] = useState<CoinPack | null>(null)
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false)
-  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<any>(null)
+  const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<SubscriptionPlan | null>(null)
 
+  // 🆕 Charger TOUT depuis la BDD
   useEffect(() => {
     if (!isAuthorized) return
-    fetchCoinPacks()
-    fetchUserSubscription()
+    loadAllData()
   }, [isAuthorized])
 
-  const fetchCoinPacks = async () => {
+  const loadAllData = async () => {
+    setLoading(true)
     try {
-      const res = await fetch('/api/premium/coin-packs')
-      const data = await res.json()
-      if (Array.isArray(data)) {
-        setCoinPacks(data)
-      } else {
-        setCoinPacks([])
-      }
+      // Charger en parallèle pour plus de rapidité
+      const [plansRes, packsRes, benefitsRes, profileRes, subRes] = await Promise.all([
+        fetch('/api/public/subscription-plans'),
+        fetch('/api/public/coin-packs'),
+        fetch('/api/public/vip-benefits'),
+        fetch('/api/user/profile'),
+        fetch('/api/premium/user-subscription')
+      ])
+
+      const [plans, packs, benefits, profile, subscription] = await Promise.all([
+        plansRes.json(),
+        packsRes.json(),
+        benefitsRes.json(),
+        profileRes.json(),
+        subRes.json()
+      ])
+
+      setSubscriptionPlans(Array.isArray(plans) ? plans : [])
+      setCoinPacks(Array.isArray(packs) ? packs : [])
+      setVipBenefits(Array.isArray(benefits) ? benefits : [])
+      setUserCoins(profile?.coins || 0)
+      setUserSubscription(subscription?.subscription || null)
     } catch (error) {
-      console.error('Erreur:', error)
-      setCoinPacks([])
+      console.error('Erreur chargement:', error)
+      toast.error('Impossible de charger les offres')
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchUserSubscription = async () => {
-    if (!session) return
+  // 🆕 Rafraîchir les coins
+  const refreshCoins = async () => {
     try {
-      const res = await fetch('/api/premium/user-subscription')
+      const res = await fetch('/api/user/profile')
       const data = await res.json()
-      setUserSubscription(data.subscription)
+      setUserCoins(data.coins || 0)
     } catch (error) {
-      console.error('Erreur:', error)
+      console.error('Erreur refresh coins:', error)
     }
   }
 
-  const handleSubscribe = (plan: any) => {
-    setSelectedSubscriptionPlan(plan)
-    setIsSubscriptionModalOpen(true)
-  }
+  // 🆕 Vérifier les paramètres de retour Wave
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const success = params.get('success')
+    const amount = params.get('amount')
+    
+    if (success === 'coins_added' && amount) {
+      toast.success(`🎉 ${amount} coins ajoutés !`, { duration: 5000 })
+      refreshCoins()
+      window.history.replaceState({}, '', '/premium')
+    }
+  }, [])
 
   const handleBuyCoins = (pack: CoinPack) => {
     setSelectedCoinPack(pack)
     setIsPaymentModalOpen(true)
+  }
+
+  const handleSubscribe = (plan: SubscriptionPlan) => {
+    setSelectedSubscriptionPlan(plan)
+    setIsSubscriptionModalOpen(true)
   }
 
   const footerTabs = [
@@ -100,21 +171,29 @@ export default function PremiumPage() {
     { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
   ]
 
-  const subscriptionPlans = [
-    { id: 'monthly', name: 'Mensuel', price: 5000, days: 30, coinsBonus: 500, popular: true },
-    { id: 'quarterly', name: 'Trimestriel', price: 13500, days: 90, coinsBonus: 2000, popular: false },
-    { id: 'yearly', name: 'Annuel', price: 48000, days: 365, coinsBonus: 10000, popular: false, bestValue: true }
-  ]
+  // 🆕 Obtenir la couleur du badge
+  const getBadgeColor = (color: string | null): string => {
+    const colors: Record<string, string> = {
+      gold: 'from-amber-500 to-yellow-500',
+      purple: 'from-purple-500 to-violet-500',
+      blue: 'from-blue-500 to-cyan-500',
+      gray: 'from-gray-400 to-gray-500',
+      red: 'from-red-500 to-rose-500',
+    }
+    return colors[color || ''] || 'from-[#FF6B35] to-[#FF8C5A]'
+  }
 
-  const vipBenefits = [
-    { icon: CloudArrowDownIcon, title: 'Téléchargement', desc: 'Téléchargez vos épisodes préférés' },
-    { icon: EyeIcon, title: 'Accès anticipé', desc: 'Voyez les épisodes 24h avant' },
-    { icon: StarIcon, title: 'Badge exclusif', desc: 'Badge VIP sur votre profil' },
-    { icon: GiftIcon, title: 'Coins bonus', desc: '+20% de coins à chaque achat' },
-    { icon: ShieldCheckIcon, title: 'Sans publicité', desc: 'Navigation sans pub' }
-  ]
+  // 🆕 Obtenir la couleur de fond du badge
+  const getBadgeBg = (color: string | null): string => {
+    const bg: Record<string, string> = {
+      gold: 'bg-amber-100 text-amber-800',
+      purple: 'bg-purple-100 text-purple-800',
+      blue: 'bg-blue-100 text-blue-800',
+      gray: 'bg-gray-100 text-gray-800',
+    }
+    return bg[color || ''] || 'bg-[#FF6B35]/10 text-[#FF6B35]'
+  }
 
-  // Message si non connecté
   if (!isAuthorized && !authLoading) {
     return (
       <div className="min-h-screen bg-[#F5F0E8]">
@@ -125,7 +204,7 @@ export default function PremiumPage() {
           </div>
           <h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Accès restreint</h2>
           <p className="text-sm text-[#8B5A2B]/80 text-center max-w-sm">
-            Connectez-vous pour accéder aux offres premium et acheter des coins
+            Connectez-vous pour accéder aux offres premium
           </p>
         </div>
       </div>
@@ -159,78 +238,105 @@ export default function PremiumPage() {
             <div>
               <h1 className="text-lg font-bold text-white">Kahonyn Primes</h1>
               <p className="text-xs text-[#D4A855]/60">
-                Solde: {(session?.user as any)?.coins || 0} coins
+                Solde: {userCoins.toLocaleString()} 🪙 coins
+                {isSubscribed && (
+                  <span className="ml-2 bg-[#D4A855]/20 px-2 py-0.5 rounded-full text-[#D4A855]">
+                    ⭐ {userSubscription.plan}
+                  </span>
+                )}
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Section Abonnements */}
+      {/* 🆕 SECTION ABONNEMENTS - DYNAMIQUE */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-[#5C3D2E] mb-2">🚀 Passez à Kahonyn Primes</h2>
-          <p className="text-[#8B5A2B]/70">Profitez d'avantages exclusifs et économisez sur vos achats</p>
+          <h2 className="text-2xl font-bold text-[#5C3D2E] mb-2">🚀 Choisissez votre abonnement</h2>
+          <p className="text-[#8B5A2B]/70">Débloquez tous les avantages et regardez sans limite</p>
           {isSubscribed && (
             <div className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-green-50 rounded-full border border-green-200">
               <CheckCircleIcon className="w-4 h-4 text-green-600" />
-              <span className="text-xs text-green-700">Abonnement actif jusqu'au {new Date(userSubscription.endDate).toLocaleDateString()}</span>
+              <span className="text-xs text-green-700">
+                Abonnement actif jusqu'au {new Date(userSubscription.endDate).toLocaleDateString()}
+              </span>
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
           {subscriptionPlans.map((plan) => (
             <div 
               key={plan.id}
               className={`relative bg-white rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl border ${
-                plan.popular ? 'ring-2 ring-[#FF6B35] shadow-lg shadow-[#FF6B35]/10 border-[#FF6B35]/20' : 'border-[#D4A855]/10 hover:border-[#D4A855]/30'
+                plan.isPopular 
+                  ? 'ring-2 ring-[#FF6B35] shadow-lg shadow-[#FF6B35]/10 border-[#FF6B35]/20 scale-[1.02]' 
+                  : 'border-[#D4A855]/10 hover:border-[#D4A855]/30'
               }`}
             >
-              {plan.popular && (
-                <div className="absolute top-0 right-0 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">
-                  Populaire
+              {/* Badge */}
+              {plan.badge && (
+                <div className={`absolute top-0 right-0 bg-gradient-to-r ${getBadgeColor(plan.color)} text-white text-xs font-bold px-3 py-1 rounded-bl-xl`}>
+                  {plan.badge}
                 </div>
               )}
-              {plan.bestValue && (
-                <div className="absolute top-0 right-0 bg-[#5C3D2E] text-white text-xs font-bold px-4 py-1.5 rounded-bl-xl">
-                  Meilleure valeur
-                </div>
-              )}
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-[#5C3D2E] mb-2">{plan.name}</h3>
+
+              <div className="p-5">
+                <h3 className="text-lg font-bold text-[#5C3D2E] mb-1">{plan.name}</h3>
+                <p className="text-xs text-gray-500 mb-3">{plan.description}</p>
+                
+                {/* Prix */}
                 <div className="mb-4">
-                  <span className="text-3xl font-bold text-[#FF6B35]">{plan.price.toLocaleString()}</span>
-                  <span className="text-[#8B5A2B]/60"> FCFA</span>
+                  {plan.price === 0 ? (
+                    <span className="text-3xl font-bold text-green-600">Gratuit</span>
+                  ) : (
+                    <>
+                      <span className="text-3xl font-bold text-[#FF6B35]">{plan.price.toLocaleString()}</span>
+                      <span className="text-sm text-[#8B5A2B]/60"> FCFA</span>
+                      {plan.duration > 0 && (
+                        <span className="text-xs text-gray-400 block">/ {plan.duration} jours</span>
+                      )}
+                    </>
+                  )}
                 </div>
-                <ul className="space-y-2 mb-6 text-sm">
-                  <li className="flex items-center gap-2 text-[#5C3D2E]">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    Accès illimité pendant {plan.days} jours
-                  </li>
-                  <li className="flex items-center gap-2 text-[#5C3D2E]">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    +{plan.coinsBonus} coins offerts
-                  </li>
-                  <li className="flex items-center gap-2 text-[#5C3D2E]">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    Badge exclusif
-                  </li>
-                  <li className="flex items-center gap-2 text-[#5C3D2E]">
-                    <CheckCircleIcon className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    20% de réduction sur tous les épisodes
-                  </li>
+
+                {/* Avantages */}
+                <ul className="space-y-2 mb-5 text-xs">
+                  {plan.benefits?.map((benefit: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2 text-[#5C3D2E]">
+                      <CheckCircleIcon className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                      {benefit}
+                    </li>
+                  ))}
+                  {plan.coinsBonus > 0 && (
+                    <li className="flex items-center gap-2 text-[#FF6B35] font-bold">
+                      <SparklesIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                      +{plan.coinsBonus} coins offerts
+                    </li>
+                  )}
+                  {plan.dailyCoins > 0 && (
+                    <li className="flex items-center gap-2 text-[#D4A855] font-bold">
+                      <CurrencyDollarIcon className="w-3.5 h-3.5 flex-shrink-0" />
+                      +{plan.dailyCoins} coins/jour
+                    </li>
+                  )}
                 </ul>
+
                 <button
                   onClick={() => handleSubscribe(plan)}
-                  disabled={processing || isSubscribed}
-                  className={`w-full py-2.5 rounded-xl font-semibold transition-all duration-300 ${
+                  disabled={isSubscribed}
+                  className={`w-full py-2.5 rounded-xl font-bold transition-all duration-300 text-sm ${
                     isSubscribed
                       ? 'bg-[#E8D5B5] text-[#8B5A2B]/60 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white hover:shadow-lg hover:shadow-[#FF6B35]/20'
+                      : plan.price === 0
+                      ? 'bg-green-500 text-white hover:bg-green-600'
+                      : plan.isPopular
+                      ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white hover:shadow-lg hover:shadow-[#FF6B35]/20'
+                      : 'bg-[#1A1A35] text-white hover:bg-[#2A2A45]'
                   }`}
                 >
-                  {isSubscribed ? 'Déjà abonné' : 'Souscrire'}
+                  {isSubscribed ? 'Déjà abonné' : plan.price === 0 ? 'Commencer' : 'Souscrire'}
                 </button>
               </div>
             </div>
@@ -238,58 +344,97 @@ export default function PremiumPage() {
         </div>
       </div>
 
-      {/* Section Avantages VIP */}
-      <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
-        <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">✨ Avantages VIP</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {vipBenefits.map((benefit, index) => (
-            <div key={index} className="text-center p-4 bg-white rounded-xl shadow-sm border border-[#D4A855]/10 hover:shadow-md transition">
-              <benefit.icon className="w-7 h-7 text-[#FF6B35] mx-auto mb-2" />
-              <h3 className="text-sm font-semibold text-[#5C3D2E]">{benefit.title}</h3>
-              <p className="text-[10px] text-[#8B5A2B]/60 mt-1">{benefit.desc}</p>
-            </div>
-          ))}
+      {/* 🆕 SECTION AVANTAGES VIP - DYNAMIQUE */}
+      {vipBenefits.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
+          <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">✨ Avantages Premium</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {vipBenefits.map((benefit) => {
+              const IconComponent = iconMap[benefit.icon] || SparklesIcon
+              return (
+                <div key={benefit.id} className="text-center p-4 bg-white rounded-xl shadow-sm border border-[#D4A855]/10 hover:shadow-md transition group">
+                  <div className="w-12 h-12 bg-[#FF6B35]/10 rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:bg-[#FF6B35]/20 transition">
+                    <IconComponent className="w-6 h-6 text-[#FF6B35]" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[#5C3D2E]">{benefit.title}</h3>
+                  <p className="text-[10px] text-[#8B5A2B]/60 mt-1">{benefit.description}</p>
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Section Packs de coins */}
+      {/* 🆕 SECTION PACKS DE COINS - DYNAMIQUE */}
       <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
-        <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">💰 Acheter des coins</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <h2 className="text-xl font-bold text-[#5C3D2E] mb-2 text-center">💰 Recharger mes coins</h2>
+        <p className="text-sm text-[#8B5A2B]/60 text-center mb-6">Choisissez un pack et payez facilement avec Wave</p>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
           {coinPacks.map((pack) => (
             <div 
               key={pack.id}
-              className={`bg-white rounded-xl p-4 text-center transition-all duration-300 hover:shadow-xl cursor-pointer ${
-                pack.isPopular ? 'ring-2 ring-[#FF6B35] shadow-md shadow-[#FF6B35]/10' : 'border border-[#D4A855]/10 hover:border-[#D4A855]/30'
+              className={`relative bg-white rounded-xl p-4 text-center transition-all duration-300 hover:shadow-xl cursor-pointer border ${
+                pack.isPopular 
+                  ? 'ring-2 ring-[#FF6B35] shadow-md shadow-[#FF6B35]/10 border-[#FF6B35]/20' 
+                  : 'border-[#D4A855]/10 hover:border-[#D4A855]/30'
               }`}
               onClick={() => handleBuyCoins(pack)}
             >
+              {/* Badge populaire */}
               {pack.isPopular && (
-                <div className="text-[#FF6B35] text-xs font-bold mb-1">⭐ Populaire</div>
+                <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white text-[10px] font-bold px-3 py-0.5 rounded-full">
+                  ⭐ Populaire
+                </div>
               )}
-              <div className="text-2xl font-bold text-[#5C3D2E]">{pack.coins + pack.bonus}</div>
+
+              {/* Promotion */}
+              {pack.promotionText && (
+                <div className="absolute -top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {pack.promotionText}
+                </div>
+              )}
+
+              <p className="text-xs text-gray-500 font-bold mb-1">{pack.name}</p>
+              
+              {/* Coins */}
+              <div className="text-2xl font-bold text-[#5C3D2E]">
+                {(pack.coins + pack.bonus).toLocaleString()}
+              </div>
               <div className="text-xs text-[#8B5A2B]/60 mb-2">coins</div>
+
+              {/* Bonus */}
               {pack.bonus > 0 && (
-                <div className="text-green-600 text-[10px] font-semibold mb-1">+{pack.bonus} offerts</div>
+                <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded-full inline-block mb-2">
+                  +{pack.bonus} bonus
+                </div>
               )}
-              <div className="text-[#FF6B35] font-bold">{pack.price.toLocaleString()} FCFA</div>
+
+              {/* Prix */}
+              <div className="text-[#FF6B35] font-bold text-lg">
+                {pack.price.toLocaleString()} FCFA
+              </div>
+              
+              {pack.description && (
+                <p className="text-[9px] text-gray-400 mt-1">{pack.description}</p>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Section FAQ */}
+      {/* 🆕 FAQ */}
       <div className="max-w-7xl mx-auto px-4 py-8 border-t border-[#D4A855]/10">
         <h2 className="text-xl font-bold text-[#5C3D2E] mb-6 text-center">❓ Questions fréquentes</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-3xl mx-auto">
           {[
-            { q: 'Comment utiliser mes coins ?', a: 'Les coins permettent d\'acheter des épisodes et des films sur la plateforme.' },
-            { q: 'Puis-je résilier mon abonnement ?', a: 'Oui, vous pouvez annuler votre abonnement à tout moment depuis votre profil.' },
-            { q: 'Les coins expirent-ils ?', a: 'Non, vos coins restent valables indéfiniment sur votre compte.' },
-            { q: 'Paiement sécurisé ?', a: 'Nos paiements sont sécurisés via Wave et Mobile Money.' }
+            { q: 'Comment utiliser mes coins ?', a: 'Les coins permettent de débloquer des épisodes et des films sur la plateforme.' },
+            { q: 'Les coins expirent-ils ?', a: 'Non, vos coins restent valables indéfiniment.' },
+            { q: 'Puis-je résilier mon abonnement ?', a: 'Oui, vous pouvez annuler à tout moment depuis votre profil.' },
+            { q: 'Le paiement est-il sécurisé ?', a: 'Oui, tous les paiements sont sécurisés via Wave.' },
           ].map((faq, i) => (
             <div key={i} className="bg-white rounded-xl p-4 shadow-sm border border-[#D4A855]/10">
-              <h3 className="font-semibold text-[#5C3D2E] mb-1">{faq.q}</h3>
+              <h3 className="font-bold text-sm text-[#5C3D2E] mb-1">{faq.q}</h3>
               <p className="text-xs text-[#8B5A2B]/60">{faq.a}</p>
             </div>
           ))}
@@ -308,6 +453,7 @@ export default function PremiumPage() {
           onSuccess={() => {
             setIsPaymentModalOpen(false)
             setSelectedCoinPack(null)
+            refreshCoins()
             update()
             toast.success('Coins ajoutés avec succès !', { duration: 2000 })
           }}
@@ -325,9 +471,9 @@ export default function PremiumPage() {
           onSuccess={() => {
             setIsSubscriptionModalOpen(false)
             setSelectedSubscriptionPlan(null)
-            fetchUserSubscription()
+            loadAllData()
             update()
-            toast.success('Abonnement activé avec succès !', { duration: 2000 })
+            toast.success('Abonnement activé !', { duration: 2000 })
           }}
         />
       )}

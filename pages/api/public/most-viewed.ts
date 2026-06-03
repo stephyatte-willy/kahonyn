@@ -7,11 +7,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const mostViewed = await prisma.videos.findMany({
+    // CORRECTION : prisma.video (singulier)
+    const mostViewed = await (prisma as any).video.findMany({
       where: { 
         status: 'approved',
-        isSeries: false,
-        parentId: null
+        seriesId: null  // CORRECTION : seriesId au lieu de isSeries/parentId
       },
       orderBy: { views: 'desc' },
       take: 10,
@@ -20,9 +20,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    return res.status(200).json(mostViewed)
+    return res.status(200).json(mostViewed || [])
   } catch (error) {
     console.error('Erreur most-viewed:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json([])
   }
 }

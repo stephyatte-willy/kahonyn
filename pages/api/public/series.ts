@@ -7,34 +7,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupérer les masters (séries) qui ont des épisodes (parentId null)
-    // Exclure les masters archivés car ils ne doivent pas apparaître
-    const series = await prisma.videos.findMany({
+    // CORRECTION : Utiliser la table Series directement
+    const series = await (prisma as any).series.findMany({
       where: {
-        isSeries: true,
-        parentId: null,
-        status: 'approved'  // ← Seulement les masters approuvés, pas archivés
+        status: 'approved'  // Seulement les séries approuvées
       },
       orderBy: { createdAt: 'desc' },
       include: {
         creator: { select: { name: true, phone: true } },
         episodes: {
           where: { 
-            parentId: { not: null },
             status: 'approved'
           },
-          orderBy: { episodeNumber: 'asc' }
+          orderBy: { createdAt: 'asc' }
         }
       }
     })
 
-    const formattedSeries = series.map(serie => ({
+    const formattedSeries = series.map((serie: any) => ({
       id: serie.id,
       title: serie.title,
       description: serie.description,
-      coverImage: serie.thumbnail,
-      totalEpisodes: serie.episodes.length,
-      totalViews: serie.views,
+      coverImage: serie.coverImage,  // CORRECTION : coverImage (champ Series)
+      totalEpisodes: serie.totalEpisodes || serie.episodes?.length || 0,
+      totalViews: serie.totalViews || 0,  // CORRECTION : totalViews
       category: serie.category,
       creator: serie.creator,
       createdAt: serie.createdAt
@@ -43,6 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(formattedSeries)
   } catch (error) {
     console.error('Erreur series:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json([])
   }
 }

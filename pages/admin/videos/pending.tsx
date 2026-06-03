@@ -13,7 +13,8 @@ import {
   ExclamationTriangleIcon,
   FilmIcon,
   CurrencyDollarIcon,
-  ClockIcon
+  ClockIcon,
+  TagIcon
 } from '@heroicons/react/24/outline'
 import toast, { Toaster } from 'react-hot-toast'
 
@@ -24,11 +25,23 @@ interface Video {
   thumbnail: string
   url: string
   duration: number
-  price: number           // ← AJOUTER CETTE LIGNE
+  price: number
+  category: string
   status: string
   creator: { name: string; phone: string; email: string }
   createdAt: string
 }
+
+const categoriesList = [
+  { id: 'popular', label: '🔥 Populaires' },
+  { id: 'anime', label: '🎌 Animé' },
+  { id: 'unpublished', label: '✨ Inédit' },
+  { id: 'ranking', label: '🏆 Classement' },
+  { id: 'dubbed', label: '🎤 Doublés' },
+  { id: 'vip', label: '👑 VIP' },
+  { id: 'women', label: '👩 Femmes' },
+  { id: 'men', label: '👨 Hommes' },
+]
 
 export default function PendingVideos() {
   const { data: session, status: sessionStatus } = useSession()
@@ -44,9 +57,33 @@ export default function PendingVideos() {
   const [episodeDuration, setEpisodeDuration] = useState(30)
   const [pricePerEpisode, setPricePerEpisode] = useState(100)
   const [simpleVideoPrice, setSimpleVideoPrice] = useState(100)
+  const [simpleVideoCategories, setSimpleVideoCategories] = useState<string[]>(['popular'])
+  const [seriesCategories, setSeriesCategories] = useState<string[]>(['popular'])
   const [rejectReason, setRejectReason] = useState('')
-  const [actionVideoId, setActionVideoId] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  // Initialiser les catégories quand on ouvre les modales
+  useEffect(() => {
+    if (isApproveSimpleModalOpen && selectedVideo) {
+      setSimpleVideoPrice(selectedVideo.price || 100)
+      // Convertir la catégorie existante en tableau
+      const existingCats = selectedVideo.category 
+        ? selectedVideo.category.split(',').filter(Boolean) 
+        : ['popular']
+      setSimpleVideoCategories(existingCats.length > 0 ? existingCats : ['popular'])
+    }
+  }, [isApproveSimpleModalOpen, selectedVideo])
+
+  useEffect(() => {
+    if (isCutModalOpen && selectedVideo) {
+      setEpisodeDuration(30)
+      setPricePerEpisode(100)
+      const existingCats = selectedVideo.category 
+        ? selectedVideo.category.split(',').filter(Boolean) 
+        : ['popular']
+      setSeriesCategories(existingCats.length > 0 ? existingCats : ['popular'])
+    }
+  }, [isCutModalOpen, selectedVideo])
 
   useEffect(() => {
     if (sessionStatus === 'loading') return
@@ -58,14 +95,27 @@ export default function PendingVideos() {
   }, [session, sessionStatus, router])
 
   const fetchPendingVideos = async () => {
+    setLoading(true)
     try {
       const res = await fetch('/api/admin/pending-videos')
       const data = await res.json()
-      setVideos(data)
+      setVideos(Array.isArray(data) ? data : [])
     } catch (error) {
       toast.error('Impossible de charger les vidéos')
+      setVideos([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Toggle une catégorie
+  const toggleCategory = (catId: string, currentCategories: string[], setCategories: (cats: string[]) => void) => {
+    if (currentCategories.includes(catId)) {
+      if (currentCategories.length > 1) {
+        setCategories(currentCategories.filter(c => c !== catId))
+      }
+    } else {
+      setCategories([...currentCategories, catId])
     }
   }
 
@@ -76,7 +126,6 @@ export default function PendingVideos() {
 
   const handleApproveSimpleClick = (video: Video) => {
     setSelectedVideo(video)
-    setSimpleVideoPrice(video.price || 100)
     setIsApproveSimpleModalOpen(true)
   }
 
@@ -87,14 +136,19 @@ export default function PendingVideos() {
       const res = await fetch('/api/admin/approve-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ videoId: selectedVideo.id, price: simpleVideoPrice })
+        body: JSON.stringify({ 
+          videoId: selectedVideo.id, 
+          price: simpleVideoPrice,
+          categories: simpleVideoCategories
+        })
       })
       if (res.ok) {
         toast.success('Vidéo approuvée avec succès !')
         fetchPendingVideos()
         setIsApproveSimpleModalOpen(false)
       } else {
-        toast.error('Erreur lors de l\'approbation')
+        const data = await res.json()
+        toast.error(data.error || 'Erreur lors de l\'approbation')
       }
     } catch (error) {
       toast.error('Erreur réseau')
@@ -105,42 +159,39 @@ export default function PendingVideos() {
 
   const handleCutSeriesClick = (video: Video) => {
     setSelectedVideo(video)
-    setEpisodeDuration(30)
-    setPricePerEpisode(100)
     setIsCutModalOpen(true)
   }
 
   const confirmCutSeries = async () => {
-  if (!selectedVideo) return
-  setProcessingId(selectedVideo.id)
-  try {
-    // Vérifie que l'URL est correcte
-    const res = await fetch('/api/admin/split-video', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        videoId: selectedVideo.id,
-        episodeDuration,
-        pricePerEpisode
+    if (!selectedVideo) return
+    setProcessingId(selectedVideo.id)
+    try {
+      const res = await fetch('/api/admin/split-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoId: selectedVideo.id,
+          episodeDuration,
+          pricePerEpisode,
+          categories: seriesCategories
+        })
       })
-    })
-    
-    const data = await res.json()
-    
-    if (res.ok) {
-      toast.success(`Film découpé avec succès ! ${data.totalEpisodes} épisodes créés.`)
-      fetchPendingVideos()
-      setIsCutModalOpen(false)
-    } else {
-      toast.error(data.error || 'Erreur lors du découpage')
+      
+      const data = await res.json()
+      
+      if (res.ok) {
+        toast.success(`Film découpé avec succès ! ${data.totalEpisodes} épisodes créés.`)
+        fetchPendingVideos()
+        setIsCutModalOpen(false)
+      } else {
+        toast.error(data.error || 'Erreur lors du découpage')
+      }
+    } catch (error) {
+      toast.error('Erreur réseau')
+    } finally {
+      setProcessingId(null)
     }
-  } catch (error) {
-    console.error('Erreur:', error)
-    toast.error('Erreur réseau')
-  } finally {
-    setProcessingId(null)
   }
-}
 
   const handleRejectClick = (video: Video) => {
     setSelectedVideo(video)
@@ -162,7 +213,7 @@ export default function PendingVideos() {
         body: JSON.stringify({ videoId: selectedVideo.id, reason: rejectReason })
       })
       if (res.ok) {
-        toast.error('Vidéo rejetée')
+        toast.success('Vidéo rejetée')
         fetchPendingVideos()
         setIsRejectModalOpen(false)
       } else {
@@ -176,12 +227,14 @@ export default function PendingVideos() {
   }
 
   const formatDuration = (seconds: number) => {
+    if (!seconds) return '0min 0s'
     const mins = Math.floor(seconds / 60)
     const secs = seconds % 60
     return `${mins}min ${secs}s`
   }
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'long',
@@ -199,20 +252,25 @@ export default function PendingVideos() {
     )
   }
 
+  if (!session || session.user?.role !== 'admin') {
+    return null
+  }
+
   return (
     <AdminLayout>
-      <Toaster position="top-right" toastOptions={{
-        style: { background: '#1A1A1A', color: '#FFF8F0', borderRadius: '16px' },
-        success: { iconTheme: { primary: '#FF6B35', secondary: '#1A1A1A' } },
-        error: { iconTheme: { primary: '#FF6B35', secondary: '#1A1A1A' } },
+      <Toaster position="top-center" toastOptions={{
+        style: { background: '#1A1A35', color: '#FFF', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)', fontWeight: 'bold', fontSize: '14px' },
+        success: { iconTheme: { primary: '#22C55E', secondary: '#1A1A35' }, duration: 2000 },
+        error: { iconTheme: { primary: '#EF4444', secondary: '#1A1A35' }, duration: 2500 },
       }} />
 
       <div className="space-y-6">
+        {/* En-tête */}
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Vidéos en attente</h1>
             <p className="text-gray-500 text-sm mt-1">
-              🎬 Vidéo courte → Approuver avec prix<br />
+              🎬 Vidéo courte → Approuver avec prix et catégories<br />
               🎞️ Film complet → Découper en épisodes
             </p>
           </div>
@@ -221,6 +279,7 @@ export default function PendingVideos() {
           </div>
         </div>
 
+        {/* Liste des vidéos */}
         {videos.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -257,24 +316,36 @@ export default function PendingVideos() {
                       disabled={processingId === video.id}
                       className="flex-1 flex items-center justify-center gap-1 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition disabled:opacity-50"
                     >
-                      <CheckCircleIcon className="w-4 h-4" />
-                      Vidéo simple
+                      {processingId === video.id ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>
+                      ) : (
+                        <CheckCircleIcon className="w-4 h-4" />
+                      )}
+                      <span className="hidden sm:inline">{processingId === video.id ? '...' : 'Simple'}</span>
                     </button>
                     <button
                       onClick={() => handleCutSeriesClick(video)}
                       disabled={processingId === video.id}
                       className="flex-1 flex items-center justify-center gap-1 py-2 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 transition disabled:opacity-50"
                     >
-                      <FilmIcon className="w-4 h-4" />
-                      Découper
+                      {processingId === video.id ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>
+                      ) : (
+                        <FilmIcon className="w-4 h-4" />
+                      )}
+                      <span className="hidden sm:inline">{processingId === video.id ? '...' : 'Découper'}</span>
                     </button>
                     <button
                       onClick={() => handleRejectClick(video)}
                       disabled={processingId === video.id}
                       className="flex-1 flex items-center justify-center gap-1 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition disabled:opacity-50"
                     >
-                      <XCircleIcon className="w-4 h-4" />
-                      Rejeter
+                      {processingId === video.id ? (
+                        <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>
+                      ) : (
+                        <XCircleIcon className="w-4 h-4" />
+                      )}
+                      <span className="hidden sm:inline">{processingId === video.id ? '...' : 'Rejeter'}</span>
                     </button>
                   </div>
                 </div>
@@ -284,7 +355,9 @@ export default function PendingVideos() {
         )}
       </div>
 
-      {/* Modal Visionnage */}
+      {/* ============================================================ */}
+      {/* MODALE VISIONNAGE */}
+      {/* ============================================================ */}
       {isViewModalOpen && selectedVideo && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden">
@@ -299,14 +372,8 @@ export default function PendingVideos() {
                 <source src={selectedVideo.url} type="video/mp4" />
               </video>
               <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                  <p className="text-gray-500">Durée</p>
-                  <p className="font-medium">{formatDuration(selectedVideo.duration)}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Créateur</p>
-                  <p className="font-medium">{selectedVideo.creator?.name || selectedVideo.creator?.phone}</p>
-                </div>
+                <div><p className="text-gray-500">Durée</p><p className="font-medium">{formatDuration(selectedVideo.duration)}</p></div>
+                <div><p className="text-gray-500">Créateur</p><p className="font-medium">{selectedVideo.creator?.name || selectedVideo.creator?.phone}</p></div>
               </div>
               {selectedVideo.description && (
                 <div className="mt-3 p-3 bg-gray-50 rounded-lg">
@@ -318,55 +385,119 @@ export default function PendingVideos() {
         </div>
       )}
 
-      {/* Modal Approbation vidéo simple */}
+      {/* ============================================================ */}
+      {/* MODALE APPROBATION VIDÉO SIMPLE */}
+      {/* ============================================================ */}
       {isApproveSimpleModalOpen && selectedVideo && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fadeInUp">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CurrencyDollarIcon className="w-8 h-8 text-green-500" />
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+              <h2 className="text-lg font-bold text-gray-800">Approuver la vidéo</h2>
+              <button onClick={() => setIsApproveSimpleModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition">
+                <XMarkIcon className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto p-6 flex-1">
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircleIcon className="w-8 h-8 text-green-500" />
+                </div>
+                <p className="text-gray-600">
+                  Vidéo: <span className="font-semibold">{selectedVideo.title}</span>
+                </p>
               </div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Approuver la vidéo</h2>
-              <p className="text-gray-600 mb-4">
-                Vidéo: <span className="font-semibold">{selectedVideo.title}</span>
-              </p>
+              
+              {/* Prix */}
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Prix (coins)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <CurrencyDollarIcon className="w-4 h-4 inline mr-1" />
+                  Prix (coins)
+                </label>
                 <input
                   type="number"
                   value={simpleVideoPrice}
-                  onChange={(e) => setSimpleVideoPrice(parseInt(e.target.value))}
+                  onChange={(e) => setSimpleVideoPrice(parseInt(e.target.value) || 0)}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                  min={50}
-                  step={50}
+                  min={0} step={50}
                 />
                 <p className="text-xs text-gray-400 mt-1">Le créateur recevra 70%</p>
               </div>
-              <div className="flex gap-3">
-                <button onClick={confirmApproveSimple} className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition">
-                  Approuver
-                </button>
-                <button onClick={() => setIsApproveSimpleModalOpen(false)} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition">
-                  Annuler
-                </button>
+
+              {/* Catégories MULTIPLES */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <TagIcon className="w-4 h-4 inline mr-1" />
+                  Catégories ({simpleVideoCategories.length} sélectionnée{simpleVideoCategories.length > 1 ? 's' : ''})
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {categoriesList.map((cat) => {
+                    const isSelected = simpleVideoCategories.includes(cat.id)
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => toggleCategory(cat.id, simpleVideoCategories, setSimpleVideoCategories)}
+                        className={`px-3 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-[#FF6B35] text-white shadow-md border-2 border-[#FF6B35]'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent'
+                        }`}
+                      >
+                        {isSelected && <CheckCircleIcon className="w-3.5 h-3.5" />}
+                        {cat.label.replace(/^[^\s]+\s/, '')}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1.5">
+                  Sélectionnez une ou plusieurs catégories
+                </p>
               </div>
+            </div>
+            
+            <div className="p-4 border-t flex gap-3 flex-shrink-0 bg-white">
+              <button 
+                onClick={confirmApproveSimple} 
+                disabled={processingId === selectedVideo.id}
+                className="flex-1 bg-green-500 text-white py-2.5 rounded-lg hover:bg-green-600 transition disabled:opacity-50 flex items-center justify-center gap-2 font-bold"
+              >
+                {processingId === selectedVideo.id ? (
+                  <><div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div> Approbation...</>
+                ) : 'Approuver'}
+              </button>
+              <button onClick={() => setIsApproveSimpleModalOpen(false)} className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-bold">
+                Annuler
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Découpage */}
+      {/* ============================================================ */}
+      {/* MODALE DÉCOUPAGE */}
+      {/* ============================================================ */}
       {isCutModalOpen && selectedVideo && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fadeInUp">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FilmIcon className="w-8 h-8 text-purple-500" />
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+              <h2 className="text-lg font-bold text-gray-800">Découpage du film</h2>
+              <button onClick={() => setIsCutModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition">
+                <XMarkIcon className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto p-6 flex-1">
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FilmIcon className="w-8 h-8 text-purple-500" />
+                </div>
+                <p className="text-gray-600">
+                  Film: <span className="font-semibold">{selectedVideo.title}</span>
+                </p>
               </div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Découpage du film</h2>
-              <p className="text-gray-600 mb-4">
-                Film: <span className="font-semibold">{selectedVideo.title}</span>
-              </p>
+              
+              {/* Durée par épisode */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <ClockIcon className="w-4 h-4 inline mr-1" />
@@ -378,9 +509,9 @@ export default function PendingVideos() {
                       key={sec}
                       type="button"
                       onClick={() => setEpisodeDuration(sec)}
-                      className={`flex-1 py-2 rounded-lg text-sm transition ${
+                      className={`flex-1 py-2 rounded-lg text-sm font-bold transition ${
                         episodeDuration === sec
-                          ? 'bg-orange-500 text-white'
+                          ? 'bg-[#FF6B35] text-white'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
@@ -388,9 +519,11 @@ export default function PendingVideos() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-1">≈ {Math.ceil(selectedVideo.duration / episodeDuration)} épisodes</p>
+                <p className="text-xs text-gray-400 mt-1">≈ {Math.ceil((selectedVideo.duration || 60) / episodeDuration)} épisodes</p>
               </div>
-              <div className="mb-6">
+
+              {/* Prix par épisode */}
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <CurrencyDollarIcon className="w-4 h-4 inline mr-1" />
                   Prix par épisode (coins)
@@ -398,53 +531,108 @@ export default function PendingVideos() {
                 <input
                   type="number"
                   value={pricePerEpisode}
-                  onChange={(e) => setPricePerEpisode(parseInt(e.target.value))}
+                  onChange={(e) => setPricePerEpisode(parseInt(e.target.value) || 0)}
                   className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-                  min={50}
-                  step={50}
+                  min={0} step={50}
                 />
-                <p className="text-xs text-gray-400 mt-1">Le créateur recevra 70% du montant</p>
               </div>
-              <div className="flex gap-3">
-                <button onClick={confirmCutSeries} className="flex-1 bg-purple-500 text-white py-2 rounded-lg hover:bg-purple-600 transition">
-                  Découper et publier
-                </button>
-                <button onClick={() => setIsCutModalOpen(false)} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition">
-                  Annuler
-                </button>
+
+              {/* Catégories MULTIPLES */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <TagIcon className="w-4 h-4 inline mr-1" />
+                  Catégories de la série ({seriesCategories.length} sélectionnée{seriesCategories.length > 1 ? 's' : ''})
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {categoriesList.map((cat) => {
+                    const isSelected = seriesCategories.includes(cat.id)
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => toggleCategory(cat.id, seriesCategories, setSeriesCategories)}
+                        className={`px-3 py-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-purple-500 text-white shadow-md border-2 border-purple-500'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent'
+                        }`}
+                      >
+                        {isSelected && <CheckCircleIcon className="w-3.5 h-3.5" />}
+                        {cat.label.replace(/^[^\s]+\s/, '')}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1.5">
+                  Sélectionnez une ou plusieurs catégories
+                </p>
               </div>
+              
+              <p className="text-xs text-gray-400">Le créateur recevra 70% du montant</p>
+            </div>
+            
+            <div className="p-4 border-t flex gap-3 flex-shrink-0 bg-white">
+              <button 
+                onClick={confirmCutSeries} 
+                disabled={processingId === selectedVideo.id}
+                className="flex-1 bg-purple-500 text-white py-2.5 rounded-lg hover:bg-purple-600 transition disabled:opacity-50 flex items-center justify-center gap-2 font-bold"
+              >
+                {processingId === selectedVideo.id ? (
+                  <><div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div> Découpage...</>
+                ) : 'Découper et publier'}
+              </button>
+              <button onClick={() => setIsCutModalOpen(false)} className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-bold">
+                Annuler
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal Rejet */}
+      {/* ============================================================ */}
+      {/* MODALE REJET */}
+      {/* ============================================================ */}
       {isRejectModalOpen && selectedVideo && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fadeInUp">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <ExclamationTriangleIcon className="w-8 h-8 text-red-500" />
+          <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b flex-shrink-0">
+              <h2 className="text-lg font-bold text-gray-800">Rejeter la vidéo</h2>
+              <button onClick={() => setIsRejectModalOpen(false)} className="p-1.5 hover:bg-gray-100 rounded-full transition">
+                <XMarkIcon className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            <div className="overflow-y-auto p-6 flex-1">
+              <div className="text-center mb-4">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ExclamationTriangleIcon className="w-8 h-8 text-red-500" />
+                </div>
+                <p className="text-gray-600">
+                  Vidéo: <span className="font-semibold">{selectedVideo.title}</span>
+                </p>
               </div>
-              <h2 className="text-xl font-bold text-gray-800 mb-2">Rejeter la vidéo</h2>
-              <p className="text-gray-600 mb-4">
-                Vidéo: <span className="font-semibold">{selectedVideo.title}</span>
-              </p>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Motif du rejet..."
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none mb-6"
-                rows={3}
+                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 outline-none"
+                rows={4}
               />
-              <div className="flex gap-3">
-                <button onClick={confirmReject} className="flex-1 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition">
-                  Rejeter
-                </button>
-                <button onClick={() => setIsRejectModalOpen(false)} className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition">
-                  Annuler
-                </button>
-              </div>
+            </div>
+            
+            <div className="p-4 border-t flex gap-3 flex-shrink-0 bg-white">
+              <button 
+                onClick={confirmReject} 
+                disabled={processingId === selectedVideo.id}
+                className="flex-1 bg-red-500 text-white py-2.5 rounded-lg hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2 font-bold"
+              >
+                {processingId === selectedVideo.id ? (
+                  <><div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div> Rejet...</>
+                ) : 'Rejeter'}
+              </button>
+              <button onClick={() => setIsRejectModalOpen(false)} className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-bold">
+                Annuler
+              </button>
             </div>
           </div>
         </div>

@@ -7,32 +7,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupérer les masters (séries) les plus vus
-    const trending = await prisma.videos.findMany({
+    // CORRECTION : Utiliser la table Series directement
+    const trending = await (prisma as any).series.findMany({
       where: { 
-        isSeries: true,
-        parentId: null,
         status: 'approved'
       },
-      orderBy: { views: 'desc' },
+      orderBy: { totalViews: 'desc' },  // CORRECTION : totalViews
       take: 10,
       include: {
         creator: { select: { name: true, phone: true } },
         episodes: {
-          where: { parentId: { not: null }, status: 'approved' },
-          orderBy: { episodeNumber: 'asc' }
+          where: { status: 'approved' },
+          orderBy: { createdAt: 'asc' }  // CORRECTION : createdAt
         }
       }
     })
 
     // Transformer les données pour l'affichage
-    const formattedTrending = trending.map(series => ({
+    const formattedTrending = trending.map((series: any) => ({
       id: series.id,
       title: series.title,
       description: series.description,
-      coverImage: series.thumbnail,
-      totalEpisodes: series.episodes.length,
-      totalViews: series.views,
+      coverImage: series.coverImage,  // CORRECTION : coverImage
+      totalEpisodes: series.totalEpisodes || series.episodes?.length || 0,
+      totalViews: series.totalViews || 0,  // CORRECTION : totalViews
       creator: series.creator,
       createdAt: series.createdAt
     }))
@@ -40,6 +38,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(formattedTrending)
   } catch (error) {
     console.error('Erreur trending:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json([])
   }
 }

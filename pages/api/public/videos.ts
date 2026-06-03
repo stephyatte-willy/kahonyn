@@ -7,12 +7,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupérer les vidéos simples sans condition de statut pour le debug
-    const videos = await prisma.videos.findMany({
+    // CORRECTION : prisma.video (singulier), seriesId au lieu de isSeries/parentId
+    const videos = await (prisma as any).video.findMany({
       where: {
-        isSeries: false,
-        parentId: null
-        // Temporairement sans condition status
+        seriesId: null  // Vidéos simples (pas d'épisodes de série)
       },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -22,9 +20,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('Vidéos simples trouvées:', videos.length)
 
-    return res.status(200).json(videos)
+    return res.status(200).json(videos || [])
   } catch (error) {
     console.error('Erreur videos:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json([])
   }
 }

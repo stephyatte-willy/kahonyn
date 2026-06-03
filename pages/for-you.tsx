@@ -1,4 +1,3 @@
-// pages/for-you.tsx
 "use client"
 
 import { useSession } from 'next-auth/react'
@@ -39,6 +38,7 @@ interface Movie {
   title: string
   description: string
   coverImage: string
+  thumbnail?: string
   duration: number
   price: number
   totalViews: number
@@ -77,6 +77,15 @@ export default function ForYouPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Helper pour obtenir l'image (coverImage ou thumbnail)
+  const getMovieImage = (movie: Movie): string | null => {
+    return movie.coverImage || movie.thumbnail || null
+  }
+
+  const getSeriesImage = (serie: Series): string | null => {
+    return serie.coverImage || null
   }
 
   const footerTabs = [
@@ -152,41 +161,64 @@ export default function ForYouPage() {
             </div>
             
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
-              {movies.map((movie, index) => (
-                <Link 
-                  key={movie.id} 
-                  href={`/video/${movie.id}`} 
-                  className="group"
-                  style={{ animationDelay: `${index * 0.03}s` }}
-                >
-                  <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#FF6B35]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#8B5A2B]/10">
-                    <div className="relative aspect-[3/4] overflow-hidden">
-                      {movie.coverImage ? (
-                        <img src={movie.coverImage} alt={movie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#F5F0E8] to-[#E8D5B5]/30 flex items-center justify-center">
-                          <span className="text-2xl">🎬</span>
+              {movies.map((movie, index) => {
+                const imageUrl = getMovieImage(movie)
+                return (
+                  <Link 
+                    key={movie.id} 
+                    href={`/video/${movie.id}`} 
+                    className="group"
+                    style={{ animationDelay: `${index * 0.03}s` }}
+                  >
+                    <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#FF6B35]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#8B5A2B]/10">
+                      <div className="relative aspect-[3/4] overflow-hidden">
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={movie.title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-[#F5F0E8] to-[#E8D5B5]/30 flex items-center justify-center">
+                            <FilmIcon className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        
+                        {/* Overlay play au hover */}
+                        <div className="absolute inset-0 bg-[#5C3D2E]/30 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition duration-300">
+                            <PlayIcon className="w-5 h-5 text-[#FF6B35] ml-0.5" />
+                          </div>
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-[#5C3D2E]/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                        <PlayIcon className="w-8 h-8 text-white drop-shadow-lg" />
+                        
+                        {/* Badge prix */}
+                        <div className="absolute top-1.5 right-1.5">
+                          <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#5C3D2E] text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+                            🪙 {movie.price || 0}
+                          </span>
+                        </div>
+                        
+                        {/* Badge durée */}
+                        <div className="absolute bottom-1.5 left-1.5">
+                          <span className="bg-black/60 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md">
+                            {movie.duration ? `${Math.floor(movie.duration / 60)}min` : '--'}
+                          </span>
+                        </div>
                       </div>
-                      <div className="absolute top-1.5 right-1.5 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#5C3D2E] text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-sm">
-                        {movie.price} coins
+                      
+                      <div className="p-2">
+                        <h3 className="font-medium text-[11px] text-[#5C3D2E] line-clamp-1 group-hover:text-[#FF6B35] transition leading-tight">
+                          {movie.title}
+                        </h3>
+                        <p className="text-[9px] text-[#8B5A2B]/60 line-clamp-1 mt-0.5">
+                          {movie.description || movie.category || 'Film'}
+                        </p>
                       </div>
                     </div>
-                    
-                    <div className="p-2">
-                      <h3 className="font-medium text-[11px] text-[#5C3D2E] line-clamp-1 group-hover:text-[#FF6B35] transition leading-tight">
-                        {movie.title}
-                      </h3>
-                      <p className="text-[9px] text-[#8B5A2B]/60 line-clamp-1 mt-0.5">
-                        {movie.description}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -207,46 +239,70 @@ export default function ForYouPage() {
             </div>
             
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
-              {series.map((serie, index) => (
-                <Link 
-                  key={serie.id} 
-                  href={`/series/${serie.id}`} 
-                  className="group"
-                  style={{ animationDelay: `${index * 0.03}s` }}
-                >
-                  <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#D4A855]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#8B5A2B]/10">
-                    <div className="relative aspect-[3/4] overflow-hidden">
-                      {serie.coverImage ? (
-                        <img src={serie.coverImage} alt={serie.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-[#F5F0E8] to-[#E8D5B5]/30 flex items-center justify-center">
-                          <span className="text-2xl">🎬</span>
+              {series.map((serie, index) => {
+                const imageUrl = getSeriesImage(serie)
+                return (
+                  <Link 
+                    key={serie.id} 
+                    href={`/series/${serie.id}`} 
+                    className="group"
+                    style={{ animationDelay: `${index * 0.03}s` }}
+                  >
+                    <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#D4A855]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#8B5A2B]/10">
+                      <div className="relative aspect-[3/4] overflow-hidden">
+                        {imageUrl ? (
+                          <img 
+                            src={imageUrl} 
+                            alt={serie.title} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-[#F5F0E8] to-[#E8D5B5]/30 flex items-center justify-center">
+                            <TvIcon className="w-8 h-8 text-gray-400" />
+                          </div>
+                        )}
+                        
+                        {/* Overlay play au hover */}
+                        <div className="absolute inset-0 bg-[#5C3D2E]/30 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition duration-300">
+                            <PlayIcon className="w-5 h-5 text-[#D4A855] ml-0.5" />
+                          </div>
                         </div>
-                      )}
-                      <div className="absolute inset-0 bg-[#5C3D2E]/20 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                        <PlayIcon className="w-8 h-8 text-white drop-shadow-lg" />
+                        
+                        {/* Badge épisodes */}
+                        <div className="absolute top-1.5 left-1.5">
+                          <span className="bg-white/95 backdrop-blur-sm text-[#FF6B35] text-[9px] font-semibold px-1.5 py-0.5 rounded-md shadow-sm">
+                            {serie.totalEpisodes || 0} ép.
+                          </span>
+                        </div>
+                        
+                        {/* Badge vues */}
+                        <div className="absolute bottom-1.5 right-1.5">
+                          <span className="bg-black/60 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md">
+                            👁 {serie.totalViews?.toLocaleString() || 0}
+                          </span>
+                        </div>
                       </div>
-                      <div className="absolute top-1.5 left-1.5 bg-white/95 backdrop-blur-sm text-[#FF6B35] text-[9px] font-semibold px-1.5 py-0.5 rounded-md shadow-sm">
-                        {serie.totalEpisodes} ép.
+                      
+                      <div className="p-2">
+                        <h3 className="font-medium text-[11px] text-[#5C3D2E] line-clamp-1 group-hover:text-[#D4A855] transition leading-tight">
+                          {serie.title}
+                        </h3>
+                        <p className="text-[9px] text-[#8B5A2B]/60 line-clamp-1 mt-0.5">
+                          {serie.description || serie.category || 'Série'}
+                        </p>
                       </div>
                     </div>
-                    
-                    <div className="p-2">
-                      <h3 className="font-medium text-[11px] text-[#5C3D2E] line-clamp-1 group-hover:text-[#D4A855] transition leading-tight">
-                        {serie.title}
-                      </h3>
-                      <p className="text-[9px] text-[#8B5A2B]/60 line-clamp-1 mt-0.5">
-                        {serie.description}
-                      </p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                )
+              })}
             </div>
           </div>
         </div>
       )}
 
+      {/* Aucun contenu */}
       {movies.length === 0 && series.length === 0 && (
         <div className="max-w-7xl mx-auto px-4 py-20">
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-[#D4A855]/10 shadow-lg shadow-[#8B5A2B]/5">

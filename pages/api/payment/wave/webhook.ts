@@ -1,7 +1,9 @@
+// pages/api/payment/wave/webhook.ts
+// Cette API est appelée par Wave pour notifier d'un paiement
+// 📍 EMPLACEMENT À CONFIGURER DANS LE DASHBOARD WAVE
+
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
-
-export const runtime = 'nodejs'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -9,41 +11,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { reference, status, transactionId } = req.body
+    // 📍 En production : Vérifier la signature Wave ici
+    // const waveSignature = req.headers['wave-signature']
+    // if (!verifyWaveSignature(req.body, waveSignature, process.env.WAVE_WEBHOOK_SECRET)) {
+    //   return res.status(401).json({ error: 'Signature invalide' })
+    // }
 
-    const transaction = await prisma.coinTransactions.findUnique({
-      where: { id: reference },
-      include: { pack: true }
+    const { reference, status, transaction_id, metadata } = req.body
+
+    console.log('📩 Webhook Wave reçu:', { reference, status, transaction_id })
+
+    // Trouver la transaction par la référence
+    const transaction = await (prisma as any).transaction.findFirst({
+      where: { id: reference }
     })
 
     if (!transaction) {
+      console.error('Transaction non trouvée:', reference)
       return res.status(404).json({ error: 'Transaction non trouvée' })
     }
 
-    if (status === 'completed') {
-      await prisma.coinTransactions.update({
+    if (status === 'completed' || status === 'success') {
+      // Mettre à jour la transaction
+      await (prisma as any).transaction.update({
         where: { id: transaction.id },
         data: {
           status: 'completed',
-          transactionId,
-          completedAt: new Date()
+          reference: transaction_id
         }
       })
 
-      await prisma.users.update({
-        where: { id: transaction.userId },
-        data: { coins: { increment: transaction.amount } }
-      })
-    } else {
-      await prisma.coinTransactions.update({
+      // Créditer les coins (si pas déjà fait)
+      if (transaction.status !== 'completed') {
+        await (prisma as any).user.update({
+          where: { id: transaction.userId },
+          data: { coins: { increment: transaction.coins } }
+        })
+
+        // Mettre à jour le Purchase lié
+        await (prisma as any).purchase.updateMany({
+          where: { transactionId: transaction.id },
+          data: { status: 'completed' }
+        })
+
+        // Notification
+        await (prisma as any).notification.create({
+          data: {
+            userId: transaction.userId,
+            type: 'coins',
+            message: `🎉 ${transaction.coins} coins ajoutés via Wave !`
+          }
+        })
+      }
+    } else if (status === 'failed' || status === 'cancelled') {
+      await (prisma as any).transaction.update({
         where: { id: transaction.id },
+        data: { status: 'failed' }
+      })
+
+      await (prisma as any).purchase.updateMany({
+        where: { transactionId: transaction.id },
         data: { status: 'failed' }
       })
     }
 
     return res.status(200).json({ success: true })
   } catch (error) {
-    console.error('Erreur webhook:', error)
+    console.error('Erreur webhook Wave:', error)
     return res.status(500).json({ error: 'Erreur serveur' })
   }
 }

@@ -21,22 +21,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json({ purchasedIds: [] })
     }
 
-    const videoIds = ids.split(',')
+    const userId = (session.user as any).id
+    const videoIds = ids.split(',').filter(Boolean)
 
-    const purchases = await prisma.purchases.findMany({
+    if (videoIds.length === 0) {
+      return res.status(200).json({ purchasedIds: [] })
+    }
+
+    // CORRECTION : prisma.purchase (singulier)
+    const purchases = await (prisma as any).purchase.findMany({
       where: {
-        userId: session.user.id,
+        userId,
         videoId: { in: videoIds },
         status: 'completed'
       },
       select: { videoId: true }
     })
 
-    const purchasedIds = purchases.map(p => p.videoId)
+    const purchasedIds = purchases.map((p: any) => p.videoId)
 
     return res.status(200).json({ purchasedIds })
   } catch (error) {
     console.error('Erreur purchased-episodes:', error)
-    return res.status(200).json({ purchasedIds: [] }) // Retourner un tableau vide au lieu d'une erreur
+    return res.status(200).json({ purchasedIds: [] })
   }
 }

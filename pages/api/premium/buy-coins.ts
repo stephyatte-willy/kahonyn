@@ -21,7 +21,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Pack ID requis' })
     }
 
-    const pack = await prisma.coinPacks.findUnique({
+    const userId = (session.user as any).id
+
+    // CORRECTION : prisma.coinPack (singulier, nom exact du modèle)
+    const pack = await (prisma as any).coinPack.findUnique({
       where: { id: packId }
     })
 
@@ -29,36 +32,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Pack non trouvé' })
     }
 
-    const totalCoins = pack.coins + pack.bonus
+    const totalCoins = pack.coins + (pack.bonus || 0)
 
-    // Créer la transaction
-    const transaction = await prisma.coinTransactions.create({
+    // CORRECTION : prisma.purchase pour la transaction (pas de table coinTransactions)
+    const transaction = await (prisma as any).purchase.create({
       data: {
-        userId: session.user.id,
-        packId: pack.id,
-        amount: totalCoins,
-        price: pack.price,
-        status: 'pending'
+        userId,
+        amount: pack.price,
+        coinsUsed: totalCoins,
+        status: 'completed', // Directement complété (simulation)
+        paymentMethod: 'orange_money'
       }
     })
 
-    // Simuler le paiement Orange Money (à remplacer par vraie intégration)
-    // Ici on valide automatiquement pour le développement
-    await prisma.coinTransactions.update({
-      where: { id: transaction.id },
-      data: { status: 'completed', transactionId: `TXN_${Date.now()}` }
-    })
-
-    // Ajouter les coins à l'utilisateur
-    await prisma.users.update({
-      where: { id: session.user.id },
+    // CORRECTION : prisma.user (singulier)
+    await (prisma as any).user.update({
+      where: { id: userId },
       data: { coins: { increment: totalCoins } }
     })
 
     return res.status(200).json({
       success: true,
       coins: totalCoins,
-      message: `${totalCoins} coins ajoutés à votre compte`
+      message: `${totalCoins} coins ajoutés à votre compte`,
+      transactionId: transaction.id
     })
   } catch (error) {
     console.error('Erreur buy-coins:', error)

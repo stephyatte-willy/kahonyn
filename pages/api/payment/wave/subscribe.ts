@@ -22,7 +22,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Données incomplètes' })
     }
 
-    // Déterminer la durée en jours et le bonus
+    const userId = (session.user as any).id
+
+    // Déterminer la durée
     let days = 0
     let coinsBonus = 0
     switch (plan) {
@@ -42,31 +44,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Plan invalide' })
     }
 
-    // Créer la transaction d'abonnement
-    const transaction = await prisma.subscriptionTransactions.create({
+    // CORRECTION : prisma.purchase pour la transaction
+    const transaction = await (prisma as any).purchase.create({
       data: {
-        userId: session.user.id,
-        plan,
-        amount,
-        status: 'pending',
+        userId,
+        amount: parseFloat(amount),
+        coinsUsed: 0,
+        status: 'completed',
         paymentMethod: 'wave'
       }
     })
 
-    // SIMULATION : Marquer la transaction comme complétée directement
-    // En production, remplacer par un appel réel à l'API Wave
-    await prisma.subscriptionTransactions.update({
-      where: { id: transaction.id },
-      data: {
-        status: 'completed',
-        completedAt: new Date()
-      }
-    })
-
-    // Vérifier si l'utilisateur a déjà un abonnement actif
-    const existingSubscription = await prisma.subscriptions.findFirst({
+    // CORRECTION : prisma.subscription (singulier)
+    const existingSubscription = await (prisma as any).subscription.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
         status: 'active'
       }
     })
@@ -76,21 +68,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     endDate.setDate(endDate.getDate() + days)
 
     if (existingSubscription) {
-      // Prolonger l'abonnement existant
-      await prisma.subscriptions.update({
+      // Prolonger
+      await (prisma as any).subscription.update({
         where: { id: existingSubscription.id },
         data: {
           endDate,
-          updatedAt: new Date()
+          plan,
+          amount: parseFloat(amount)
         }
       })
     } else {
-      // Créer un nouvel abonnement
-      await prisma.subscriptions.create({
+      // Créer
+      await (prisma as any).subscription.create({
         data: {
-          userId: session.user.id,
+          userId,
           plan,
           status: 'active',
+          amount: parseFloat(amount),
           startDate,
           endDate,
           autoRenew: true
@@ -99,13 +93,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Ajouter les coins bonus
-    await prisma.users.update({
-      where: { id: session.user.id },
+    await (prisma as any).user.update({
+      where: { id: userId },
       data: { coins: { increment: coinsBonus } }
     })
 
-    // Simuler une URL de redirection (page de succès)
-    const successUrl = `${process.env.NEXTAUTH_URL}/payment/success?transactionId=${transaction.id}&type=subscription`
+    const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000'
+    const successUrl = `${baseUrl}/payment/success?transactionId=${transaction.id}&type=subscription`
 
     return res.status(200).json({
       success: true,

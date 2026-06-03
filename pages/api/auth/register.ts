@@ -80,8 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: email?.trim() || null,
         password: hashedPassword,
         role: userRole,
-        coins: 0,
-        bio: bio?.trim() || null,
+        coins: 10, // ← 10 coins gratuits à l'inscription
         totalEarnings: 0,
       }
     })

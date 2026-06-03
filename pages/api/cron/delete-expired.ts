@@ -12,23 +12,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupérer les vidéos à faire disparaître définitivement
-    const videosToDelete = await prisma.videos.findMany({
+    // Récupérer les vidéos marquées pour suppression
+    // CORRECTION : prisma.video (singulier), utiliser isDeleted/willDisappearAt
+    const videosToDelete = await (prisma as any).video.findMany({
       where: {
-        status: 'deleted',
-        deletedAt: { lte: new Date() }
+        isDeleted: true,
+        willDisappearAt: { lte: new Date() }
       }
     })
 
     let deletedCount = 0
     for (const video of videosToDelete) {
-      // Notifier le créateur (à implémenter avec un système de notifications)
-      console.log(`Notification au créateur ${video.creatorId}: Votre vidéo "${video.title}" a été supprimée définitivement`)
+      console.log(`Suppression définitive: "${video.title}" (${video.id})`)
       
-      // Supprimer définitivement
-      await prisma.purchases.deleteMany({ where: { videoId: video.id } })
-      await prisma.creator_earnings.deleteMany({ where: { videoId: video.id } })
-      await prisma.videos.delete({ where: { id: video.id } })
+      // Supprimer les achats liés
+      // CORRECTION : prisma.purchase (singulier)
+      await (prisma as any).purchase.deleteMany({ where: { videoId: video.id } })
+      
+      // Supprimer les likes liés
+      await (prisma as any).like.deleteMany({ where: { videoId: video.id } })
+      
+      // Supprimer les commentaires liés
+      await (prisma as any).comment.deleteMany({ where: { videoId: video.id } })
+      
+      // Supprimer l'historique de visionnage
+      await (prisma as any).watchHistory.deleteMany({ where: { videoId: video.id } })
+      
+      // Supprimer la vidéo
+      // CORRECTION : prisma.video (singulier)
+      await (prisma as any).video.delete({ where: { id: video.id } })
+      
       deletedCount++
     }
 

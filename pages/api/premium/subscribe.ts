@@ -16,22 +16,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { plan } = req.body
+    const userId = (session.user as any).id
 
-    const plans = {
+    const plans: Record<string, { price: number; days: number; coinsBonus: number }> = {
       monthly: { price: 5000, days: 30, coinsBonus: 500 },
       quarterly: { price: 13500, days: 90, coinsBonus: 2000 },
       yearly: { price: 48000, days: 365, coinsBonus: 10000 }
     }
 
-    const selectedPlan = plans[plan as keyof typeof plans]
+    const selectedPlan = plans[plan as string]
     if (!selectedPlan) {
       return res.status(400).json({ error: 'Plan invalide' })
     }
 
     // Vérifier si déjà abonné
-    const existingSubscription = await prisma.subscriptions.findFirst({
+    // CORRECTION : prisma.subscription (singulier)
+    const existingSubscription = await (prisma as any).subscription.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
         status: 'active',
         endDate: { gt: new Date() }
       }
@@ -46,10 +48,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     endDate.setDate(endDate.getDate() + selectedPlan.days)
 
     // Créer l'abonnement
-    const subscription = await prisma.subscriptions.create({
+    // CORRECTION : prisma.subscription (singulier)
+    const subscription = await (prisma as any).subscription.create({
       data: {
-        userId: session.user.id,
+        userId,
         plan: plan,
+        amount: selectedPlan.price,
         startDate,
         endDate,
         autoRenew: true,
@@ -58,18 +62,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     // Ajouter les coins bonus
-    await prisma.users.update({
-      where: { id: session.user.id },
+    // CORRECTION : prisma.user (singulier)
+    await (prisma as any).user.update({
+      where: { id: userId },
       data: { coins: { increment: selectedPlan.coinsBonus } }
     })
 
     // Créer une transaction pour les coins bonus
-    await prisma.coinTransactions.create({
+    // CORRECTION : prisma.purchase (pas de table coinTransactions)
+    await (prisma as any).purchase.create({
       data: {
-        userId: session.user.id,
-        amount: selectedPlan.coinsBonus,
-        price: 0,
+        userId,
+        amount: 0,
+        coinsUsed: selectedPlan.coinsBonus,
         status: 'completed',
+        paymentMethod: 'subscription_bonus',
         transactionId: `SUB_${subscription.id}`
       }
     })

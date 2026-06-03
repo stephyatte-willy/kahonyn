@@ -26,12 +26,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Le mot de passe doit avoir au moins 6 caractères' })
     }
 
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id }
+    // CORRECTION : prisma.user (singulier)
+    const userId = (session.user as any).id
+    const user = await (prisma as any).user.findUnique({
+      where: { id: userId }
     })
 
     if (!user || !user.password) {
-      return res.status(400).json({ error: 'Utilisateur non trouvé' })
+      return res.status(400).json({ error: 'Utilisateur non trouvé ou connexion Google' })
     }
 
     const isValid = await bcrypt.compare(currentPassword, user.password)
@@ -41,8 +43,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    await prisma.users.update({
-      where: { id: session.user.id },
+    // CORRECTION : prisma.user.update
+    await (prisma as any).user.update({
+      where: { id: userId },
       data: { password: hashedPassword }
     })
 

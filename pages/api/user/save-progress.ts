@@ -21,20 +21,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID épisode requis' })
     }
 
-    await prisma.userProgress.upsert({
-      where: {
-        userId_episodeId: {
-          userId: session.user.id,
-          episodeId: episodeId
-        }
-      },
-      update: { currentTime: currentTime || 0 },
-      create: {
-        userId: session.user.id,
-        episodeId: episodeId,
-        currentTime: currentTime || 0
-      }
+    const userId = (session.user as any).id
+
+    const existing = await (prisma as any).watchHistory.findFirst({
+      where: { userId, videoId: episodeId }
     })
+
+    if (existing) {
+      await (prisma as any).watchHistory.update({
+        where: { id: existing.id },
+        data: { progress: currentTime || 0, watchedAt: new Date() }
+      })
+    } else {
+      await (prisma as any).watchHistory.create({
+        data: { userId, videoId: episodeId, progress: currentTime || 0 }
+      })
+    }
 
     return res.status(200).json({ success: true })
   } catch (error) {

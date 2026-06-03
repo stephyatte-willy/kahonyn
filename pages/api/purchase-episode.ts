@@ -16,13 +16,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { episodeId } = req.body
+    const userId = (session.user as any).id
 
     if (!episodeId) {
       return res.status(400).json({ error: 'ID épisode requis' })
     }
 
-    // Récupérer l'épisode
-    const episode = await prisma.videos.findUnique({
+    // CORRECTION : prisma.video (singulier)
+    const episode = await (prisma as any).video.findUnique({
       where: { id: episodeId }
     })
 
@@ -30,13 +31,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Épisode non trouvé' })
     }
 
-    // Vérifier si déjà acheté
-    const existingPurchase = await prisma.purchases.findUnique({
+    // CORRECTION : prisma.purchase (singulier)
+    const existingPurchase = await (prisma as any).purchase.findFirst({
       where: {
-        userId_videoId: {
-          userId: session.user.id,
-          videoId: episodeId
-        }
+        userId,
+        videoId: episodeId,
+        status: 'completed'
       }
     })
 
@@ -44,45 +44,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Déjà acheté' })
     }
 
-    // Vérifier les coins de l'utilisateur
-    const user = await prisma.users.findUnique({
-      where: { id: session.user.id }
+    // CORRECTION : prisma.user (singulier)
+    const user = await (prisma as any).user.findUnique({
+      where: { id: userId }
     })
 
-    if (!user || user.coins < episode.price) {
+    if (!user || (user.coins || 0) < (episode.price || 0)) {
       return res.status(400).json({ error: 'Solde insuffisant' })
     }
 
     // Déduire les coins
-    await prisma.users.update({
-      where: { id: session.user.id },
-      data: { coins: { decrement: episode.price } }
+    // CORRECTION : prisma.user (singulier)
+    await (prisma as any).user.update({
+      where: { id: userId },
+      data: { coins: { decrement: episode.price || 0 } }
     })
 
     // Créer l'achat
-    const purchase = await prisma.purchases.create({
+    // CORRECTION : prisma.purchase (singulier)
+    const purchase = await (prisma as any).purchase.create({
       data: {
-        userId: session.user.id,
+        userId,
         videoId: episodeId,
-        amount: episode.price,
-        status: 'completed'
-      }
-    })
-
-    // Créer le gain du créateur (70%)
-    await prisma.creator_earnings.create({
-      data: {
-        creatorId: episode.creatorId,
-        videoId: episodeId,
-        amount: Math.floor(episode.price * 0.7),
-        status: 'pending'
+        amount: episode.price || 0,
+        coinsUsed: episode.price || 0,
+        status: 'completed',
+        paymentMethod: 'coins'
       }
     })
 
     // Incrémenter les achats de l'épisode
-    await prisma.videos.update({
+    // CORRECTION : prisma.video (singulier)
+    await (prisma as any).video.update({
       where: { id: episodeId },
-      data: { purchases: { increment: 1 } }
+      data: { purchasesCount: { increment: 1 } }
     })
 
     return res.status(200).json({ success: true, purchase })

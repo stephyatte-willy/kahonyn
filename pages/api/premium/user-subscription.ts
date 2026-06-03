@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
-
+  
   if (!session) {
     return res.status(401).json({ error: 'Non authentifié' })
   }
@@ -15,17 +15,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const subscription = await prisma.subscriptions.findFirst({
+    const userId = (session.user as any).id
+
+    const subscription = await (prisma as any).subscription.findFirst({
       where: {
-        userId: session.user.id,
+        userId,
         status: 'active',
-        endDate: { gt: new Date() }
+        endDate: { gte: new Date() }
+      },
+      orderBy: { endDate: 'desc' },
+      include: {
+        planRef: true
       }
     })
 
-    return res.status(200).json({ subscription })
+    return res.status(200).json({ subscription: subscription || null })
   } catch (error) {
     console.error('Erreur user-subscription:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json({ subscription: null })
   }
 }

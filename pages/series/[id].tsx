@@ -3,8 +3,8 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useEffect, useState, useRef } from 'react'
-import Link from 'next/link'
 import Navbar from '../../components/Navbar'
+import Footer from '../../components/Footer'
 import { 
   LockClosedIcon, 
   PlayIcon, 
@@ -18,22 +18,28 @@ import {
   ChevronDoubleRightIcon,
   HeartIcon,
   ShareIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  HomeIcon,
+  UserGroupIcon,
+  TrophyIcon,
+  UserCircleIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 
 interface Episode {
   id: string
   episodeNumber: number
   title: string
   description: string
-  videoUrl: string
+  url: string
   thumbnail: string
   duration: number
   price: number
   views: number
   purchases: number
+  status?: string
+  isFree?: boolean
 }
 
 interface Series {
@@ -43,6 +49,7 @@ interface Series {
   coverImage: string
   creator: { name: string; phone: string }
   totalEpisodes: number
+  freeEpisodes: number
   totalViews: number
   totalPurchases: number
   episodes: Episode[]
@@ -63,11 +70,19 @@ export default function SeriesPage() {
   const [showEpisodeModal, setShowEpisodeModal] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [isLiked, setIsLiked] = useState(false)
-  const [likesCount, setLikesCount] = useState(0)
-  const [savesCount, setSavesCount] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
+  const [activeFooterTab, setActiveFooterTab] = useState('')
   const controlsTimeout = useRef<NodeJS.Timeout | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [userCoins, setUserCoins] = useState(0)
+
+  const footerTabs = [
+    { id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' },
+    { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' },
+    { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' },
+    { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' },
+    { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
+  ]
 
   useEffect(() => {
     if (id) fetchSeries()
@@ -76,6 +91,7 @@ export default function SeriesPage() {
   useEffect(() => {
     if (session && series && series.episodes.length > 0) {
       fetchPurchasedStatus()
+      fetchUserCoins()
     }
   }, [session, series])
 
@@ -95,7 +111,7 @@ export default function SeriesPage() {
     }
   }, [showControls, isPlayerOpen])
 
-  // Lecture automatique
+  // Lecture automatique avec arrêt aux épisodes payants
   useEffect(() => {
     const video = videoRef.current
     if (!video || !isPlayerOpen) return
@@ -105,16 +121,25 @@ export default function SeriesPage() {
       if (selectedEpisode && series) {
         const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
         const nextEpisode = series.episodes[currentIndex + 1]
-        if (nextEpisode && canWatch(nextEpisode)) {
-          setSelectedEpisode(nextEpisode)
-          setTimeout(() => {
-            if (videoRef.current) {
-              videoRef.current.load()
-              videoRef.current.play()
-              setIsPlaying(true)
-            }
-          }, 500)
-          toast.success(`Lecture automatique : Épisode ${nextEpisode.episodeNumber}`)
+        
+        if (nextEpisode) {
+          if (canWatch(nextEpisode)) {
+            // Épisode suivant accessible (gratuit ou acheté)
+            setSelectedEpisode(nextEpisode)
+            setTimeout(() => {
+              if (videoRef.current) {
+                videoRef.current.load()
+                videoRef.current.play()
+                setIsPlaying(true)
+              }
+            }, 500)
+          } else {
+            // Épisode suivant payant → bloquer
+            toast.error(
+              `🔒 Épisode ${nextEpisode.episodeNumber} nécessite ${nextEpisode.price} coins. Achetez pour continuer.`,
+              { duration: 5000 }
+            )
+          }
         }
       }
     }
@@ -133,14 +158,25 @@ export default function SeriesPage() {
     }
   }, [selectedEpisode, series, isPlayerOpen])
 
+  const fetchUserCoins = async () => {
+    if (!session) return
+    try {
+      const res = await fetch('/api/user/profile')
+      if (res.ok) {
+        const data = await res.json()
+        setUserCoins(data.coins || 0)
+      }
+    } catch (error) {
+      console.error('Erreur chargement coins:', error)
+    }
+  }
+
   const fetchCounters = async () => {
     if (!selectedEpisode) return
     try {
       const res = await fetch(`/api/user/counters?episodeId=${selectedEpisode.id}`)
       if (res.ok) {
         const data = await res.json()
-        setLikesCount(data.likesCount || 0)
-        setSavesCount(data.savesCount || 0)
         setIsLiked(data.userLiked || false)
         setIsSaved(data.userSaved || false)
       }
@@ -149,13 +185,44 @@ export default function SeriesPage() {
     }
   }
 
+  const handleLike = async () => {
+    if (!session) { toast.error('Connectez-vous pour aimer'); return }
+    if (!selectedEpisode) return
+    setIsLiked(!isLiked)
+    try {
+      const res = await fetch('/api/user/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ episodeId: selectedEpisode.id })
+      })
+      const data = await res.json()
+      if (res.ok) setIsLiked(data.liked)
+      else setIsLiked(!isLiked)
+    } catch { setIsLiked(!isLiked) }
+  }
+
+  const handleSave = async () => {
+    if (!session) { toast.error('Connectez-vous pour sauvegarder'); return }
+    if (!selectedEpisode) return
+    setIsSaved(!isSaved)
+    try {
+      const res = await fetch('/api/user/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ episodeId: selectedEpisode.id })
+      })
+      const data = await res.json()
+      if (res.ok) setIsSaved(data.saved)
+      else setIsSaved(!isSaved)
+    } catch { setIsSaved(!isSaved) }
+  }
+
   const goToPreviousEpisode = () => {
     if (!selectedEpisode || !series) return
     const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
     const prevEpisode = series.episodes[currentIndex - 1]
     if (prevEpisode && canWatch(prevEpisode)) {
       setSelectedEpisode(prevEpisode)
-      toast.success(`Épisode ${prevEpisode.episodeNumber}`)
     }
   }
 
@@ -165,7 +232,6 @@ export default function SeriesPage() {
     const nextEpisode = series.episodes[currentIndex + 1]
     if (nextEpisode && canWatch(nextEpisode)) {
       setSelectedEpisode(nextEpisode)
-      toast.success(`Épisode ${nextEpisode.episodeNumber}`)
     }
   }
 
@@ -173,26 +239,59 @@ export default function SeriesPage() {
     if (!selectedEpisode || !series) return false
     const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
     const nextEpisode = series.episodes[currentIndex + 1]
-    return nextEpisode && canWatch(nextEpisode)
+    return !!(nextEpisode && canWatch(nextEpisode))
   }
 
   const hasPreviousEpisode = () => {
     if (!selectedEpisode || !series) return false
     const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
     const prevEpisode = series.episodes[currentIndex - 1]
-    return prevEpisode && canWatch(prevEpisode)
+    return !!(prevEpisode && canWatch(prevEpisode))
   }
 
   const fetchSeries = async () => {
+    setLoading(true)
     try {
       const res = await fetch(`/api/public/series/${id}`)
+      if (!res.ok) throw new Error(`Erreur ${res.status}`)
       const data = await res.json()
-      setSeries(data)
-      if (data.episodes && data.episodes.length > 0) {
-        setSelectedEpisode(data.episodes[0])
+      
+      const episodes = Array.isArray(data.episodes) ? data.episodes : []
+      
+      const formattedEpisodes = episodes.map((ep: any, index: number) => ({
+        id: ep.id || `ep-${index}`,
+        episodeNumber: ep.episodeNumber || index + 1,
+        title: ep.title || `Épisode ${index + 1}`,
+        description: ep.description || '',
+        url: ep.url || '',
+        thumbnail: ep.thumbnail || '',
+        duration: ep.duration || 0,
+        price: ep.price || 0,
+        views: ep.views || 0,
+        purchases: ep.purchases || 0,
+        status: ep.status || 'approved',
+        isFree: ep.isFree || false,
+      }))
+      
+      setSeries({
+        id: data.id,
+        title: data.title || 'Sans titre',
+        description: data.description || '',
+        coverImage: data.coverImage || '',
+        creator: data.creator || { name: 'Créateur', phone: '' },
+        totalEpisodes: data.totalEpisodes || formattedEpisodes.length,
+        freeEpisodes: data.freeEpisodes || 0,
+        totalViews: data.totalViews || 0,
+        totalPurchases: data.totalPurchases || 0,
+        episodes: formattedEpisodes,
+        createdAt: data.createdAt || new Date().toISOString(),
+      })
+      
+      if (formattedEpisodes.length > 0) {
+        setSelectedEpisode(formattedEpisodes[0])
       }
     } catch (error) {
-      console.error('Erreur:', error)
+      console.error('Erreur fetchSeries:', error)
       toast.error('Impossible de charger la série')
     } finally {
       setLoading(false)
@@ -200,9 +299,7 @@ export default function SeriesPage() {
   }
 
   const fetchPurchasedStatus = async () => {
-    if (!series?.episodes.length) return
-    if (!session) return
-
+    if (!series?.episodes.length || !session) return
     try {
       const episodeIds = series.episodes.map(ep => ep.id).join(',')
       const res = await fetch(`/api/user/purchased-episodes?ids=${episodeIds}`)
@@ -216,9 +313,9 @@ export default function SeriesPage() {
   }
 
   const handlePurchase = async (episode: Episode) => {
-    if (!session) {
-      toast.error('Connectez-vous pour acheter')
-      router.push('/login')
+    if (!session) { toast.error('Connectez-vous pour acheter'); return }
+    if (userCoins < episode.price) {
+      toast.error(`Solde insuffisant. Vous avez ${userCoins} coins, il vous faut ${episode.price} coins.`)
       return
     }
 
@@ -229,12 +326,11 @@ export default function SeriesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ episodeId: episode.id })
       })
-      
       const data = await res.json()
-      
       if (res.ok) {
         toast.success(`Épisode ${episode.episodeNumber} débloqué !`)
         setPurchasedEpisodes(prev => new Set([...prev, episode.id]))
+        setUserCoins(prev => prev - episode.price)
         setSelectedEpisode(episode)
         setIsPlayerOpen(true)
       } else {
@@ -248,12 +344,20 @@ export default function SeriesPage() {
   }
 
   const handlePlay = (episode: Episode) => {
+    if (!canWatch(episode)) {
+      // Épisode payant → proposer l'achat
+      handlePurchase(episode)
+      return
+    }
     setSelectedEpisode(episode)
     setIsPlayerOpen(true)
   }
 
-  const canWatch = (episode: Episode) => {
-    return purchasedEpisodes.has(episode.id) || session?.user?.role === 'admin'
+  const canWatch = (episode: Episode): boolean => {
+    if ((session?.user as any)?.role === 'admin') return true
+    if (purchasedEpisodes.has(episode.id)) return true
+    if (episode.isFree) return true
+    return false
   }
 
   const formatDuration = (seconds: number) => {
@@ -263,86 +367,26 @@ export default function SeriesPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const handleSave = async () => {
-    if (!session) {
-      toast.error('Connectez-vous pour sauvegarder')
-      router.push('/login')
-      return
-    }
-    if (!selectedEpisode) return
-
-    try {
-      const res = await fetch('/api/user/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ episodeId: selectedEpisode.id })
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setIsSaved(data.saved)
-        setSavesCount(data.savesCount)
-        toast.success(data.saved ? 'Ajouté aux favoris' : 'Retiré des favoris')
-      }
-    } catch (error) {
-      toast.error('Erreur')
-    }
-  }
-
-  const handleLike = async () => {
-    if (!session) {
-      toast.error('Connectez-vous pour aimer')
-      router.push('/login')
-      return
-    }
-    if (!selectedEpisode) return
-
-    try {
-      const res = await fetch('/api/user/like', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ episodeId: selectedEpisode.id })
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setIsLiked(data.liked)
-        setLikesCount(data.likesCount)
-        toast.success(data.liked ? 'Vous avez aimé' : 'Like retiré')
-      }
-    } catch (error) {
-      toast.error('Erreur')
-    }
-  }
-
   const handleShare = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href)
-      toast.success('Lien copié dans le presse-papier')
-    } catch (err) {
-      toast.error('Impossible de copier le lien')
-    }
-  }
-
-  const handleDownload = () => {
-    toast.success('Fonctionnalité VIP - Bientôt disponible')
+      toast.success('Lien copié !')
+    } catch { toast.error('Impossible de copier le lien') }
   }
 
   const togglePlayPause = () => {
     if (videoRef.current) {
-      if (videoRef.current.paused) {
-        videoRef.current.play()
-      } else {
-        videoRef.current.pause()
-      }
+      videoRef.current.paused ? videoRef.current.play() : videoRef.current.pause()
     }
     setShowControls(true)
   }
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-[#F5F0E8]">
         <Navbar />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+        <div className="flex items-center justify-center h-[80vh]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6B35]"></div>
         </div>
       </div>
     )
@@ -350,154 +394,150 @@ export default function SeriesPage() {
 
   if (!series) {
     return (
-      <div>
+      <div className="min-h-screen bg-[#F5F0E8]">
         <Navbar />
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-100">
+        <div className="flex items-center justify-center h-[80vh]">
           <p className="text-gray-500">Série non trouvée</p>
         </div>
       </div>
     )
   }
 
-  if (isPlayerOpen) {
-    document.body.style.overflow = 'hidden'
-  } else {
-    document.body.style.overflow = 'auto'
-  }
+  if (isPlayerOpen) document.body.style.overflow = 'hidden'
+  else document.body.style.overflow = 'auto'
 
   return (
     <>
       {!isPlayerOpen && <Navbar />}
       
-      <Toaster position="top-right" />
-      
       {!isPlayerOpen ? (
-        <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <Link href="/" className="inline-flex items-center gap-1 text-gray-600 hover:text-orange-500 transition">
-              <ChevronLeftIcon className="w-5 h-5" />
-              Retour à l'accueil
-            </Link>
-          </div>
-
-          <div className="bg-gradient-to-r from-amber-700 to-orange-700 text-white">
-            <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col md:flex-row gap-8">
-              <div className="w-24 h-16 rounded-xl overflow-hidden shadow-xl mx-auto md:mx-0 flex-shrink-0">
+        <div className="min-h-screen bg-[#F5F0E8] pb-16">
+          {/* Bannière série */}
+          <div className="bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white">
+            <div className="max-w-7xl mx-auto px-4 py-6 flex flex-col md:flex-row gap-6 items-center md:items-start">
+              <div className="w-24 h-16 rounded-xl overflow-hidden shadow-xl flex-shrink-0 bg-white/20">
                 {series.coverImage ? (
                   <img src={series.coverImage} alt={series.title} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-6xl">🎬</div>
+                  <div className="w-full h-full flex items-center justify-center text-3xl">🎬</div>
                 )}
               </div>
               <div className="flex-1 text-center md:text-left">
-                <h1 className="text-xl md:text-xl font-bold">{series.title}</h1>
-                <span className="text-white/80 mb-1">{series.description}</span>
-                <div className="flex flex-wrap justify-center md:justify-start gap-6 text-sm">
-                  <span>⭐ 4.8</span>
+                <h1 className="text-xl font-bold">{series.title}</h1>
+                <p className="text-white/80 text-sm mt-1">{series.description}</p>
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-3 text-sm">
                   <span>🎬 {series.totalEpisodes} épisodes</span>
+                  <span>🆓 {series.freeEpisodes} gratuits</span>
                   <span>👁️ {(series.totalViews || 0).toLocaleString()} vues</span>
+                  {session && (
+                    <span className="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                      🪙 {userCoins} coins
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-<div className="max-w-7xl mx-auto px-4 py-8">
-  {/* En-tête chic */}
-  <div className="flex justify-between items-center mb-8">
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/20">
-        <span className="text-white text-lg">🎬</span>
-      </div>
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800">Épisodes</h2>
-      </div>
-      <span className="px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-bold rounded-full shadow-md">
-        {series.totalEpisodes}
-      </span>
-    </div>
-  </div>
-  
-  {/* Grille moderne */}
-  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 lg:grid-cols-6 gap-4">
-    {series.episodes.map((episode, index) => {
-      const isPurchased = canWatch(episode)
-      return (
-        <div
-          key={episode.id}
-          onClick={() => handlePlay(episode)}
-          className={`group relative cursor-pointer rounded-2xl overflow-hidden transition-all duration-500 ${
-            isPurchased 
-              ? 'bg-gradient-to-br from-gray-900 to-gray-800' 
-              : 'bg-gradient-to-br from-gray-800 to-gray-900'
-          } hover:shadow-2xl hover:shadow-orange-500/20 hover:-translate-y-2 border border-gray-700/50`}
-          style={{ animationDelay: `${index * 0.05}s` }}
-        >
-          {/* Effet de brillance au survol */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-          
-          {/* Miniature avec icône clap */}
-          <div className="relative aspect-square bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center overflow-hidden">
-            {/* Icône clap animée */}
-            <div className="text-5xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 drop-shadow-xl">
-              🎬
-            </div>
-            
-            {/* Overlay lumineux au survol */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-400 flex items-center justify-center">
-              <div className="transform scale-0 group-hover:scale-100 transition-transform duration-300">
-                <PlayIcon className="w-10 h-10 text-white drop-shadow-xl" />
+          <div className="max-w-7xl mx-auto px-4 py-8">
+            {/* Message vidéos gratuites */}
+            {!session ? (
+              <div className="bg-blue-50 rounded-xl p-3 mb-6 border border-blue-200">
+                <p className="text-xs text-blue-700 font-bold">
+                  🔑 Connectez-vous pour regarder les épisodes gratuits
+                </p>
+              </div>
+            ) : series.freeEpisodes > 0 ? (
+              <div className="bg-green-50 rounded-xl p-3 mb-6 border border-green-200">
+                <p className="text-xs text-green-700 font-bold">
+                  🎁 {series.freeEpisodes} premier{series.freeEpisodes > 1 ? 's' : ''} épisode{series.freeEpisodes > 1 ? 's' : ''} gratuit{series.freeEpisodes > 1 ? 's' : ''} ! Les suivants sont payants.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-amber-50 rounded-xl p-3 mb-6 border border-amber-200">
+                <p className="text-xs text-amber-700 font-bold">
+                  ⚠️ Tous les épisodes sont payants. Achetez des coins pour continuer.
+                </p>
+              </div>
+            )}
+
+            {/* En-tête épisodes */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-md">
+                  <PlayIcon className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900">Épisodes</h2>
+                  <p className="text-[11px] text-gray-600 font-bold">{series.totalEpisodes} épisodes</p>
+                </div>
               </div>
             </div>
-            
-            {/* Badge durée */}
-            <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
-              {formatDuration(episode.duration)}
+
+            {/* Grille des épisodes */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+              {series.episodes.map((episode, index) => {
+                const isAccessible = canWatch(episode)
+                const isFree = episode.isFree
+                
+                return (
+                  <div
+                    key={episode.id}
+                    onClick={() => handlePlay(episode)}
+                    className={`relative cursor-pointer rounded-xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${
+                      isAccessible 
+                        ? 'bg-white border border-[#D4A855]/20' 
+                        : 'bg-white/80 border border-[#D4A855]/10'
+                    }`}
+                  >
+                    {/* Miniature */}
+                    <div className="relative aspect-video bg-[#EDE4D8] flex items-center justify-center">
+                      {episode.thumbnail ? (
+                        <img src={episode.thumbnail} alt={episode.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <PlayIcon className="w-8 h-8 text-gray-400" />
+                      )}
+                      
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                        <PlayIcon className="w-10 h-10 text-white" />
+                      </div>
+                      
+                      {/* Badge épisode */}
+                      <div className="absolute top-2 left-2 bg-[#FF6B35] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        Ép. {episode.episodeNumber}
+                      </div>
+                      
+                      {/* Badge gratuit/payant */}
+                      <div className="absolute top-2 right-2">
+                        {isFree ? (
+                          <span className="bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">GRATUIT</span>
+                        ) : isAccessible ? (
+                          <span className="bg-blue-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">DÉBLOQUÉ</span>
+                        ) : (
+                          <span className="bg-amber-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <LockClosedIcon className="w-3 h-3" />
+                            {episode.price} 🪙
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Infos */}
+                    <div className="p-2">
+                      <p className="font-semibold text-xs text-gray-900 line-clamp-1">
+                        {episode.title}
+                      </p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">
+                        {formatDuration(episode.duration)}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
             
-            {/* Badge statut */}
-            <div className="absolute top-2 right-2">
-              {!isPurchased && (
-                <div className="bg-black/60 backdrop-blur-sm rounded-full p-1.5">
-                  <LockClosedIcon className="w-3 h-3 text-gray-300" />
-                </div>
-              )}
-              {isPurchased && (
-                <div className="bg-emerald-500/80 backdrop-blur-sm rounded-full p-1.5 animate-pulse">
-                  <CheckCircleIcon className="w-3 h-3 text-white" />
-                </div>
-              )}
-            </div>
-            
-            {/* Badge numéro flottant */}
-            <div className="absolute top-2 left-2 bg-orange-500/80 backdrop-blur-sm rounded-full px-2 py-0.5">
-              <span className="text-white text-[10px] font-bold">Épisodes {episode.episodeNumber}</span>
-            </div>
+            <Footer footerTabs={footerTabs} activeFooterTab={activeFooterTab} setActiveFooterTab={setActiveFooterTab} />
           </div>
-          
-          {/* Informations épisode */}
-          <div className="p-3 text-center">
-            <div className="mt-2">
-              {!isPurchased ? (
-                <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-1 rounded-full shadow-md">
-                  <span className="text-xs font-bold text-white">{episode.price}</span>
-                  <span className="text-[8px] text-white/80">coins</span>
-                </div>
-              ) : (
-                <div className="inline-flex items-center gap-1.5 bg-emerald-500/20 backdrop-blur-sm px-3 py-1 rounded-full border border-emerald-500/30">
-                  <CheckCircleIcon className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[10px] font-medium text-emerald-400">Débloqué</span>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Effet de bordure lumineuse */}
-          <div className="absolute inset-0 rounded-2xl border border-white/5 group-hover:border-orange-500/30 transition-all duration-300 pointer-events-none"></div>
-        </div>
-      )
-    })}
-  </div>
-</div>
         </div>
       ) : (
         // ============================================================
@@ -506,163 +546,74 @@ export default function SeriesPage() {
         <div className="fixed inset-0 bg-black z-50">
           <video
             ref={videoRef}
-            controls={false}
             autoPlay
             className="absolute inset-0 w-full h-full object-contain"
-            key={selectedEpisode?.videoUrl}
+            key={selectedEpisode?.url}
             playsInline
             onClick={() => setShowControls(!showControls)}
           >
-            <source src={selectedEpisode?.videoUrl} type="video/mp4" />
+            {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
           </video>
 
           {/* Boutons à droite */}
           <div className="absolute right-4 top-1/3 -translate-y-1/3 flex flex-col gap-3 z-20">
-            {/* Like */}
-            <div className="relative flex flex-col items-center">
-              <button
-                onClick={handleLike}
-                className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center"
-              >
-                {isLiked ? (
-                  <HeartSolidIcon className="w-5 h-5 text-red-500" />
-                ) : (
-                  <HeartIcon className="w-5 h-5" />
-                )}
-              </button>
-              <span className="text-white text-[10px] bg-black/50 px-1.5">
-                {likesCount}
-              </span>
-            </div>
-            
-            {/* Favoris */}
-            <div className="relative flex flex-col items-center">
-              <button
-                onClick={handleSave}
-                className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center"
-              >
-                <BookmarkIcon className={`w-5 h-5 ${isSaved ? 'fill-orange-500 text-orange-500' : ''}`} />
-              </button>
-              <span className="text-white text-[10px] bg-black/50 px-1.5">
-                {savesCount}
-              </span>
-            </div>
-            
-            {/* Partager */}
-            <button
-              onClick={handleShare}
-              className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center"
-            >
+            <button onClick={handleLike} className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center">
+              {isLiked ? <HeartSolidIcon className="w-5 h-5 text-red-500" /> : <HeartIcon className="w-5 h-5" />}
+            </button>
+            <button onClick={handleSave} className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center">
+              <BookmarkIcon className={`w-5 h-5 ${isSaved ? 'fill-[#FF6B35] text-[#FF6B35]' : ''}`} />
+            </button>
+            <button onClick={handleShare} className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center">
               <ShareIcon className="w-5 h-5" />
             </button>
-            
-            {/* Télécharger VIP */}
-            <div className="relative">
-              <button
-                onClick={handleDownload}
-                className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center relative"
-              >
-                <ArrowDownTrayIcon className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-[8px] font-bold px-1 rounded-full">VIP</span>
-              </button>
-            </div>
-            
-            {/* Liste épisodes */}
-            <button
-              onClick={() => setShowEpisodeModal(true)}
-              className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center"
-            >
+            <button onClick={() => setShowEpisodeModal(true)} className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center">
               <QueueListIcon className="w-5 h-5" />
             </button>
           </div>
 
           {/* Overlay contrôles */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 transition-opacity duration-300 ${
-            showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-          }`}>
-            
-            <button
-              onClick={() => setIsPlayerOpen(false)}
-              className="absolute top-4 left-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition z-10"
-            >
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <button onClick={() => setIsPlayerOpen(false)} className="absolute top-4 left-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition z-10">
               <ChevronLeftIcon className="w-6 h-6" />
             </button>
-
             <div className="absolute top-4 left-20 text-white">
-              <h2 className="font-semibold text-sm md:text-base">
-                {selectedEpisode?.title}
-              </h2>
+              <h2 className="font-semibold text-sm">{selectedEpisode?.title || 'Épisode'}</h2>
               <p className="text-xs text-gray-300">Épisode {selectedEpisode?.episodeNumber}</p>
             </div>
-
             <div className="absolute inset-0 flex items-center justify-center gap-6">
-              <button
-                onClick={goToPreviousEpisode}
-                disabled={!hasPreviousEpisode()}
-                className={`text-white bg-black/50 rounded-full p-3 hover:bg-black/70 transition ${
-                  !hasPreviousEpisode() ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
+              <button onClick={goToPreviousEpisode} disabled={!hasPreviousEpisode()} className={`text-white bg-black/50 rounded-full p-3 hover:bg-black/70 transition ${!hasPreviousEpisode() ? 'opacity-30 cursor-not-allowed' : ''}`}>
                 <ChevronDoubleLeftIcon className="w-6 h-6" />
               </button>
-              
-              <button
-                onClick={togglePlayPause}
-                className="text-white bg-black/50 rounded-full p-4 hover:bg-black/70 transition transform hover:scale-110"
-              >
-                {isPlaying ? (
-                  <PauseIcon className="w-10 h-10" />
-                ) : (
-                  <PlayIcon className="w-10 h-10" />
-                )}
+              <button onClick={togglePlayPause} className="text-white bg-black/50 rounded-full p-4 hover:bg-black/70 transition transform hover:scale-110">
+                {isPlaying ? <PauseIcon className="w-10 h-10" /> : <PlayIcon className="w-10 h-10" />}
               </button>
-              
-              <button
-                onClick={goToNextEpisode}
-                disabled={!hasNextEpisode()}
-                className={`text-white bg-black/50 rounded-full p-3 hover:bg-black/70 transition ${
-                  !hasNextEpisode() ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
+              <button onClick={goToNextEpisode} disabled={!hasNextEpisode()} className={`text-white bg-black/50 rounded-full p-3 hover:bg-black/70 transition ${!hasNextEpisode() ? 'opacity-30 cursor-not-allowed' : ''}`}>
                 <ChevronDoubleRightIcon className="w-6 h-6" />
               </button>
             </div>
-
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <div className="flex items-center gap-3">
                 <span className="text-white text-xs">
-                  {Math.floor((videoRef.current?.currentTime || 0) / 60)}:
-                  {Math.floor((videoRef.current?.currentTime || 0) % 60).toString().padStart(2, '0')}
+                  {Math.floor((videoRef.current?.currentTime || 0) / 60)}:{Math.floor((videoRef.current?.currentTime || 0) % 60).toString().padStart(2, '0')}
                 </span>
-                <input
-                  type="range"
-                  min="0"
-                  max={selectedEpisode?.duration || 100}
-                  value={videoRef.current?.currentTime || 0}
-                  onChange={(e) => {
-                    if (videoRef.current) {
-                      videoRef.current.currentTime = parseFloat(e.target.value)
-                    }
-                  }}
-                  className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-orange-500"
-                />
+                <input type="range" min="0" max={selectedEpisode?.duration || 100} value={videoRef.current?.currentTime || 0}
+                  onChange={(e) => { if (videoRef.current) videoRef.current.currentTime = parseFloat(e.target.value) }}
+                  className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#FF6B35]" />
                 <span className="text-white text-xs">
-                  {Math.floor((selectedEpisode?.duration || 0) / 60)}:
-                  {Math.floor((selectedEpisode?.duration || 0) % 60).toString().padStart(2, '0')}
+                  {Math.floor((selectedEpisode?.duration || 0) / 60)}:{Math.floor((selectedEpisode?.duration || 0) % 60).toString().padStart(2, '0')}
                 </span>
               </div>
             </div>
-
-            {(() => {
-              if (!selectedEpisode || !series) return null
+            {/* Prochain épisode */}
+            {selectedEpisode && series && (() => {
               const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
               const nextEpisode = series.episodes[currentIndex + 1]
-              if (nextEpisode && canWatch(nextEpisode)) {
-                return (
-                  <div className="absolute bottom-20 left-0 right-0 text-center text-gray-400 text-xs">
-                    ⏭️ Lecture automatique du prochain épisode à la fin
-                  </div>
-                )
+              if (nextEpisode) {
+                if (canWatch(nextEpisode)) {
+                  return <div className="absolute bottom-16 left-0 right-0 text-center text-gray-400 text-xs">⏭️ Lecture auto : Épisode {nextEpisode.episodeNumber}</div>
+                } else {
+                  return <div className="absolute bottom-16 left-0 right-0 text-center text-amber-400 text-xs">🔒 Épisode {nextEpisode.episodeNumber} : {nextEpisode.price} coins</div>
+                }
               }
               return null
             })()}
@@ -670,139 +621,67 @@ export default function SeriesPage() {
         </div>
       )}
 
-      {/* MODALE ÉPISODES - VERSION COMPACTE POUR LECTEUR */}
-{/* MODALE ÉPISODES - DESIGN ULTRA MODERNE */}
-{showEpisodeModal && (
-  <>
-    <div 
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 animate-fadeIn"
-      onClick={() => setShowEpisodeModal(false)}
-    />
-    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-gray-800 rounded-t-3xl z-50 animate-slideUp max-h-[85vh] overflow-hidden shadow-2xl">
-      {/* Header avec effet glass */}
-      <div className="sticky top-0 bg-gradient-to-r from-gray-800/95 to-gray-900/95 backdrop-blur-xl p-4 border-b border-white/10">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-              <QueueListIcon className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-white font-bold text-base">
-                Épisodes de {series?.title}
-              </h2>
-              <p className="text-gray-400 text-[10px]">
-                {series?.episodes.length} épisodes disponibles
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setShowEpisodeModal(false)}
-            className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all duration-300 hover:rotate-90"
-          >
-            <XMarkIcon className="w-4 h-4 text-white" />
-          </button>
-        </div>
-      </div>
-      
-      {/* Grille ultra compacte et moderne */}
-      <div className="overflow-y-auto max-h-[70vh] p-4">
-        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
-          {series?.episodes.map((ep, idx) => {
-            const isPurchased = canWatch(ep)
-            const isCurrent = selectedEpisode?.id === ep.id
-            return (
-              <div
-                key={ep.id}
-                onClick={() => {
-                  setSelectedEpisode(ep)
-                  setShowEpisodeModal(false)
-                  setTimeout(() => {
-                    if (videoRef.current) {
-                      videoRef.current.load()
-                      videoRef.current.play()
-                    }
-                  }, 100)
-                }}
-                className={`group relative cursor-pointer rounded-xl transition-all duration-300 ${
-                  isCurrent
-                    ? 'bg-gradient-to-br from-orange-500 to-orange-600 shadow-lg shadow-orange-500/30 scale-105'
-                    : isPurchased
-                    ? 'bg-gradient-to-br from-green-500/20 to-green-600/10 hover:from-green-500/30 hover:to-green-600/20'
-                    : 'bg-white/5 hover:bg-white/10'
-                } ${isCurrent ? 'ring-2 ring-orange-400' : ''}`}
-              >
-                {/* Contenu épisode */}
-                <div className="aspect-square flex flex-col items-center justify-center p-2">
-                  {/* Icône animée */}
-                  <div className={`text-2xl mb-1 transition-all duration-300 group-hover:scale-110 ${
-                    isCurrent ? 'animate-bounce' : ''
-                  }`}>
-                    {isCurrent ? '▶️' : isPurchased ? '✅' : '🔒'}
-                  </div>
-                  
-                  {/* Numéro d'épisode */}
-                  <p className={`text-sm font-bold ${
-                    isCurrent ? 'text-white' : 'text-gray-200'
-                  }`}>
-                    {ep.episodeNumber}
-                  </p>
-                  
-                  {/* Prix ou statut */}
-                  {!isPurchased && !isCurrent && (
-                    <p className="text-[9px] font-semibold text-orange-400 mt-1">
-                      {ep.price}
-                    </p>
-                  )}
-                  {isPurchased && !isCurrent && (
-                    <p className="text-[8px] text-green-400 mt-1">Débloqué</p>
-                  )}
-                  {isCurrent && (
-                    <p className="text-[8px] text-white/80 mt-1">En cours</p>
-                  )}
+      {/* MODALE ÉPISODES */}
+      {showEpisodeModal && (
+        <>
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" onClick={() => setShowEpisodeModal(false)} />
+          <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-gray-900 to-gray-800 rounded-t-3xl z-50 animate-slideUp max-h-[85vh] overflow-hidden shadow-2xl">
+            <div className="sticky top-0 bg-gradient-to-r from-gray-800/95 to-gray-900/95 backdrop-blur-xl p-4 border-b border-white/10 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <QueueListIcon className="w-4 h-4 text-white" />
                 </div>
-                
-                {/* Effet de lueur au survol */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-white/0 via-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                
-                {/* Badge "En cours" flottant */}
-                {isCurrent && (
-                  <div className="absolute -top-1 -right-1">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-75"></div>
-                      <div className="relative bg-orange-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">
-                        LIVE
+                <div>
+                  <h2 className="text-white font-bold text-base">Épisodes de {series?.title}</h2>
+                  <p className="text-gray-400 text-[10px]">{series?.episodes.length} épisodes</p>
+                </div>
+              </div>
+              <button onClick={() => setShowEpisodeModal(false)} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all">
+                <XMarkIcon className="w-4 h-4 text-white" />
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-[70vh] p-4">
+              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-2">
+                {series?.episodes.map((ep) => {
+                  const isAccessible = canWatch(ep)
+                  const isCurrent = selectedEpisode?.id === ep.id
+                  return (
+                    <div key={ep.id}
+                      onClick={() => {
+                        if (isAccessible) {
+                          setSelectedEpisode(ep)
+                          setShowEpisodeModal(false)
+                          setTimeout(() => { if (videoRef.current) { videoRef.current.load(); videoRef.current.play() } }, 100)
+                        } else {
+                          handlePurchase(ep)
+                        }
+                      }}
+                      className={`group relative cursor-pointer rounded-xl transition-all duration-300 ${
+                        isCurrent ? 'bg-gradient-to-br from-[#FF6B35] to-orange-600 shadow-lg scale-105 ring-2 ring-orange-400' :
+                        isAccessible ? 'bg-gradient-to-br from-green-500/20 to-green-600/10 hover:from-green-500/30' :
+                        'bg-white/5 hover:bg-white/10'
+                      }`}>
+                      <div className="aspect-square flex flex-col items-center justify-center p-2">
+                        <div className={`text-2xl mb-1 transition-all ${isCurrent ? 'animate-bounce' : ''}`}>
+                          {isCurrent ? '▶️' : isAccessible ? (ep.isFree ? '🆓' : '✅') : '🔒'}
+                        </div>
+                        <p className={`text-sm font-bold ${isCurrent ? 'text-white' : 'text-gray-200'}`}>{ep.episodeNumber}</p>
+                        {!isAccessible && <p className="text-[9px] font-semibold text-orange-400 mt-1">{ep.price} 🪙</p>}
+                        {isAccessible && !isCurrent && <p className="text-[8px] text-green-400 mt-1">{ep.isFree ? 'Gratuit' : 'Débloqué'}</p>}
+                        {isCurrent && <p className="text-[8px] text-white/80 mt-1">En cours</p>}
                       </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })}
               </div>
-            )
-          })}
-        </div>
-      </div>
-      
-      {/* Pied de page avec info */}
-      <div className="p-3 border-t border-white/10 bg-gray-900/50">
-        <p className="text-gray-400 text-[10px] text-center">
-          Cliquez sur un épisode pour le regarder
-        </p>
-      </div>
-    </div>
-  </>
-)}
+            </div>
+          </div>
+        </>
+      )}
 
       <style jsx global>{`
-        @keyframes slideUp {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-        .animate-slideUp {
-          animation: slideUp 0.3s ease-out;
-        }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
       `}</style>
     </>
   )

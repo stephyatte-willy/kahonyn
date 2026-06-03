@@ -5,13 +5,7 @@ import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
-
-  if (!session) {
-    return res.status(401).json({ error: 'Non authentifié' })
-  }
-
-  const userRole = (session.user as any)?.role
-  if (userRole !== 'admin') {
+  if (!session || (session.user as any)?.role !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -20,23 +14,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { videoId, price } = req.body
+    const { videoId, price, category, categories } = req.body
 
     if (!videoId) {
       return res.status(400).json({ error: 'ID vidéo requis' })
     }
 
-    const video = await (prisma as any).video.update({
+    // Gérer les catégories multiples (séparées par des virgules)
+    const categoryString = Array.isArray(categories) 
+      ? categories.join(',') 
+      : category || 'popular'
+
+    await (prisma as any).video.update({
       where: { id: videoId },
       data: {
         status: 'approved',
         price: parseInt(price) || 100,
+        category: categoryString,
+        tags: categoryString, // Stocker aussi dans tags pour la recherche
       }
     })
 
-    return res.status(200).json({ success: true, video })
+    return res.status(200).json({ success: true })
   } catch (error) {
-    console.error('Erreur approve-video:', error)
+    console.error('Erreur approve:', error)
     return res.status(500).json({ error: 'Erreur serveur' })
   }
 }

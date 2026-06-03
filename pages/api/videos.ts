@@ -7,32 +7,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ============================================================
   // GET - Récupérer les vidéos pour les utilisateurs
   // ============================================================
-  if (req.method === 'GET') {
-    try {
-      const videos = await (prisma as any).video.findMany({
-        where: {
-          status: 'approved',
-          seriesId: null // Films simples uniquement (pas d'épisodes de série)
-        },
-        orderBy: { createdAt: 'desc' },
-        include: {
-          creator: {
-            select: {
-              id: true,
-              name: true,
-              phone: true,
-              avatar: true
-            }
-          }
+  // pages/api/videos.ts - Dans la partie GET
+if (req.method === 'GET') {
+  try {
+    const videos = await (prisma as any).video.findMany({
+      where: {
+        status: 'approved', // ← Seulement 'approved', pas 'archived'
+        seriesId: null
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        creator: {
+          select: { id: true, name: true, phone: true, avatar: true }
         }
-      })
+      }
+    })
 
-      return res.status(200).json(videos)
-    } catch (error) {
-      console.error('Erreur GET videos:', error)
-      return res.status(500).json({ error: 'Erreur lors de la récupération des vidéos' })
-    }
+    return res.status(200).json(videos)
+  } catch (error) {
+    console.error('Erreur GET videos:', error)
+    return res.status(500).json({ error: 'Erreur lors de la récupération des vidéos' })
   }
+}
 
   // ============================================================
   // POST - Créer une vidéo (upload par le créateur)

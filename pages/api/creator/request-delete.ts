@@ -10,7 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  if (session.user?.role !== 'creator' && session.user?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'creator' && userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -20,28 +21,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { videoId } = req.body
+    const userId = (session.user as any).id
 
     if (!videoId) {
       return res.status(400).json({ error: 'ID vidéo requis' })
     }
 
-    const video = await prisma.videos.findFirst({
+    // CORRECTION : prisma.video (singulier)
+    const video = await (prisma as any).video.findFirst({
       where: {
         id: videoId,
-        creatorId: session.user.id
+        creatorId: userId
       }
     })
 
     if (!video) {
-      return res.status(404).json({ error: 'Vidéo non trouvée' })
+      return res.status(404).json({ error: 'Vidéo non trouvée ou non autorisée' })
     }
 
-    const updatedVideo = await prisma.videos.update({
+    // CORRECTION : prisma.video (singulier)
+    const updatedVideo = await (prisma as any).video.update({
       where: { id: videoId },
       data: {
         status: 'deletion_requested',
         deletionRequested: true,
-        deletionRequestedAt: new Date(),
+        willDisappearAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24h
         updatedAt: new Date()
       }
     })

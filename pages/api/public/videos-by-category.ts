@@ -1,4 +1,3 @@
-// pages/api/public/videos-by-category.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 
@@ -8,62 +7,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const { category } = req.query
+  const categoryFilter = (category as string) || 'popular'
 
   try {
-    const categoryFilter = category as string
+    // Récupérer les IDs des masters archivés à exclure
+    let archivedMasterIds: string[] = []
+    try {
+      const archivedMasters = await (prisma as any).video.findMany({
+        where: { status: 'archived', seriesId: { not: null } },
+        select: { id: true }
+      })
+      archivedMasterIds = archivedMasters.map((v: any) => v.id)
+    } catch (err) {
+      archivedMasterIds = []
+    }
 
-    // 1. Récupérer les SÉRIES
-    const seriesList = await (prisma as any).series.findMany({
-      where: {
-        status: { in: ['approved', 'published'] },
-        ...(categoryFilter && 
-            categoryFilter !== 'all' && 
-            categoryFilter !== 'ranking' && 
-            categoryFilter !== 'unpublished' 
-            ? { category: categoryFilter } 
-            : {})
-      },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true
-          }
+    // Construire le filtre de catégorie (contient la catégorie sélectionnée)
+    const categoryWhere = categoryFilter && categoryFilter !== 'all' && categoryFilter !== 'ranking' && categoryFilter !== 'unpublished'
+      ? { category: { contains: categoryFilter } }  // ← CONTAINS au lieu de equals
+      : {}
+
+    // 1. Récupérer les SÉRIES depuis la table Series
+    let seriesList: any[] = []
+    try {
+      seriesList = await (prisma as any).series.findMany({
+        where: {
+          status: { in: ['approved', 'published'] },
+          ...categoryWhere,
         },
-        episodes: {
-          where: {
-            status: { in: ['approved', 'published'] }
-          },
-          orderBy: { createdAt: 'asc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+          creator: { select: { id: true, name: true, phone: true, email: true } },
+          episodes: {
+            where: { status: { in: ['approved', 'published'] } },
+            orderBy: { createdAt: 'asc' }
+          }
         }
-      }
-    })
+      })
+    } catch (err) {
+      console.error('Table Series inaccessible:', err)
+      seriesList = []
+    }
 
     // 2. Récupérer les FILMS SIMPLES
     const movies = await (prisma as any).video.findMany({
       where: {
         status: 'approved',
         seriesId: null,
-        ...(categoryFilter && 
-            categoryFilter !== 'all' && 
-            categoryFilter !== 'ranking' && 
-            categoryFilter !== 'unpublished' 
-            ? { category: categoryFilter } 
-            : {})
+        id: archivedMasterIds.length > 0 ? { notIn: archivedMasterIds } : undefined,
+        ...categoryWhere,
       },
       orderBy: { createdAt: 'desc' },
       include: {
-        creator: {
-          select: {
-            id: true,
-            name: true,
-            phone: true,
-            email: true
-          }
-        }
+        creator: { select: { id: true, name: true, phone: true, email: true } }
       }
     })
 
@@ -96,20 +92,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       type: 'movie' as const
     }))
 
-    // 5. Trier par vues pour "ranking"
+    // 5. Tris spéciaux
     if (categoryFilter === 'ranking') {
       formattedSeries.sort((a: any, b: any) => b.totalViews - a.totalViews)
       formattedMovies.sort((a: any, b: any) => b.totalViews - a.totalViews)
     }
-
-    // 6. Trier par date pour "unpublished" (plus récent d'abord)
     if (categoryFilter === 'unpublished') {
-      formattedSeries.sort(
-        (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-      formattedMovies.sort(
-        (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
+      formattedSeries.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      formattedMovies.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     }
 
     return res.status(200).json({
@@ -118,9 +108,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   } catch (error) {
     console.error('Erreur videos-by-category:', error)
-    return res.status(200).json({
-      series: [],
-      movies: []
-    })
+    return res.status(200).json({ series: [], movies: [] })
   }
 }

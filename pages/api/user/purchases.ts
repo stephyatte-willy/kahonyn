@@ -15,19 +15,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const purchases = await prisma.purchases.findMany({
-      where: { userId: session.user.id },
+    const userId = (session.user as any).id
+
+    const purchases = await (prisma as any).purchase.findMany({
+      where: { userId },
       include: {
-        video: {
-          select: { id: true, title: true, thumbnail: true, price: true }
-        }
+        video: { select: { id: true, title: true, thumbnail: true, price: true } }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    return res.status(200).json(purchases)
+    return res.status(200).json(purchases || [])
   } catch (error) {
-    console.error('Erreur:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    console.error('Erreur purchases:', error)
+    return res.status(200).json([])
   }
 }

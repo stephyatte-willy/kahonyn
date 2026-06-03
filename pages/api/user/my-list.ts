@@ -1,4 +1,3 @@
-// pages/api/user/my-list.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]'
@@ -18,99 +17,157 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const userId = (session.user as any).id
 
-    // 1. Récupérer les likes
+    // 1. Récupérer les LIKES (seriesId = null)
     const likes = await (prisma as any).like.findMany({
-      where: { userId },
+      where: { 
+        userId,
+        seriesId: null // ← Uniquement les likes
+      },
       include: {
         video: {
           include: {
-            creator: { select: { name: true, phone: true } }
-          }
-        },
-        series: {
-          include: {
-            creator: { select: { name: true, phone: true } }
-          }
-        }
-      }
-    })
-
-    // 2. Récupérer les achats
-    const purchases = await (prisma as any).purchase.findMany({
-      where: { userId, status: 'completed' },
-      include: {
-        video: {
-          include: {
-            creator: { select: { name: true, phone: true } }
-          }
-        },
-        series: {
-          include: {
-            creator: { select: { name: true, phone: true } }
+            creator: { select: { name: true, phone: true } },
+            series: { select: { id: true, title: true, coverImage: true } }
           }
         }
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    // Formater les likes
-    const likedItems = likes
-      .filter((l: any) => l.video || l.series)
-      .map((like: any) => {
-        const item = like.video || like.series
-        return {
-          id: item.id,
-          title: item.title,
-          description: item.description || '',
-          coverImage: like.video ? item.thumbnail : item.coverImage,
-          price: item.price || 0,
-          duration: item.duration || 0,
-          views: item.views || item.totalViews || 0,
-          creator: item.creator || { name: 'Inconnu', phone: '' },
-          type: like.video ? (like.video.seriesId ? 'series' : 'movie') : 'series',
-          addedAt: like.createdAt,
-          addedVia: 'like'
-        }
-      })
+    // 2. Récupérer les SAVES (seriesId != null)
+const saves = await (prisma as any).like.findMany({
+  where: { 
+    userId,
+    seriesId: { not: null } // ← Tous les saves ont un seriesId non null
+  },
+  include: {
+    video: {
+      include: {
+        creator: { select: { name: true, phone: true } },
+        series: { select: { id: true, title: true, coverImage: true } }
+      }
+    }
+  },
+  orderBy: { createdAt: 'desc' }
+})
 
-    // Formater les achats
-    const purchasedItems = purchases
-      .filter((p: any) => p.video || p.series)
-      .map((purchase: any) => {
-        const item = purchase.video || purchase.series
-        return {
-          id: item.id,
-          title: item.title,
-          description: item.description || '',
-          coverImage: purchase.video ? item.thumbnail : item.coverImage,
-          price: item.price || 0,
-          duration: item.duration || 0,
-          views: item.views || item.totalViews || 0,
-          creator: item.creator || { name: 'Inconnu', phone: '' },
-          type: purchase.video ? (purchase.video.seriesId ? 'series' : 'movie') : 'series',
-          addedAt: purchase.createdAt,
-          addedVia: 'purchase'
+    // 3. Récupérer les achats
+    const purchases = await (prisma as any).purchase.findMany({
+      where: { userId, status: 'completed' },
+      include: {
+        video: {
+          include: {
+            creator: { select: { name: true, phone: true } },
+            series: { select: { id: true, title: true, coverImage: true } }
+          }
         }
-      })
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
+    // Formater les LIKES
+    const processedLikeSeriesIds = new Set<string>()
+    const likedItems: any[] = []
+
+    for (const like of likes) {
+      if (!like.video) continue
+
+      if (like.video.seriesId && !processedLikeSeriesIds.has(like.video.seriesId)) {
+        processedLikeSeriesIds.add(like.video.seriesId)
+        likedItems.push({
+          id: like.video.seriesId,
+          title: like.video.series?.title || like.video.title,
+          description: '',
+          coverImage: like.video.series?.coverImage || like.video.thumbnail,
+          price: 0, duration: 0, views: 0,
+          creator: like.video.creator || { name: 'Inconnu', phone: '' },
+          type: 'series',
+          addedAt: like.createdAt,
+          addedVia: 'like' as const
+        })
+      } else if (!like.video.seriesId) {
+        likedItems.push({
+          id: like.video.id,
+          title: like.video.title,
+          description: like.video.description || '',
+          coverImage: like.video.thumbnail,
+          price: like.video.price || 0,
+          duration: like.video.duration || 0,
+          views: like.video.views || 0,
+          creator: like.video.creator || { name: 'Inconnu', phone: '' },
+          type: 'movie',
+          addedAt: like.createdAt,
+          addedVia: 'like' as const
+        })
+      }
+    }
+
+    // Formater les SAVES
+    const processedSaveSeriesIds = new Set<string>()
+    const savedItems: any[] = []
+
+    for (const save of saves) {
+      if (!save.video) continue
+
+      if (save.video.seriesId && !processedSaveSeriesIds.has(save.video.seriesId)) {
+        processedSaveSeriesIds.add(save.video.seriesId)
+        savedItems.push({
+          id: save.video.seriesId,
+          title: save.video.series?.title || save.video.title,
+          description: '',
+          coverImage: save.video.series?.coverImage || save.video.thumbnail,
+          price: 0, duration: 0, views: 0,
+          creator: save.video.creator || { name: 'Inconnu', phone: '' },
+          type: 'series',
+          addedAt: save.createdAt,
+          addedVia: 'save' as const
+        })
+      } else if (!save.video.seriesId) {
+        savedItems.push({
+          id: save.video.id,
+          title: save.video.title,
+          description: save.video.description || '',
+          coverImage: save.video.thumbnail,
+          price: save.video.price || 0,
+          duration: save.video.duration || 0,
+          views: save.video.views || 0,
+          creator: save.video.creator || { name: 'Inconnu', phone: '' },
+          type: 'movie',
+          addedAt: save.createdAt,
+          addedVia: 'save' as const
+        })
+      }
+    }
+
+    // Formater les ACHATS
+    const purchasedItems = purchases
+      .filter((p: any) => p.video)
+      .map((purchase: any) => ({
+        id: purchase.video.seriesId || purchase.video.id,
+        title: purchase.video.series?.title || purchase.video.title,
+        description: purchase.video.description || '',
+        coverImage: purchase.video.series?.coverImage || purchase.video.thumbnail,
+        price: purchase.amount || 0,
+        duration: purchase.video.duration || 0,
+        views: purchase.video.views || 0,
+        creator: purchase.video.creator || { name: 'Inconnu', phone: '' },
+        type: purchase.video.seriesId ? 'series' : 'movie',
+        addedAt: purchase.createdAt,
+        addedVia: 'purchase' as const
+      }))
 
     // Fusionner
-    const allItems = [...likedItems, ...purchasedItems]
-    
-    // Dédoublonner par ID
+    const allItems = [...likedItems, ...savedItems, ...purchasedItems]
     const uniqueItems = Array.from(
-      new Map(allItems.map(item => [item.id, item])).values()
+      new Map(allItems.map(item => [`${item.id}-${item.type}-${item.addedVia}`, item])).values()
     )
-    
-    // Trier par date (plus récent en premier)
-    uniqueItems.sort(
-      (a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
-    )
+    uniqueItems.sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime())
 
     return res.status(200).json({
       items: uniqueItems,
       stats: {
         likes: likedItems.length,
-        saves: 0,
+        saves: savedItems.length,
         purchases: purchasedItems.length,
         total: uniqueItems.length
       }

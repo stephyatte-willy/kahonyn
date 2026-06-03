@@ -16,45 +16,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { episodeId } = req.body
+    if (!episodeId) return res.status(400).json({ error: 'ID épisode requis' })
 
-    if (!episodeId) {
-      return res.status(400).json({ error: 'ID épisode requis' })
+    const userId = (session.user as any).id
+
+    // Trouver la vidéo
+    const video = await (prisma as any).video.findUnique({
+      where: { id: episodeId },
+      select: { id: true, seriesId: true }
+    })
+
+    if (!video) {
+      return res.status(404).json({ error: 'Vidéo non trouvée' })
     }
 
-    const existingSave = await prisma.userSaves.findUnique({
-      where: {
-        userId_episodeId: {
-          userId: session.user.id,
-          episodeId: episodeId
-        }
+    let targetIds: string[] = [episodeId]
+    let saveMarker: string = episodeId // Par défaut, marqueur = ID de la vidéo
+
+    if (video.seriesId) {
+      // C'est une série : sauvegarder tous les épisodes
+      saveMarker = video.seriesId
+      const episodes = await (prisma as any).video.findMany({
+        where: { seriesId: video.seriesId },
+        select: { id: true }
+      })
+      targetIds = episodes.map((ep: any) => ep.id)
+    }
+
+    // Vérifier si déjà sauvegardé
+    const existingSave = await (prisma as any).like.findFirst({
+      where: { 
+        userId, 
+        videoId: { in: targetIds },
+        seriesId: saveMarker
       }
     })
 
     if (existingSave) {
-      await prisma.userSaves.delete({
-        where: {
-          userId_episodeId: {
-            userId: session.user.id,
-            episodeId: episodeId
-          }
-        }
+      // Supprimer les saves
+      await (prisma as any).like.deleteMany({
+        where: { userId, videoId: { in: targetIds }, seriesId: saveMarker }
       })
     } else {
-      await prisma.userSaves.create({
-        data: {
-          userId: session.user.id,
-          episodeId: episodeId
+      // Créer les saves
+      for (const id of targetIds) {
+        try {
+          await (prisma as any).like.create({
+            data: { userId, videoId: id, seriesId: saveMarker }
+          })
+        } catch (e) {
+          // Ignorer les doublons (contrainte unique)
         }
-      })
+      }
     }
-
-    const savesCount = await prisma.userSaves.count({
-      where: { episodeId }
-    })
 
     return res.status(200).json({
       saved: !existingSave,
-      savesCount
+      success: true
     })
   } catch (error) {
     console.error('Erreur save:', error)

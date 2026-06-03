@@ -1,23 +1,28 @@
 "use client"
 
 import { useState } from 'react'
-import { XMarkIcon, TrophyIcon, CheckCircleIcon, ExclamationTriangleIcon, SparklesIcon, GiftIcon, StarIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, TrophyIcon, CheckCircleIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
-interface SubscriptionPlan {
+// ✅ Interface compatible avec les données de la BDD
+interface SubscriptionPlanModal {
   id: string
   name: string
   price: number
-  days: number
+  duration: number      // ✅ Changé de "days" à "duration"
   coinsBonus: number
-  popular?: boolean
-  bestValue?: boolean
+  dailyCoins?: number
+  benefits?: string[]
+  isPopular?: boolean
+  badge?: string | null
+  color?: string | null
+  description?: string
 }
 
 interface SubscriptionPaymentModalProps {
   isOpen: boolean
   onClose: () => void
-  plan: SubscriptionPlan
+  plan: SubscriptionPlanModal  // ✅ Accepte maintenant le bon type
   onSuccess: () => void
 }
 
@@ -25,7 +30,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  if (!isOpen) return null
+  if (!isOpen || !plan) return null
 
   const handleSubscribe = async () => {
     setLoading(true)
@@ -52,17 +57,13 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
     }
   }
 
-  // Calcul des économies
-  const monthlyPrice = 5000
-  const savings = plan.id === 'quarterly' ? Math.round((monthlyPrice * 3 - plan.price) / monthlyPrice * 100) : plan.id === 'yearly' ? Math.round((monthlyPrice * 12 - plan.price) / monthlyPrice * 100) : 0
-
   return (
     <>
       <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 animate-fadeIn" onClick={onClose} />
       
       <div className="fixed bottom-0 left-0 right-0 md:inset-0 md:flex md:items-center md:justify-center z-50 animate-slideUp md:animate-fadeIn">
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-t-3xl md:rounded-3xl shadow-2xl max-w-md w-full mx-auto overflow-hidden border border-gray-700">
-          {/* Header avec effet glass */}
+          {/* Header */}
           <div className="relative bg-gradient-to-r from-amber-600 to-orange-600 p-5">
             <div className="absolute inset-0 bg-black/20"></div>
             <div className="relative flex justify-between items-center">
@@ -83,54 +84,45 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
 
           {/* Contenu */}
           <div className="p-6">
-            {/* Récapitulatif de l'offre */}
+            {/* Récapitulatif */}
             <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 mb-6 border border-gray-700">
               <div className="text-center">
-                <p className="text-sm text-gray-400">Offre {plan.name}</p>
-                <p className="text-3xl font-bold text-amber-500">{plan.price.toLocaleString()} FCFA</p>
-                {savings > 0 && (
-                  <p className="text-xs text-green-400 mt-1">Économisez {savings}%</p>
-                )}
+                <p className="text-sm text-gray-400">{plan.description || `Offre ${plan.name}`}</p>
+                <p className="text-3xl font-bold text-amber-500">
+                  {plan.price > 0 ? `${plan.price.toLocaleString()} FCFA` : 'Gratuit'}
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-gray-700">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{plan.days}</p>
+                  <p className="text-2xl font-bold text-white">{plan.duration || 30}</p>
                   <p className="text-[10px] text-gray-400">jours d'accès</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-white">+{plan.coinsBonus}</p>
+                  <p className="text-2xl font-bold text-white">+{plan.coinsBonus || 0}</p>
                   <p className="text-[10px] text-gray-400">coins offerts</p>
                 </div>
               </div>
             </div>
 
-            {/* Avantages inclus */}
-            <div className="space-y-2 mb-6">
-              <p className="text-sm font-semibold text-white flex items-center gap-2">
-                <SparklesIcon className="w-4 h-4 text-amber-500" />
-                Avantages inclus
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2 text-xs text-gray-300">
-                  <CheckCircleIcon className="w-3 h-3 text-green-500" />
-                  Accès illimité
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-300">
-                  <CheckCircleIcon className="w-3 h-3 text-green-500" />
-                  Sans publicité
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-300">
-                  <CheckCircleIcon className="w-3 h-3 text-green-500" />
-                  Badge exclusif
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-300">
-                  <CheckCircleIcon className="w-3 h-3 text-green-500" />
-                  Accès anticipé
+            {/* Avantages */}
+            {plan.benefits && plan.benefits.length > 0 && (
+              <div className="space-y-2 mb-6">
+                <p className="text-sm font-semibold text-white flex items-center gap-2">
+                  <SparklesIcon className="w-4 h-4 text-amber-500" />
+                  Avantages inclus
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {plan.benefits.map((benefit: string, i: number) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-gray-300">
+                      <CheckCircleIcon className="w-3 h-3 text-green-500 flex-shrink-0" />
+                      {benefit}
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Informations Wave */}
+            {/* Wave */}
             <div className="bg-blue-500/10 rounded-xl p-4 mb-6 border border-blue-500/20">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -141,9 +133,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
                   <p className="text-[10px] text-gray-400">Paiement sécurisé</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-400">
-                🔄 Mode test : Paiement simulé pour le moment.
-              </p>
+              <p className="text-xs text-gray-400">🔄 Mode test : Paiement simulé.</p>
             </div>
 
             {/* Erreur */}
@@ -154,7 +144,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
               </div>
             )}
 
-            {/* Bouton de paiement */}
+            {/* Bouton */}
             <button
               onClick={handleSubscribe}
               disabled={loading}
@@ -165,8 +155,10 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                   Traitement...
                 </div>
-              ) : (
+              ) : plan.price > 0 ? (
                 `Souscrire pour ${plan.price.toLocaleString()} FCFA`
+              ) : (
+                'Commencer gratuitement'
               )}
             </button>
 

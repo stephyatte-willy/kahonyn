@@ -16,49 +16,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'ID épisode requis' })
     }
 
-    // Compter les likes
-    const likesCount = await prisma.userLikes.count({
-      where: { episodeId }
-    })
-
-    // Compter les saves
-    const savesCount = await prisma.userSaves.count({
-      where: { episodeId }
-    })
-
     let userLiked = false
     let userSaved = false
 
     if (session) {
-      const like = await prisma.userLikes.findUnique({
-        where: {
-          userId_episodeId: {
-            userId: session.user.id,
-            episodeId: episodeId
-          }
-        }
+      const userId = (session.user as any).id
+      
+      const video = await (prisma as any).video.findUnique({
+        where: { id: episodeId },
+        select: { id: true, seriesId: true }
+      })
+
+      let targetIds: string[] = [episodeId]
+      let saveMarker: string | null = episodeId // Pour les films, le marqueur est l'ID
+
+      if (video?.seriesId) {
+        // Série
+        saveMarker = video.seriesId
+        const episodes = await (prisma as any).video.findMany({
+          where: { seriesId: video.seriesId },
+          select: { id: true }
+        })
+        targetIds = episodes.map((ep: any) => ep.id)
+      }
+
+      // Vérifier LIKE (seriesId = null)
+      const like = await (prisma as any).like.findFirst({
+        where: { 
+          userId, 
+          videoId: { in: targetIds },
+          seriesId: null
+        },
+        select: { id: true }
       })
       userLiked = !!like
 
-      const save = await prisma.userSaves.findUnique({
-        where: {
-          userId_episodeId: {
-            userId: session.user.id,
-            episodeId: episodeId
-          }
-        }
+      // Vérifier SAVE (seriesId = saveMarker, non null)
+      const save = await (prisma as any).like.findFirst({
+        where: { 
+          userId, 
+          videoId: { in: targetIds },
+          seriesId: saveMarker
+        },
+        select: { id: true }
       })
       userSaved = !!save
     }
 
-    return res.status(200).json({
-      likesCount,
-      savesCount,
-      userLiked,
-      userSaved
-    })
+    return res.status(200).json({ userLiked, userSaved })
   } catch (error) {
     console.error('Erreur counters:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    return res.status(200).json({ userLiked: false, userSaved: false })
   }
 }

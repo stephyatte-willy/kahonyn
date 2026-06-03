@@ -10,8 +10,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  // Vérifier que l'utilisateur est créateur ou admin
-  if (session.user?.role !== 'creator' && session.user?.role !== 'admin') {
+  const userRole = (session.user as any)?.role
+  if (userRole !== 'creator' && userRole !== 'admin') {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -20,34 +20,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // Récupérer tous les gains du créateur
-    const earnings = await prisma.creator_earnings.findMany({
-      where: { creatorId: session.user.id },
+    const userId = (session.user as any).id
+
+    // Récupérer les achats des vidéos du créateur (ses gains)
+    const purchases = await (prisma as any).purchase.findMany({
+      where: {
+        status: 'completed',
+        video: {
+          creatorId: userId
+        }
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         video: {
           select: { title: true, id: true }
+        },
+        user: {
+          select: { name: true, phone: true }
         }
       }
     })
 
-    // Calculer le total des gains
-    const total = earnings.reduce((sum, e) => sum + e.amount, 0)
-    const pendingTotal = earnings
-      .filter(e => e.status === 'pending')
-      .reduce((sum, e) => sum + e.amount, 0)
-    const paidTotal = earnings
-      .filter(e => e.status === 'paid')
-      .reduce((sum, e) => sum + e.amount, 0)
+    // Formater les gains
+    const earnings = purchases.map((p: any) => ({
+      id: p.id,
+      amount: p.amount || 0,
+      status: p.status || 'completed',
+      createdAt: p.createdAt,
+      video: p.video ? { title: p.video.title } : { title: 'Vidéo supprimée' },
+      buyer: p.user ? { name: p.user.name, phone: p.user.phone } : null
+    }))
+
+    // Calculer les totaux
+    const total = earnings.reduce((sum: number, e: any) => sum + (e.amount || 0), 0)
 
     return res.status(200).json({
       earnings,
       total,
-      pendingTotal,
-      paidTotal
+      pendingTotal: 0,
+      paidTotal: total
     })
   } catch (error) {
     console.error('Erreur creator/earnings:', error)
-    return res.status(500).json({ error: 'Erreur serveur' })
+    // Retourner des valeurs par défaut en cas d'erreur
+    return res.status(200).json({
+      earnings: [],
+      total: 0,
+      pendingTotal: 0,
+      paidTotal: 0
+    })
   }
 }

@@ -41,9 +41,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ]
     })
 
-    // Mettre à jour l'utilisateur avec le nouvel avatar
-    const updatedUser = await prisma.users.update({
-      where: { id: session.user.id },
+    // Nettoyer le fichier temporaire
+    try {
+      fs.unlinkSync(file.filepath)
+    } catch (err) {
+      console.warn('Impossible de supprimer le fichier temporaire:', err)
+    }
+
+    // CORRECTION : prisma.user (singulier) au lieu de prisma.users
+    const userId = (session.user as any).id
+    const updatedUser = await (prisma as any).user.update({
+      where: { id: userId },
       data: { avatar: result.secure_url }
     })
 

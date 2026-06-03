@@ -1,4 +1,3 @@
-// components/Footer.tsx - CORRIGÉ
 "use client"
 
 import { useSession } from 'next-auth/react'
@@ -28,18 +27,9 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
 
   // Filtrer les onglets selon le rôle et l'authentification
   const filteredTabs = footerTabs.filter((tab: FooterTab) => {
-    // Si l'onglet nécessite d'être connecté
-    if (tab.requiresAuth && status !== 'authenticated') {
-      return false
-    }
-    // Si l'onglet est réservé aux admins
-    if (tab.adminOnly && userRole !== 'admin') {
-      return false
-    }
-    // Si l'onglet est réservé aux créateurs
-    if (tab.creatorOnly && userRole !== 'creator' && userRole !== 'admin') {
-      return false
-    }
+    if (tab.requiresAuth && status !== 'authenticated') return false
+    if (tab.adminOnly && userRole !== 'admin') return false
+    if (tab.creatorOnly && userRole !== 'creator' && userRole !== 'admin') return false
     return true
   })
 
@@ -47,7 +37,7 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
     <footer className="fixed bottom-0 left-0 right-0 z-30">
       <div className="bg-gradient-to-r from-[#0D0D1A]/95 via-[#1A1A35]/95 to-[#0D0D1A]/95 backdrop-blur-2xl border-t border-white/[0.06] shadow-lg shadow-black/20">
         <div className="max-w-lg mx-auto">
-          <div className={`flex ${isCreator ? 'justify-start overflow-x-auto scrollbar-hide' : 'justify-around'} items-center py-1.5 px-1 gap-0.5`}>
+          <div className={`flex ${isCreator ? 'justify-start overflow-x-auto scrollbar-hide' : 'justify-around'} items-center py-1.5 px-1 gap-0`}>
             {filteredTabs.map((tab: FooterTab) => {
               const Icon = tab.icon
               const isActive = activeFooterTab === tab.id
@@ -62,25 +52,22 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
                     }
                     setActiveFooterTab(tab.id)
                   }}
-                  className={`relative flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all duration-200 flex-shrink-0 min-w-[48px] ${
+                  className={`relative flex flex-col items-center gap-0 px-1.5 py-0.5 rounded-lg transition-all duration-200 flex-shrink-0 ${
                     isActive 
-                      ? 'text-[#FF6B35] bg-[#FF6B35]/10' 
-                      : 'text-white/60 hover:text-white/90 hover:bg-white/[0.04]'
+                      ? 'text-[#FF6B35]' 
+                      : 'text-white/60 hover:text-white/90'
                   }`}
                 >
-                  <div className={`p-1 rounded-lg transition-all duration-200 ${
-                    isActive ? 'bg-[#FF6B35]/15' : ''
+                  <div className={`rounded-md transition-all duration-200 ${
+                    isActive ? 'bg-[#FF6B35]/10' : ''
                   }`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Icon className={`${isActive ? 'w-[18px] h-[18px]' : 'w-[16px] h-[16px]'} sm:w-[18px] sm:h-[18px]`} />
                   </div>
-                  <span className={`text-[9px] sm:text-[10px] font-bold tracking-wide ${
+                  <span className={`text-[8px] sm:text-[9px] font-bold tracking-wide leading-none ${
                     isActive ? 'text-[#FF6B35]' : 'text-white/70'
                   }`}>
                     {tab.label}
                   </span>
-                  {isActive && (
-                    <div className="absolute -bottom-[6px] left-1/2 -translate-x-1/2 w-1 h-1 bg-[#FF6B35] rounded-full shadow-lg shadow-[#FF6B35]/30"></div>
-                  )}
                 </Link>
               )
             })}

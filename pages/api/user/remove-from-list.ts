@@ -15,32 +15,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { episodeId, type } = req.body
+    const { episodeId, type, itemId } = req.body
+    const targetId = itemId || episodeId
 
-    if (!episodeId || !type) {
+    if (!targetId || !type) {
       return res.status(400).json({ error: 'Paramètres manquants' })
     }
 
+    const userId = (session.user as any).id
+
+    // Trouver tous les IDs liés
+    let targetIds: string[] = [targetId]
+    
+    // 1. Essayer de trouver comme vidéo
+    const video = await (prisma as any).video.findUnique({
+      where: { id: targetId },
+      select: { id: true, seriesId: true }
+    })
+
+    if (video?.seriesId) {
+      // C'est un épisode : récupérer tous les épisodes de la série
+      const episodes = await (prisma as any).video.findMany({
+        where: { seriesId: video.seriesId },
+        select: { id: true }
+      })
+      targetIds = episodes.map((ep: any) => ep.id)
+    } else if (!video) {
+      // 2. Ce n'est pas une vidéo, c'est peut-être une série directement
+      const series = await (prisma as any).series.findUnique({
+        where: { id: targetId },
+        select: { id: true }
+      })
+
+      if (series) {
+        // C'est une série : récupérer tous ses épisodes
+        const episodes = await (prisma as any).video.findMany({
+          where: { seriesId: targetId },
+          select: { id: true }
+        })
+        targetIds = episodes.map((ep: any) => ep.id)
+      }
+    }
+
+    if (targetIds.length === 0) {
+      return res.status(400).json({ error: 'Aucun contenu trouvé' })
+    }
+
+    // Supprimer selon le type
     if (type === 'like') {
-      await prisma.userLikes.delete({
-        where: {
-          userId_episodeId: {
-            userId: session.user.id,
-            episodeId: episodeId
-          }
+      await (prisma as any).like.deleteMany({
+        where: { 
+          userId, 
+          videoId: { in: targetIds },
+          seriesId: null // Likes
         }
       })
     } else if (type === 'save') {
-      await prisma.userSaves.delete({
-        where: {
-          userId_episodeId: {
-            userId: session.user.id,
-            episodeId: episodeId
-          }
+      await (prisma as any).like.deleteMany({
+        where: { 
+          userId, 
+          videoId: { in: targetIds },
+          seriesId: { not: null } // Saves
         }
       })
-    } else {
-      return res.status(400).json({ error: 'Type non supporté' })
     }
 
     return res.status(200).json({ success: true })

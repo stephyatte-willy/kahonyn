@@ -12,31 +12,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const session = await getServerSession(req, res, authOptions)
 
+    // Si pas connecté, retourner les tendances
     if (!session) {
-      // Utilisateur non connecté : retourner les tendances
       const trending = await getTrendingContent()
       return res.status(200).json(trending)
     }
 
+    const userId = (session.user as any).id
+
     // 1. Récupérer l'historique des achats de l'utilisateur
     const purchases = await (prisma as any).purchase.findMany({
-      where: { userId: (session.user as any).id },
+      where: { userId },
       include: { 
-        video: { 
-          select: { 
-            category: true,
-            seriesId: true
-          } 
-        } 
+        video: { select: { category: true, seriesId: true } },
+        series: { select: { category: true } }
       }
     })
 
     // 2. Analyser les catégories préférées
     const categoryCount: Record<string, number> = {}
     for (const p of purchases) {
-      if (p.video?.category) {
-        const cat = p.video.category
-        categoryCount[cat] = (categoryCount[cat] || 0) + 1
+      const catString = p.video?.category || p.series?.category
+      if (catString) {
+        // Diviser les catégories multiples
+        const cats = catString.split(',')
+        for (const cat of cats) {
+          const trimmedCat = cat.trim()
+          if (trimmedCat) {
+            categoryCount[trimmedCat] = (categoryCount[trimmedCat] || 0) + 1
+          }
+        }
       }
     }
 
@@ -51,18 +56,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // 4. Récupérer les IDs des vidéos déjà achetées
-    const purchasedIds = purchases
+    const purchasedVideoIds = purchases
       .filter((p: any) => p.videoId)
       .map((p: any) => p.videoId)
 
-    // 5. Récupérer les recommandations
+    const purchasedSeriesIds = purchases
+      .filter((p: any) => p.seriesId)
+      .map((p: any) => p.seriesId)
+
+    // Récupérer les IDs des masters archivés à exclure
+    let archivedMasterIds: string[] = []
+    try {
+      const archivedMasters = await (prisma as any).video.findMany({
+        where: { status: 'archived', seriesId: { not: null } },
+        select: { id: true }
+      })
+      archivedMasterIds = archivedMasters.map((v: any) => v.id)
+    } catch (err) {
+      archivedMasterIds = []
+    }
+
+    // Combiner tous les IDs à exclure
+    const excludeVideoIds = [...purchasedVideoIds, ...archivedMasterIds]
+    const excludeSeriesIds = purchasedSeriesIds
+
+    // 5. Récupérer les recommandations de films
+    const videoWhere: any = {
+      status: 'approved',
+      seriesId: null,
+    }
+
+    if (excludeVideoIds.length > 0) {
+      videoWhere.id = { notIn: excludeVideoIds }
+    }
+
+    if (preferredCategory !== 'popular') {
+      videoWhere.category = { contains: preferredCategory }
+    }
+
     let recommendations = await (prisma as any).video.findMany({
-      where: {
-        status: 'approved',
-        seriesId: null, // Films simples uniquement
-        id: { notIn: purchasedIds.length > 0 ? purchasedIds : [''] },
-        ...(preferredCategory !== 'popular' ? { category: preferredCategory } : {})
-      },
+      where: videoWhere,
       orderBy: { views: 'desc' },
       take: 20,
       include: {
@@ -70,25 +103,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    // 6. Si pas assez, compléter avec les tendances
+    // 6. Si pas assez de recommandations, compléter avec les tendances
     if (recommendations.length < 10) {
       const trending = await getTrendingContent()
       const existingIds = recommendations.map((r: any) => r.id)
       const additional = (trending.movies || []).filter(
-        (movie: any) => !existingIds.includes(movie.id)
+        (movie: any) => !existingIds.includes(movie.id) && !excludeVideoIds.includes(movie.id)
       )
       recommendations = [...recommendations, ...additional].slice(0, 20)
     }
 
-    // 7. Séries recommandées
-    const seriesRecommendations = await getSeriesRecommendations(
-      preferredCategory, 
-      purchasedIds
-    )
+    // 7. Récupérer les recommandations de séries
+    const seriesWhere: any = {
+      status: { in: ['approved', 'published'] },
+    }
+
+    if (excludeSeriesIds.length > 0) {
+      seriesWhere.id = { notIn: excludeSeriesIds }
+    }
+
+    if (preferredCategory !== 'popular') {
+      seriesWhere.category = { contains: preferredCategory }
+    }
+
+    let seriesRecommendations = await (prisma as any).series.findMany({
+      where: seriesWhere,
+      orderBy: { totalViews: 'desc' },
+      take: 10,
+      include: {
+        creator: { select: { name: true, phone: true } },
+        episodes: {
+          where: { status: { in: ['approved', 'published'] } },
+          take: 1,
+          orderBy: { createdAt: 'asc' }
+        }
+      }
+    })
+
+    // Si pas assez de séries, compléter
+    if (seriesRecommendations.length < 5) {
+      const trending = await getTrendingContent()
+      const existingSeriesIds = seriesRecommendations.map((s: any) => s.id)
+      const additionalSeries = (trending.series || []).filter(
+        (s: any) => !existingSeriesIds.includes(s.id) && !excludeSeriesIds.includes(s.id)
+      )
+      seriesRecommendations = [...seriesRecommendations, ...additionalSeries].slice(0, 10)
+    }
+
+    const formattedSeries = seriesRecommendations.map((s: any) => ({
+      id: s.id,
+      title: s.title,
+      description: s.description,
+      coverImage: s.coverImage,
+      totalEpisodes: s.totalEpisodes || s.episodes?.length || 0,
+      totalViews: s.totalViews || 0,
+      category: s.category,
+      creator: s.creator,
+      createdAt: s.createdAt,
+      type: 'series' as const
+    }))
 
     return res.status(200).json({
       movies: recommendations,
-      series: seriesRecommendations,
+      series: formattedSeries,
       preferredCategory
     })
   } catch (error) {
@@ -110,11 +187,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // Fonction pour récupérer les contenus tendances
 async function getTrendingContent() {
   try {
+    // Récupérer les IDs des masters archivés à exclure
+    let archivedMasterIds: string[] = []
+    try {
+      const archivedMasters = await (prisma as any).video.findMany({
+        where: { status: 'archived', seriesId: { not: null } },
+        select: { id: true }
+      })
+      archivedMasterIds = archivedMasters.map((v: any) => v.id)
+    } catch (err) {
+      archivedMasterIds = []
+    }
+
+    const videoWhere: any = {
+      status: 'approved',
+      seriesId: null,
+    }
+
+    if (archivedMasterIds.length > 0) {
+      videoWhere.id = { notIn: archivedMasterIds }
+    }
+
     const movies = await (prisma as any).video.findMany({
-      where: { 
-        status: 'approved', 
-        seriesId: null 
-      },
+      where: videoWhere,
       orderBy: { views: 'desc' },
       take: 20,
       include: { 
@@ -123,13 +218,15 @@ async function getTrendingContent() {
     })
 
     const seriesList = await (prisma as any).series.findMany({
-      where: { status: 'approved' },
+      where: { 
+        status: { in: ['approved', 'published'] } 
+      },
       orderBy: { totalViews: 'desc' },
       take: 10,
       include: {
         creator: { select: { name: true, phone: true } },
         episodes: {
-          where: { status: 'approved' },
+          where: { status: { in: ['approved', 'published'] } },
           take: 1,
           orderBy: { createdAt: 'asc' }
         }
@@ -153,43 +250,5 @@ async function getTrendingContent() {
   } catch (error) {
     console.error('Erreur getTrendingContent:', error)
     return { movies: [], series: [] }
-  }
-}
-
-async function getSeriesRecommendations(category: string, purchasedIds: string[]) {
-  try {
-    const seriesList = await (prisma as any).series.findMany({
-      where: {
-        status: 'approved',
-        id: { notIn: purchasedIds.length > 0 ? purchasedIds : [''] },
-        ...(category !== 'popular' ? { category } : {})
-      },
-      orderBy: { totalViews: 'desc' },
-      take: 10,
-      include: {
-        creator: { select: { name: true, phone: true } },
-        episodes: {
-          where: { status: 'approved' },
-          take: 1,
-          orderBy: { createdAt: 'asc' }
-        }
-      }
-    })
-
-    return seriesList.map((s: any) => ({
-      id: s.id,
-      title: s.title,
-      description: s.description,
-      coverImage: s.coverImage,
-      totalEpisodes: s.totalEpisodes || s.episodes?.length || 0,
-      totalViews: s.totalViews || 0,
-      category: s.category,
-      creator: s.creator,
-      createdAt: s.createdAt,
-      type: 'series' as const
-    }))
-  } catch (error) {
-    console.error('Erreur getSeriesRecommendations:', error)
-    return []
   }
 }

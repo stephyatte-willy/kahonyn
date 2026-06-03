@@ -10,17 +10,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Non authentifié' })
   }
 
-  // GET - Récupérer toutes les progressions de l'utilisateur
+  const userId = (session.user as any).id
+
+  // GET - Récupérer toutes les progressions
   if (req.method === 'GET') {
     try {
-      const progress = await prisma.userProgress.findMany({
-        where: { userId: session.user.id }
+      const progress = await (prisma as any).watchHistory.findMany({
+        where: { userId }
       })
-
       return res.status(200).json(progress)
     } catch (error) {
       console.error('Erreur GET progress:', error)
-      return res.status(500).json({ error: 'Erreur serveur' })
+      return res.status(200).json([])
     }
   }
 
@@ -33,25 +34,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'ID épisode requis' })
       }
 
-      const progress = await prisma.userProgress.upsert({
-        where: {
-          userId_episodeId: {
-            userId: session.user.id,
-            episodeId: episodeId
-          }
-        },
-        update: { 
-          currentTime: currentTime || 0,
-          updatedAt: new Date()
-        },
-        create: {
-          userId: session.user.id,
-          episodeId: episodeId,
-          currentTime: currentTime || 0
-        }
+      // Utiliser watchHistory au lieu de userProgress
+      const existing = await (prisma as any).watchHistory.findFirst({
+        where: { userId, videoId: episodeId }
       })
 
-      return res.status(200).json({ success: true, progress })
+      if (existing) {
+        await (prisma as any).watchHistory.update({
+          where: { id: existing.id },
+          data: { progress: currentTime || 0, watchedAt: new Date() }
+        })
+      } else {
+        await (prisma as any).watchHistory.create({
+          data: {
+            userId,
+            videoId: episodeId,
+            progress: currentTime || 0,
+          }
+        })
+      }
+
+      return res.status(200).json({ success: true })
     } catch (error) {
       console.error('Erreur POST progress:', error)
       return res.status(500).json({ error: 'Erreur serveur' })

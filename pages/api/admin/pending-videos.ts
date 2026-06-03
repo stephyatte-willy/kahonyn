@@ -20,14 +20,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    // Récupérer les IDs des masters déjà archivés
+    const archivedMasterIds = await (prisma as any).video.findMany({
+      where: {
+        status: 'archived',
+        seriesId: { not: null }
+      },
+      select: { id: true }
+    }).then((v: any) => v.map((m: any) => m.id)).catch(() => [])
+
     const pendingVideos = await (prisma as any).video.findMany({
       where: {
+        seriesId: null,
+        status: { not: 'archived' },
+        // Exclure les masters archivés
+        id: archivedMasterIds.length > 0 ? { notIn: archivedMasterIds } : undefined,
         OR: [
           { status: 'pending' },
-          { status: 'deletion_requested' },
           { deletionRequested: true }
-        ],
-        seriesId: null // Seulement les masters, pas les épisodes
+        ]
       },
       orderBy: { createdAt: 'desc' },
       include: {

@@ -13,7 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const video = await prisma.videos.findUnique({
+    // CORRECTION : prisma.video (singulier)
+    const video = await (prisma as any).video.findUnique({
       where: { id },
       include: {
         creator: {
