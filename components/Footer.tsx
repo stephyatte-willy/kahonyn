@@ -52,7 +52,7 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
                     }
                     setActiveFooterTab(tab.id)
                   }}
-                  className={`relative flex flex-col items-center gap-0 px-1.5 py-0.5 rounded-lg transition-all duration-200 flex-shrink-0 ${
+                  className={`relative flex flex-col items-center gap-0 px-1.5 py-1 rounded-lg transition-all duration-200 flex-shrink-0 ${
                     isActive 
                       ? 'text-[#FF6B35]' 
                       : 'text-white/60 hover:text-white/90'
@@ -61,7 +61,7 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
                   <div className={`rounded-md transition-all duration-200 ${
                     isActive ? 'bg-[#FF6B35]/10' : ''
                   }`}>
-                    <Icon className={`${isActive ? 'w-[18px] h-[18px]' : 'w-[16px] h-[16px]'} sm:w-[18px] sm:h-[18px]`} />
+                    <Icon className={`${isActive ? 'w-[18px] h-[18px]' : 'w-[18px] h-[18px]'} sm:w-[28px] sm:h-[28px]`} />
                   </div>
                   <span className={`text-[8px] sm:text-[9px] font-bold tracking-wide leading-none ${
                     isActive ? 'text-[#FF6B35]' : 'text-white/70'
