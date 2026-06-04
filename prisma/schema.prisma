@@ -16,8 +16,10 @@ model User {
   phone         String    @unique
   name          String?
   email         String?   @unique
+  preferredCurrency String? @default("XOF")
+  country       String? 
   password      String?
-  role          String    @default("client") // admin, creator, client
+  role          String    @default("client") 
   bio           String?   @db.Text
   avatar        String?
   coins         Int       @default(0)
@@ -41,6 +43,7 @@ model User {
   paymentMethods     PaymentMethod[]
   withdrawalRequests WithdrawalRequest[]
   transactions       Transaction[]
+  ratings            Rating[]  
 }
 
 // ==================== AUTH (NextAuth) ====================
@@ -114,6 +117,7 @@ model Video {
   comments      Comment[]
   watchHistory  WatchHistory[]
   notifications Notification[]
+  ratings       Rating[]  
 }
 
 model Series {
@@ -198,24 +202,35 @@ model Purchase {
 
 // 🆕 NOUVELLE TABLE : Transactions
 model Transaction {
-  id            String   @id @default(cuid())
-  userId        String
-  type          String   @default("coin_purchase")
-  amount        Float    @default(0)
-  coins         Int      @default(0)
-  currency      String   @default("XOF")
-  paymentMethod String   @default("wave")
-  status        String   @default("pending")
-  reference     String?
-  metadata      String?  @db.Text
-  description   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String    @id @default(cuid())
+  userId          String
+  type            String    // coin_purchase, episode_purchase, subscription, withdrawal, admin_credit, admin_debit
+  amount          Float     // Montant payé
+  coins           Int       // Coins crédités/débités
+  currency        String    @default("XOF") // XOF, USD, EUR
+  paymentMethod   String    // wave, cinetpay, orange_money, coins, admin
+  paymentGateway  String?   // 🆕 Référence à PaymentGateway
+  status          String    @default("pending")
+  reference       String?   // Référence externe
+  gatewayResponse String?   @db.Text // 🆕 Réponse complète de la passerelle (JSON)
+  metadata        String?   @db.Text
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([status])
+  @@index([reference])
+}
+
+model ExchangeRate {
+  id            String   @id @default(cuid())
+  fromCurrency  String   // XOF, USD, EUR
+  toCurrency    String   // XOF, USD, EUR
+  rate          Float    // Taux de conversion
+  updatedAt     DateTime @updatedAt
 }
 
 // 🆕 MODIFIÉ : Subscription avec lien vers SubscriptionPlan
@@ -259,27 +274,45 @@ model SubscriptionPlan {
   subscriptions Subscription[]
 }
 
-// 🆕 MODIFIÉ : CoinPack avec nouveaux champs
-model CoinPack {
+// 🆕 Table des méthodes de paiement disponibles
+model PaymentGateway {
   id            String   @id @default(cuid())
-  name          String
-  description   String?
-  coins         Int
-  price         Float
-  priceUSD      Float?
-  priceEUR      Float?
-  bonus         Int      @default(0)
-  isPopular     Boolean  @default(false)
-  isVip         Boolean  @default(false)
+  name          String   // "wave", "cinetpay", "orange_money", "stripe"
+  displayName   String   // "Wave Côte d'Ivoire", "Carte Bancaire (CinetPay)"
+  type          String   // "mobile_money", "card", "international"
   isActive      Boolean  @default(true)
+  countries     String?  // "CI,SN,ML" ou "ALL" pour tous les pays
+  currency      String   @default("XOF") // XOF, USD, EUR
+  minAmount     Float    @default(100)
+  maxAmount     Float    @default(500000)
+  logoUrl       String?  // URL du logo
+  config        String?  @db.Text // JSON : clés API, secrets, etc.
   sortOrder     Int      @default(0)
-  currency      String   @default("XOF")
-  stripePriceId String?
-  waveCheckoutId String?
-  promotionText String?
-  promotionEnd  DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+// 🆕 MODIFIÉ : CoinPack avec nouveaux champs
+model CoinPack {
+  id             String    @id @default(cuid())
+  name           String
+  description    String?
+  coins          Int
+  price          Float     // Prix en FCFA (devise principale)
+  priceUSD       Float?    // Prix en USD pour l'international
+  priceEUR       Float?    // Prix en EUR
+  bonus          Int       @default(0)
+  isPopular      Boolean   @default(false)
+  isVip          Boolean   @default(false)
+  isActive       Boolean   @default(true)
+  sortOrder      Int       @default(0)
+  currency       String    @default("XOF")
+  stripePriceId  String?
+  cinetpayProductId String? // 🆕 ID produit CinetPay
+  promotionText  String?
+  promotionEnd   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 // 🆕 NOUVELLE TABLE : VipBenefit (avantages VIP configurables)
@@ -343,7 +376,7 @@ model WatchHistory {
   videoId       String
   seriesId      String?
   episodeNumber Int?
-  progress      Float    @default(0)
+  progress      Float    @default(0) // Temps en secondes (pas pourcentage)
   completed     Boolean  @default(false)
   watchedAt     DateTime @default(now())
 
@@ -351,6 +384,20 @@ model WatchHistory {
   video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([userId, videoId])
+  @@index([userId]) // 🆕 Pour récupérer tout l'historique d'un utilisateur
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  userId    String
+  videoId   String
+  value     Int      // 1 à 5
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, videoId])
 }
 
 model Notification {

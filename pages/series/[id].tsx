@@ -5,6 +5,8 @@ import { useRouter } from 'next/router'
 import { useEffect, useState, useRef } from 'react'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
+import StarRating from '../../components/StarRating'
+import CommentSection from '../../components/CommentSection'
 import { 
   LockClosedIcon, 
   PlayIcon, 
@@ -22,7 +24,10 @@ import {
   HomeIcon,
   UserGroupIcon,
   TrophyIcon,
-  UserCircleIcon
+  UserCircleIcon,
+  SpeakerWaveIcon,
+  SpeakerXMarkIcon,
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
 import toast from 'react-hot-toast'
@@ -56,6 +61,14 @@ interface Series {
   createdAt: string
 }
 
+const QUALITY_OPTIONS = [
+  { label: 'Auto', value: 'auto' },
+  { label: '1080p', value: '1080' },
+  { label: '720p', value: '720' },
+  { label: '480p', value: '480' },
+  { label: '360p', value: '360' },
+]
+
 export default function SeriesPage() {
   const router = useRouter()
   const { id } = router.query
@@ -75,6 +88,19 @@ export default function SeriesPage() {
   const controlsTimeout = useRef<NodeJS.Timeout | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [userCoins, setUserCoins] = useState(0)
+
+  // 🆕 États pour le volume
+  const [volume, setVolume] = useState(1)
+  const [isMuted, setIsMuted] = useState(false)
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false)
+
+  // 🆕 États pour la qualité
+  const [selectedQuality, setSelectedQuality] = useState('auto')
+  const [showQualityMenu, setShowQualityMenu] = useState(false)
+
+  // États pour la reprise de lecture
+  const [savedProgress, setSavedProgress] = useState(0)
+  const [hasResumed, setHasResumed] = useState(false)
 
   const footerTabs = [
     { id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' },
@@ -98,6 +124,8 @@ export default function SeriesPage() {
   useEffect(() => {
     if (selectedEpisode) {
       fetchCounters()
+      fetchWatchHistory(selectedEpisode.id)
+      setHasResumed(false)
     }
   }, [selectedEpisode])
 
@@ -110,6 +138,14 @@ export default function SeriesPage() {
       if (controlsTimeout.current) clearTimeout(controlsTimeout.current)
     }
   }, [showControls, isPlayerOpen])
+
+  // 🆕 Synchroniser le volume avec la vidéo
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.volume = volume
+      videoRef.current.muted = isMuted
+    }
+  }, [volume, isMuted])
 
   // Lecture automatique avec arrêt aux épisodes payants
   useEffect(() => {
@@ -124,7 +160,6 @@ export default function SeriesPage() {
         
         if (nextEpisode) {
           if (canWatch(nextEpisode)) {
-            // Épisode suivant accessible (gratuit ou acheté)
             setSelectedEpisode(nextEpisode)
             setTimeout(() => {
               if (videoRef.current) {
@@ -134,7 +169,6 @@ export default function SeriesPage() {
               }
             }, 500)
           } else {
-            // Épisode suivant payant → bloquer
             toast.error(
               `🔒 Épisode ${nextEpisode.episodeNumber} nécessite ${nextEpisode.price} coins. Achetez pour continuer.`,
               { duration: 5000 }
@@ -157,6 +191,46 @@ export default function SeriesPage() {
       video.removeEventListener('pause', handlePause)
     }
   }, [selectedEpisode, series, isPlayerOpen])
+
+  // Reprise de lecture
+  useEffect(() => {
+    if (isPlayerOpen && videoRef.current && savedProgress > 0 && !hasResumed) {
+      const timer = setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = savedProgress
+          setHasResumed(true)
+          toast.success(`⏪ Reprise à ${formatDuration(savedProgress)}`, { duration: 2000 })
+        }
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [isPlayerOpen, savedProgress, hasResumed])
+
+  // Sauvegarde périodique de la progression
+  useEffect(() => {
+    if (!isPlayerOpen || !videoRef.current || !session || !selectedEpisode) return
+
+    const saveInterval = setInterval(async () => {
+      if (videoRef.current) {
+        const currentTime = videoRef.current.currentTime
+        if (currentTime > 0) {
+          try {
+            await fetch('/api/user/save-progress', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                episodeId: selectedEpisode.id,
+                currentTime: Math.floor(currentTime),
+                seriesId: series?.id
+              })
+            })
+          } catch (error) {}
+        }
+      }
+    }, 5000)
+
+    return () => clearInterval(saveInterval)
+  }, [isPlayerOpen, selectedEpisode, session, series])
 
   const fetchUserCoins = async () => {
     if (!session) return
@@ -182,6 +256,21 @@ export default function SeriesPage() {
       }
     } catch (error) {
       console.error('Erreur chargement compteurs:', error)
+    }
+  }
+
+  const fetchWatchHistory = async (episodeId: string) => {
+    if (!session) return
+    try {
+      const res = await fetch(`/api/user/watch-history?videoId=${episodeId}`)
+      const data = await res.json()
+      if (data && data.length > 0) {
+        setSavedProgress(data[0].progress || 0)
+      } else {
+        setSavedProgress(0)
+      }
+    } catch (error) {
+      console.error('Erreur récupération historique:', error)
     }
   }
 
@@ -252,9 +341,21 @@ export default function SeriesPage() {
   const fetchSeries = async () => {
     setLoading(true)
     try {
+      console.log('🔍 Chargement série:', id)
       const res = await fetch(`/api/public/series/${id}`)
-      if (!res.ok) throw new Error(`Erreur ${res.status}`)
+      
+      if (!res.ok) {
+        const errorText = await res.text()
+        console.error('❌ Réponse API:', res.status, errorText)
+        throw new Error(`Erreur ${res.status}`)
+      }
+      
       const data = await res.json()
+      console.log('📦 Données série:', data)
+      
+      if (!data || !data.id) {
+        throw new Error('Données invalides')
+      }
       
       const episodes = Array.isArray(data.episodes) ? data.episodes : []
       
@@ -291,7 +392,7 @@ export default function SeriesPage() {
         setSelectedEpisode(formattedEpisodes[0])
       }
     } catch (error) {
-      console.error('Erreur fetchSeries:', error)
+      console.error('❌ Erreur fetchSeries:', error)
       toast.error('Impossible de charger la série')
     } finally {
       setLoading(false)
@@ -345,7 +446,6 @@ export default function SeriesPage() {
 
   const handlePlay = (episode: Episode) => {
     if (!canWatch(episode)) {
-      // Épisode payant → proposer l'achat
       handlePurchase(episode)
       return
     }
@@ -374,11 +474,57 @@ export default function SeriesPage() {
     } catch { toast.error('Impossible de copier le lien') }
   }
 
+  const handleDownload = () => {
+    toast.success('Fonctionnalité VIP - Bientôt disponible')
+  }
+
+  // 🆕 Gestion du volume
+  const toggleMute = () => setIsMuted(!isMuted)
+  
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseFloat(e.target.value)
+    setVolume(newVolume)
+    if (newVolume === 0) setIsMuted(true)
+    else if (isMuted) setIsMuted(false)
+  }
+
+  // 🆕 Gestion de la qualité
+  const handleQualityChange = (quality: string) => {
+    setSelectedQuality(quality)
+    setShowQualityMenu(false)
+    if (videoRef.current && selectedEpisode) {
+      const currentTime = videoRef.current.currentTime
+      const wasPlaying = !videoRef.current.paused
+      if (quality !== 'auto') {
+        const baseUrl = selectedEpisode.url.split('?')[0]
+        videoRef.current.src = `${baseUrl}?quality=${quality}`
+        videoRef.current.currentTime = currentTime
+        if (wasPlaying) videoRef.current.play()
+      }
+    }
+  }
+
   const togglePlayPause = () => {
     if (videoRef.current) {
       videoRef.current.paused ? videoRef.current.play() : videoRef.current.pause()
     }
     setShowControls(true)
+  }
+
+  const handleClosePlayer = () => {
+    if (videoRef.current && selectedEpisode && session) {
+      fetch('/api/user/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          episodeId: selectedEpisode.id,
+          currentTime: Math.floor(videoRef.current.currentTime),
+          seriesId: series?.id
+        })
+      }).catch(() => {})
+    }
+    setIsPlayerOpen(false)
+    setHasResumed(false)
   }
 
   if (loading) {
@@ -490,7 +636,6 @@ export default function SeriesPage() {
                         : 'bg-white/80 border border-[#D4A855]/10'
                     }`}
                   >
-                    {/* Miniature */}
                     <div className="relative aspect-video bg-[#EDE4D8] flex items-center justify-center">
                       {episode.thumbnail ? (
                         <img src={episode.thumbnail} alt={episode.title} className="w-full h-full object-cover" />
@@ -502,12 +647,10 @@ export default function SeriesPage() {
                         <PlayIcon className="w-10 h-10 text-white" />
                       </div>
                       
-                      {/* Badge épisode */}
                       <div className="absolute top-2 left-2 bg-[#FF6B35] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                         Ép. {episode.episodeNumber}
                       </div>
                       
-                      {/* Badge gratuit/payant */}
                       <div className="absolute top-2 right-2">
                         {isFree ? (
                           <span className="bg-green-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">GRATUIT</span>
@@ -522,7 +665,6 @@ export default function SeriesPage() {
                       </div>
                     </div>
                     
-                    {/* Infos */}
                     <div className="p-2">
                       <p className="font-semibold text-xs text-gray-900 line-clamp-1">
                         {episode.title}
@@ -535,6 +677,19 @@ export default function SeriesPage() {
                 )
               })}
             </div>
+
+            {/* Notation et Commentaires */}
+            {selectedEpisode && (
+              <div className="max-w-4xl mx-auto py-6 space-y-6">
+                <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-[#D4A855]/10 p-5">
+                  <h3 className="text-base font-bold text-gray-900 mb-3">⭐ Notez cet épisode</h3>
+                  <StarRating videoId={selectedEpisode.id} />
+                </div>
+                <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-[#D4A855]/10 p-5">
+                  <CommentSection videoId={selectedEpisode.id} />
+                </div>
+              </div>
+            )}
             
             <Footer footerTabs={footerTabs} activeFooterTab={activeFooterTab} setActiveFooterTab={setActiveFooterTab} />
           </div>
@@ -573,13 +728,78 @@ export default function SeriesPage() {
 
           {/* Overlay contrôles */}
           <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-            <button onClick={() => setIsPlayerOpen(false)} className="absolute top-4 left-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition z-10">
+            <button onClick={handleClosePlayer} className="absolute top-4 left-4 text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition z-10">
               <ChevronLeftIcon className="w-6 h-6" />
             </button>
             <div className="absolute top-4 left-20 text-white">
               <h2 className="font-semibold text-sm">{selectedEpisode?.title || 'Épisode'}</h2>
               <p className="text-xs text-gray-300">Épisode {selectedEpisode?.episodeNumber}</p>
             </div>
+
+            {/* 🆕 CONTRÔLES VOLUME + QUALITÉ - EN HAUT À DROITE */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+              {/* Bouton Qualité */}
+              <div className="relative">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowQualityMenu(!showQualityMenu); setShowVolumeSlider(false) }}
+                  className="text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition"
+                >
+                  <Cog6ToothIcon className="w-5 h-5" />
+                </button>
+                {showQualityMenu && (
+                  <div className="absolute right-0 top-12 bg-[#1A1A35] rounded-xl shadow-2xl border border-white/10 overflow-hidden z-30 min-w-[120px]">
+                    {QUALITY_OPTIONS.map((q) => (
+                      <button
+                        key={q.value}
+                        onClick={(e) => { e.stopPropagation(); handleQualityChange(q.value) }}
+                        className={`w-full px-4 py-2.5 text-xs font-bold text-left hover:bg-white/10 transition flex items-center justify-between ${
+                          selectedQuality === q.value ? 'text-[#FF6B35]' : 'text-white'
+                        }`}
+                      >
+                        {q.label}
+                        {selectedQuality === q.value && <CheckCircleIcon className="w-3.5 h-3.5 text-[#FF6B35]" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Bouton Volume */}
+              <div className="relative flex items-center">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowVolumeSlider(!showVolumeSlider); setShowQualityMenu(false) }}
+                  className="text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition"
+                >
+                  {isMuted || volume === 0 ? (
+                    <SpeakerXMarkIcon className="w-5 h-5" />
+                  ) : volume < 0.5 ? (
+                    <SpeakerWaveIcon className="w-5 h-5 opacity-70" />
+                  ) : (
+                    <SpeakerWaveIcon className="w-5 h-5" />
+                  )}
+                </button>
+                {showVolumeSlider && (
+                  <div className="absolute right-0 top-12 bg-[#1A1A35] rounded-xl shadow-2xl border border-white/10 p-3 z-30 flex items-center gap-3">
+                    <button onClick={(e) => { e.stopPropagation(); toggleMute() }} className="text-white hover:text-[#FF6B35] transition">
+                      {isMuted || volume === 0 ? <SpeakerXMarkIcon className="w-4 h-4" /> : <SpeakerWaveIcon className="w-4 h-4" />}
+                    </button>
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={isMuted ? 0 : volume}
+                      onChange={handleVolumeChange}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-20 h-1 bg-gray-600 rounded-full appearance-none cursor-pointer accent-[#FF6B35]"
+                    />
+                    <span className="text-white text-xs font-bold w-8">{Math.round((isMuted ? 0 : volume) * 100)}%</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Play/Pause + Épisodes précédent/suivant */}
             <div className="absolute inset-0 flex items-center justify-center gap-6">
               <button onClick={goToPreviousEpisode} disabled={!hasPreviousEpisode()} className={`text-white bg-black/50 rounded-full p-3 hover:bg-black/70 transition ${!hasPreviousEpisode() ? 'opacity-30 cursor-not-allowed' : ''}`}>
                 <ChevronDoubleLeftIcon className="w-6 h-6" />
@@ -591,6 +811,8 @@ export default function SeriesPage() {
                 <ChevronDoubleRightIcon className="w-6 h-6" />
               </button>
             </div>
+
+            {/* Barre de progression */}
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <div className="flex items-center gap-3">
                 <span className="text-white text-xs">
@@ -604,6 +826,7 @@ export default function SeriesPage() {
                 </span>
               </div>
             </div>
+
             {/* Prochain épisode */}
             {selectedEpisode && series && (() => {
               const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)

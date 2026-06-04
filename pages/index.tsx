@@ -75,6 +75,8 @@ export default function Home() {
 
   const isAdmin = session?.user?.role === 'admin'
 
+  const [ratings, setRatings] = useState<Record<string, { average: number; count: number }>>({})
+
   useEffect(() => {
     fetchCategories()
     fetchContent()
@@ -95,20 +97,64 @@ export default function Home() {
       console.error('Erreur fetchCategories:', error)
     }
   }
+  
+const fetchRatings = async (seriesIds: string[], movieIds: string[]) => {
+  try {
+    const results: Record<string, { average: number; count: number }> = {}
+    
+    // Pour les films : API ratings directe
+    await Promise.all(
+      movieIds.map(async (id) => {
+        try {
+          const res = await fetch(`/api/ratings/${id}`)
+          if (res.ok) {
+            const data = await res.json()
+            results[id] = { average: data.average || 0, count: data.count || 0 }
+          }
+        } catch (e) {}
+      })
+    )
 
-  const fetchContent = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/public/videos-by-category?category=${activeCategory}`)
-      const data = await res.json()
-      setSeries(data.series || [])
-      setMovies(data.movies || [])
-    } catch (error) {
-      console.error('Erreur fetchContent:', error)
-    } finally {
-      setLoading(false)
-    }
+    // Pour les séries : API ratings/series dédiée (plus rapide)
+    await Promise.all(
+      seriesIds.map(async (id) => {
+        try {
+          const res = await fetch(`/api/ratings/series/${id}`)
+          if (res.ok) {
+            const data = await res.json()
+            results[id] = { average: data.average || 0, count: data.count || 0 }
+          }
+        } catch (e) {}
+      })
+    )
+
+    setRatings(results)
+  } catch (error) {
+    console.error('Erreur chargement notes:', error)
   }
+}
+
+const fetchContent = async () => {
+  setLoading(true)
+  try {
+    const res = await fetch(`/api/public/videos-by-category?category=${activeCategory}`)
+    const data = await res.json()
+    setSeries(data.series || [])
+    setMovies(data.movies || [])
+    
+    // 🆕 Charger les notes : séparer les IDs des séries et des films
+    const seriesIds = (data.series || []).map((s: any) => s.id)
+    const movieIds = (data.movies || []).map((m: any) => m.id)
+    
+    if (seriesIds.length > 0 || movieIds.length > 0) {
+      fetchRatings(seriesIds, movieIds)
+    }
+  } catch (error) {
+    console.error('Erreur fetchContent:', error)
+  } finally {
+    setLoading(false)
+  }
+}
 
   const footerTabs = isAdmin 
     ? [
@@ -230,17 +276,30 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="p-1.5 sm:p-2">
-                    <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#FF6B35] transition duration-200 leading-tight">
-                      {serie.title}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
-                        <FireIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-                        {serie.totalViews?.toLocaleString() || 0}
-                      </span>
+                  {/* Dans la vignette série, ajouter après le titre : */}
+                    <div className="p-2">
+                      <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#FF6B35] transition duration-200 leading-tight">
+                        {serie.title}
+                      </h3>
+                      
+                      {/* 🆕 Épisodes et étoiles sur la même ligne */}
+                      <div className="flex items-center justify-between mt-1">
+                        {/* Vues à gauche */}
+                        <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
+                          ▶  {serie.totalViews?.toLocaleString() || 0}
+                        </span>
+                        
+                        {/* Étoiles à droite */}
+                        {ratings[serie.id] && ratings[serie.id].average > 0 && (
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-yellow-500 text-[9px]">⭐</span>
+                            <span className="text-[9px] font-bold text-gray-700">
+                              {ratings[serie.id].average.toFixed(1)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
                 </div>
               </Link>
             ))}
@@ -308,17 +367,33 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  <div className="p-1.5 sm:p-2">
-                    <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#D4A855] transition duration-200 leading-tight">
-                      {movie.title}
-                    </h3>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
-                        <ClockIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-                        {movie.duration || '--'} min
-                      </span>
-                    </div>
+                  {/* Dans la vignette film, ajouter après le titre : */}
+
+                <div className="p-1.5 sm:p-2">
+                  <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#D4A855] transition duration-200 leading-tight">
+                    {movie.title}
+                  </h3>
+                  
+                  {/* 🆕 Temps et étoiles sur la même ligne */}
+                  <div className="flex items-center justify-between mt-1">
+                    {/* Durée à gauche */}
+                    <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
+                      <ClockIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
+                      {movie.duration || '--'} min
+                    </span>
+                    
+                    {/* Étoiles à droite */}
+                    {ratings[movie.id] && ratings[movie.id].average > 0 && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-yellow-500 text-[9px]">⭐</span>
+                        <span className="text-[9px] font-bold text-gray-700">
+                          {ratings[movie.id].average.toFixed(1)}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                </div>
+
                 </div>
               </Link>
             ))}

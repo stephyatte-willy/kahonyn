@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useState, useRef, useEffect } from 'react'
 import AuthSlidePanel from './AuthSlidePanel'
+import NotificationBell from './NotificationBell'
 
 interface Category {
   id: string
@@ -142,6 +143,7 @@ export default function Navbar({
 
               {/* Boutons droite */}
               <div className="flex items-center gap-1.5 sm:gap-2">
+                <NotificationBell />
                 {/* Icône Bonus */}
                 <button className="flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] rounded-full shadow-lg shadow-[#D4A855]/20 active:scale-95 hover:scale-105 transition-transform">
                   <GiftIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D0D1A]" />

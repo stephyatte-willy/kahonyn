@@ -22,7 +22,7 @@ import {
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useRequireAuth } from '../hooks/useRequireAuth'
-import WavePaymentModal from '../components/WavePaymentModal'
+import PaymentModal from '../components/PaymentModal'
 import SubscriptionPaymentModal from '../components/SubscriptionPaymentModal'
 import toast from 'react-hot-toast'
 
@@ -90,6 +90,9 @@ export default function PremiumPage() {
   const [isSubscriptionModalOpen, setIsSubscriptionModalOpen] = useState(false)
   const [selectedSubscriptionPlan, setSelectedSubscriptionPlan] = useState<SubscriptionPlan | null>(null)
 
+  const [paymentGateways, setPaymentGateways] = useState<any[]>([])
+  const [selectedGateway, setSelectedGateway] = useState<string>('cinetpay')
+
   // 🆕 Charger TOUT depuis la BDD
   useEffect(() => {
     if (!isAuthorized) return
@@ -128,6 +131,28 @@ export default function PremiumPage() {
       setLoading(false)
     }
   }
+
+  // 🆕 Charger les moyens de paiement
+const fetchPaymentGateways = async () => {
+  try {
+    const res = await fetch('/api/public/payment-gateways')
+    const data = await res.json()
+    setPaymentGateways(Array.isArray(data) ? data : [])
+  } catch (error) {
+    console.error('Erreur chargement moyens de paiement:', error)
+  }
+}
+
+// 🆕 Détecter le pays de l'utilisateur
+const detectUserCountry = async () => {
+  try {
+    const res = await fetch('https://ipapi.co/json/')
+    const data = await res.json()
+    return data.country_code // "CI", "FR", "US", etc.
+  } catch {
+    return 'CI' // Par défaut Côte d'Ivoire
+  }
+}
 
   // 🆕 Rafraîchir les coins
   const refreshCoins = async () => {
@@ -443,7 +468,7 @@ export default function PremiumPage() {
 
       {/* Modales de paiement */}
       {isPaymentModalOpen && selectedCoinPack && (
-        <WavePaymentModal
+        <PaymentModal
           isOpen={isPaymentModalOpen}
           onClose={() => {
             setIsPaymentModalOpen(false)
