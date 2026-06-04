@@ -72,9 +72,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFooterTab, setActiveFooterTab] = useState('home')
   const [allCategories, setAllCategories] = useState<Category[]>(horizontalCategories)
-
   const isAdmin = session?.user?.role === 'admin'
-
   const [ratings, setRatings] = useState<Record<string, { average: number; count: number }>>({})
 
   useEffect(() => {
@@ -90,71 +88,42 @@ export default function Home() {
     try {
       const res = await fetch('/api/public/categories')
       const data = await res.json()
-      if (data && data.length > 0) {
-        setAllCategories(data)
-      }
-    } catch (error) {
-      console.error('Erreur fetchCategories:', error)
-    }
+      if (data && data.length > 0) setAllCategories(data)
+    } catch (error) { console.error('Erreur fetchCategories:', error) }
   }
   
-const fetchRatings = async (seriesIds: string[], movieIds: string[]) => {
-  try {
-    const results: Record<string, { average: number; count: number }> = {}
-    
-    // Pour les films : API ratings directe
-    await Promise.all(
-      movieIds.map(async (id) => {
+  const fetchRatings = async (seriesIds: string[], movieIds: string[]) => {
+    try {
+      const results: Record<string, { average: number; count: number }> = {}
+      await Promise.all(movieIds.map(async (id) => {
         try {
           const res = await fetch(`/api/ratings/${id}`)
-          if (res.ok) {
-            const data = await res.json()
-            results[id] = { average: data.average || 0, count: data.count || 0 }
-          }
+          if (res.ok) { const data = await res.json(); results[id] = { average: data.average || 0, count: data.count || 0 } }
         } catch (e) {}
-      })
-    )
-
-    // Pour les séries : API ratings/series dédiée (plus rapide)
-    await Promise.all(
-      seriesIds.map(async (id) => {
+      }))
+      await Promise.all(seriesIds.map(async (id) => {
         try {
           const res = await fetch(`/api/ratings/series/${id}`)
-          if (res.ok) {
-            const data = await res.json()
-            results[id] = { average: data.average || 0, count: data.count || 0 }
-          }
+          if (res.ok) { const data = await res.json(); results[id] = { average: data.average || 0, count: data.count || 0 } }
         } catch (e) {}
-      })
-    )
-
-    setRatings(results)
-  } catch (error) {
-    console.error('Erreur chargement notes:', error)
+      }))
+      setRatings(results)
+    } catch (error) { console.error('Erreur chargement notes:', error) }
   }
-}
 
-const fetchContent = async () => {
-  setLoading(true)
-  try {
-    const res = await fetch(`/api/public/videos-by-category?category=${activeCategory}`)
-    const data = await res.json()
-    setSeries(data.series || [])
-    setMovies(data.movies || [])
-    
-    // 🆕 Charger les notes : séparer les IDs des séries et des films
-    const seriesIds = (data.series || []).map((s: any) => s.id)
-    const movieIds = (data.movies || []).map((m: any) => m.id)
-    
-    if (seriesIds.length > 0 || movieIds.length > 0) {
-      fetchRatings(seriesIds, movieIds)
-    }
-  } catch (error) {
-    console.error('Erreur fetchContent:', error)
-  } finally {
-    setLoading(false)
+  const fetchContent = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/public/videos-by-category?category=${activeCategory}`)
+      const data = await res.json()
+      setSeries(data.series || [])
+      setMovies(data.movies || [])
+      const seriesIds = (data.series || []).map((s: any) => s.id)
+      const movieIds = (data.movies || []).map((m: any) => m.id)
+      if (seriesIds.length > 0 || movieIds.length > 0) fetchRatings(seriesIds, movieIds)
+    } catch (error) { console.error('Erreur fetchContent:', error) }
+    finally { setLoading(false) }
   }
-}
 
   const footerTabs = isAdmin 
     ? [
@@ -174,132 +143,89 @@ const fetchContent = async () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F5F0E8]">
-        <Navbar 
-          searchTerm={searchTerm} 
-          onSearchChange={setSearchTerm}
-          activeCategory={activeCategory}
-          onCategoryChange={setActiveCategory}
-          categories={horizontalCategories}
-          allCategories={allCategories}
-        />
+      <div className="min-h-screen bg-[#0D0D0D]">
+        <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} activeCategory={activeCategory} onCategoryChange={setActiveCategory} categories={horizontalCategories} allCategories={allCategories} />
         <div className="flex items-center justify-center h-[70vh]">
           <div className="flex flex-col items-center gap-5">
-  <div className="relative">
-    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center p-2 animate-pulse border border-[#D4A855]/20">
-      <Image
-        src="/logo-kahonyn.png"
-        alt="Kahonyn"
-        width={48}
-        height={48}
-        className="object-contain"
-        priority
-      />
-    </div>
-    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#FF6B35] animate-bounce"></div>
-  </div>
-  <p className="text-[#8B5A2B]/80 text-sm font-bold">Chargement...</p>
-</div>
+            <div className="relative">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.04] flex items-center justify-center p-3 animate-pulse border border-white/[0.06]">
+                <Image src="/logo-kahonyn.png" alt="Kahonyn" width={56} height={56} className="object-contain" priority />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#FF6B35] animate-bounce"></div>
+            </div>
+            <p className="text-white/60 text-sm font-semibold">Chargement...</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] pb-14">
-      <Navbar 
-        searchTerm={searchTerm} 
-        onSearchChange={setSearchTerm}
-        activeCategory={activeCategory}
-        onCategoryChange={setActiveCategory}
-        categories={horizontalCategories}
-        allCategories={allCategories}
-      />
+    <div className="min-h-screen bg-[#0D0D0D] pb-16">
+      <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} activeCategory={activeCategory} onCategoryChange={setActiveCategory} categories={horizontalCategories} allCategories={allCategories} />
 
       {/* Section SÉRIES */}
       {series.length > 0 && (
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-md">
-                <PlayIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
+                <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-900">Séries populaires</h2>
-                <p className="text-[10px] sm:text-[11px] text-gray-700 font-bold flex items-center gap-1">
-                  <FireIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  {series.length} séries
+                <h2 className="text-base sm:text-lg font-bold text-white">Séries populaires</h2>
+                <p className="text-xs sm:text-sm text-white/50 font-medium flex items-center gap-1">
+                  <FireIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {series.length} séries
                 </p>
               </div>
             </div>
-            <Link href="/series" className="px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-[#FF6B35] hover:bg-[#FF6B35]/10 rounded-lg transition border border-[#FF6B35]/30">
+            <Link href="/series" className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-[#FF6B35] hover:bg-[#FF6B35]/10 rounded-lg transition border border-[#FF6B35]/30">
               Voir tout →
             </Link>
           </div>
           
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
             {series.map((serie, index) => (
-              <Link 
-                key={serie.id} 
-                href={`/series/${serie.id}`} 
-                className="group"
-                style={{ animationDelay: `${index * 0.03}s` }}
-              >
-                <div className="relative rounded-lg overflow-hidden bg-[#EDE4D8] hover:bg-[#E8DCCF] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+              <Link key={serie.id} href={`/series/${serie.id}`} className="group" style={{ animationDelay: `${index * 0.03}s` }}>
+                <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-white/[0.04] hover:border-[#FF6B35]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FF6B35]/10">
                   <div className="relative aspect-[3/4] overflow-hidden">
                     {serie.coverImage ? (
                       <>
-                        <img 
-                          src={serie.coverImage} 
-                          alt={serie.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out" 
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <img src={serie.coverImage} alt={serie.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                       </>
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#E8DCCF] to-[#D9CBB8] flex items-center justify-center">
-                        <PlayIcon className="w-6 h-6 sm:w-7 sm:h-7 text-gray-400" />
+                      <div className="w-full h-full bg-gradient-to-br from-[#1A1A2E] to-[#2A2A4E] flex items-center justify-center">
+                        <PlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white/20" />
                       </div>
                     )}
-                    
-                    <div className="absolute top-1 left-1">
-                      <span className="bg-black/70 backdrop-blur-sm text-white text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md">
+                    <div className="absolute top-2 left-2">
+                      <span className="bg-black/80 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-lg">
                         {serie.totalEpisodes} ép.
                       </span>
                     </div>
-                    
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#FF6B35] flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition duration-300">
-                        <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white ml-0.5" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#FF6B35] flex items-center justify-center shadow-2xl transform scale-75 group-hover:scale-100 transition duration-300">
+                        <PlayIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-0.5" />
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Dans la vignette série, ajouter après le titre : */}
-                    <div className="p-2">
-                      <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#FF6B35] transition duration-200 leading-tight">
-                        {serie.title}
-                      </h3>
-                      
-                      {/* 🆕 Épisodes et étoiles sur la même ligne */}
-                      <div className="flex items-center justify-between mt-1">
-                        {/* Vues à gauche */}
-                        <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
-                          ▶  {serie.totalViews?.toLocaleString() || 0}
-                        </span>
-                        
-                        {/* Étoiles à droite */}
-                        {ratings[serie.id] && ratings[serie.id].average > 0 && (
-                          <div className="flex items-center gap-0.5">
-                            <span className="text-yellow-500 text-[9px]">⭐</span>
-                            <span className="text-[9px] font-bold text-gray-700">
-                              {ratings[serie.id].average.toFixed(1)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                  <div className="p-2.5">
+                    <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[#FF6B35] transition duration-200">
+                      {serie.title}
+                    </h3>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-[10px] sm:text-xs text-white/50 font-medium flex items-center gap-1">
+                        <PlayIcon className="w-3 h-3" /> {serie.totalViews?.toLocaleString() || 0}
+                      </span>
+                      {ratings[serie.id] && ratings[serie.id].average > 0 && (
+                        <div className="flex items-center gap-0.5">
+                          <span className="text-yellow-500 text-[10px]">⭐</span>
+                          <span className="text-[10px] sm:text-xs font-bold text-white/80">{ratings[serie.id].average.toFixed(1)}</span>
+                        </div>
+                      )}
                     </div>
+                  </div>
                 </div>
               </Link>
             ))}
@@ -309,91 +235,66 @@ const fetchContent = async () => {
 
       {/* Section FILMS */}
       {movies.length > 0 && (
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#D4A855] to-[#E5C87B] flex items-center justify-center shadow-md">
-                <PlayIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#D4A855] to-[#E5C87B] flex items-center justify-center shadow-lg shadow-[#D4A855]/20">
+                <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D0D0D]" />
               </div>
               <div>
-                <h2 className="text-sm sm:text-base font-bold text-gray-900">Films à l'affiche</h2>
-                <p className="text-[10px] sm:text-[11px] text-gray-700 font-bold flex items-center gap-1">
-                  <ClockIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                  {movies.length} films
+                <h2 className="text-base sm:text-lg font-bold text-white">Films à l'affiche</h2>
+                <p className="text-xs sm:text-sm text-white/50 font-medium flex items-center gap-1">
+                  <ClockIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {movies.length} films
                 </p>
               </div>
             </div>
-            <Link href="/movies" className="px-2.5 py-1 text-[10px] sm:text-[11px] font-bold text-[#D4A855] hover:bg-[#D4A855]/10 rounded-lg transition border border-[#D4A855]/30">
+            <Link href="/movies" className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-[#D4A855] hover:bg-[#D4A855]/10 rounded-lg transition border border-[#D4A855]/30">
               Voir tout →
             </Link>
           </div>
           
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
             {movies.map((movie, index) => (
-              <Link 
-                key={movie.id} 
-                href={`/video/${movie.id}`} 
-                className="group"
-                style={{ animationDelay: `${index * 0.03}s` }}
-              >
-                <div className="relative rounded-lg overflow-hidden bg-[#EDE4D8] hover:bg-[#E8DCCF] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+              <Link key={movie.id} href={`/video/${movie.id}`} className="group" style={{ animationDelay: `${index * 0.03}s` }}>
+                <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-white/[0.04] hover:border-[#D4A855]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#D4A855]/10">
                   <div className="relative aspect-[3/4] overflow-hidden">
                     {movie.coverImage ? (
                       <>
-                        <img 
-                          src={movie.coverImage} 
-                          alt={movie.title} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500 ease-out" 
-                          loading="lazy"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <img src={movie.coverImage} alt={movie.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out" loading="lazy" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
                       </>
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#E8DCCF] to-[#D9CBB8] flex items-center justify-center">
-                        <PlayIcon className="w-6 h-6 sm:w-7 sm:h-7 text-gray-400" />
+                      <div className="w-full h-full bg-gradient-to-br from-[#1A1A2E] to-[#2A2A4E] flex items-center justify-center">
+                        <PlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white/20" />
                       </div>
                     )}
-                    
-                    <div className="absolute top-1 right-1">
-                      <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-gray-900 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#0D0D0D] text-[10px] sm:text-xs font-bold px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
                         🪙 {movie.price}
                       </span>
                     </div>
-                    
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#D4A855] flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition duration-300">
-                        <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white ml-0.5" />
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#D4A855] flex items-center justify-center shadow-2xl transform scale-75 group-hover:scale-100 transition duration-300">
+                        <PlayIcon className="w-6 h-6 sm:w-7 sm:h-7 text-[#0D0D0D] ml-0.5" />
                       </div>
                     </div>
                   </div>
-                  
-                  {/* Dans la vignette film, ajouter après le titre : */}
-
-                <div className="p-1.5 sm:p-2">
-                  <h3 className="font-bold text-[10px] sm:text-[11px] text-gray-900 line-clamp-1 group-hover:text-[#D4A855] transition duration-200 leading-tight">
-                    {movie.title}
-                  </h3>
-                  
-                  {/* 🆕 Temps et étoiles sur la même ligne */}
-                  <div className="flex items-center justify-between mt-1">
-                    {/* Durée à gauche */}
-                    <span className="text-[8px] sm:text-[9px] text-gray-600 font-bold flex items-center gap-0.5">
-                      <ClockIcon className="w-2 h-2 sm:w-2.5 sm:h-2.5" />
-                      {movie.duration || '--'} min
-                    </span>
-                    
-                    {/* Étoiles à droite */}
-                    {ratings[movie.id] && ratings[movie.id].average > 0 && (
-                      <div className="flex items-center gap-0.5">
-                        <span className="text-yellow-500 text-[9px]">⭐</span>
-                        <span className="text-[9px] font-bold text-gray-700">
-                          {ratings[movie.id].average.toFixed(1)}
-                        </span>
-                      </div>
-                    )}
+                  <div className="p-2.5">
+                    <h3 className="font-semibold text-xs sm:text-sm text-white line-clamp-1 group-hover:text-[#D4A855] transition duration-200">
+                      {movie.title}
+                    </h3>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-[10px] sm:text-xs text-white/50 font-medium flex items-center gap-1">
+                        <ClockIcon className="w-3 h-3" /> {movie.duration || '--'} min
+                      </span>
+                      {ratings[movie.id] && ratings[movie.id].average > 0 && (
+                        <div className="flex items-center gap-0.5">
+                          <span className="text-yellow-500 text-[10px]">⭐</span>
+                          <span className="text-[10px] sm:text-xs font-bold text-white/80">{ratings[movie.id].average.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-
                 </div>
               </Link>
             ))}
@@ -401,16 +302,13 @@ const fetchContent = async () => {
         </div>
       )}
 
-      {/* État vide */}
       {series.length === 0 && movies.length === 0 && (
-        <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-[#EDE4D8] border border-[#D4A855]/10 flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl sm:text-3xl">🎬</span>
+        <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#1A1A2E] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
+            <span className="text-3xl sm:text-4xl">🎬</span>
           </div>
-          <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2">Encore un peu de patience</h3>
-          <p className="text-xs sm:text-sm text-gray-600 font-bold max-w-md mx-auto">
-            Notre équipe prépare du contenu incroyable pour vous. Revenez très bientôt !
-          </p>
+          <h3 className="text-lg sm:text-xl font-bold text-white mb-2">Encore un peu de patience</h3>
+          <p className="text-sm text-white/50 font-medium max-w-md mx-auto">Notre équipe prépare du contenu incroyable pour vous. Revenez très bientôt !</p>
         </div>
       )}
 

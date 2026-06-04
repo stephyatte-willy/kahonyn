@@ -5,38 +5,15 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import ProfileLayout from '../components/ProfileLayout'
 import { AvatarModal, PasswordModal, StatCard, ProfileField } from '../components/ProfileComponents'
-import { 
-  UserIcon, 
-  PhoneIcon, 
-  EnvelopeIcon, 
-  PencilIcon,
-  KeyIcon,
-  CurrencyDollarIcon,
-  ShoppingBagIcon,
-  HeartIcon,
-  VideoCameraIcon,
-  EyeIcon,
-  LockClosedIcon
-} from '@heroicons/react/24/outline'
+import { UserIcon, PhoneIcon, EnvelopeIcon, PencilIcon, KeyIcon, CurrencyDollarIcon, ShoppingBagIcon, HeartIcon, VideoCameraIcon, EyeIcon, LockClosedIcon } from '@heroicons/react/24/outline'
 import { useRequireAuth } from '../hooks/useRequireAuth'
 import Navbar from '../components/Navbar'
 import toast from 'react-hot-toast'
 
 interface UserProfile {
-  id: string
-  phone: string
-  name: string
-  email: string
-  role: string
-  bio: string
-  avatar: string
-  coins: number
-  totalEarnings: number
-  totalVideos?: number
-  totalViews?: number
-  totalPurchases?: number
-  favorites?: number
-  createdAt: string
+  id: string; phone: string; name: string; email: string; role: string; bio: string
+  avatar: string; coins: number; totalEarnings: number; totalVideos?: number
+  totalViews?: number; totalPurchases?: number; favorites?: number; createdAt: string
 }
 
 export default function Profile() {
@@ -52,52 +29,32 @@ export default function Profile() {
   const [passwordLoading, setPasswordLoading] = useState(false)
   const [formData, setFormData] = useState({ name: '', email: '', bio: '' })
 
-  useEffect(() => {
-    if (!isAuthorized) return
-    fetchProfile()
-  }, [isAuthorized])
+  useEffect(() => { if (!isAuthorized) return; fetchProfile() }, [isAuthorized])
 
   const fetchProfile = async () => {
     try {
       const res = await fetch('/api/user/profile')
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Erreur serveur')
-      }
+      if (!res.ok) throw new Error('Erreur serveur')
       const data = await res.json()
-      
-      const safeProfile: UserProfile = {
-        id: data.id || (session?.user as any)?.id || '',
-        phone: data.phone || (session?.user as any)?.phone || '',
-        name: data.name || session?.user?.name || '',
-        email: data.email || session?.user?.email || '',
-        role: data.role || (session?.user as any)?.role || 'client',
-        bio: data.bio || '',
-        avatar: data.avatar || session?.user?.image || '',
-        coins: data.coins || 0,
-        totalEarnings: data.totalEarnings || 0,
-        totalVideos: data.totalVideos || 0,
-        totalViews: data.totalViews || 0,
-        totalPurchases: data.totalPurchases || 0,
-        favorites: data.favorites || 0,
-        createdAt: data.createdAt || new Date().toISOString(),
-      }
-      
-      setProfile(safeProfile)
-      setFormData({ name: safeProfile.name || '', email: safeProfile.email || '', bio: safeProfile.bio || '' })
-    } catch (error) {
-      toast.error('Impossible de charger le profil', { duration: 2500 })
-    } finally {
-      setLoading(false)
-    }
+      setProfile({
+        id: data.id || (session?.user as any)?.id || '', phone: data.phone || (session?.user as any)?.phone || '',
+        name: data.name || session?.user?.name || '', email: data.email || session?.user?.email || '',
+        role: data.role || (session?.user as any)?.role || 'client', bio: data.bio || '',
+        avatar: data.avatar || session?.user?.image || '', coins: data.coins || 0,
+        totalEarnings: data.totalEarnings || 0, totalVideos: data.totalVideos || 0,
+        totalViews: data.totalViews || 0, totalPurchases: data.totalPurchases || 0,
+        favorites: data.favorites || 0, createdAt: data.createdAt || new Date().toISOString(),
+      })
+      setFormData({ name: data.name || '', email: data.email || '', bio: data.bio || '' })
+    } catch { toast.error('Impossible de charger le profil') } finally { setLoading(false) }
   }
 
   const handleSave = async () => {
     try {
       const res = await fetch('/api/user/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) })
-      if (res.ok) { toast.success('Profil mis à jour', { duration: 2000 }); setEditing(false); fetchProfile(); await update() }
-      else { const data = await res.json().catch(() => ({})); toast.error(data.error || 'Erreur', { duration: 2500 }) }
-    } catch { toast.error('Erreur réseau', { duration: 2500 }) }
+      if (res.ok) { toast.success('Profil mis à jour'); setEditing(false); fetchProfile(); await update() }
+      else { const data = await res.json().catch(() => ({})); toast.error(data.error || 'Erreur') }
+    } catch { toast.error('Erreur réseau') }
   }
 
   const handleAvatarUpload = async (file: File) => {
@@ -107,14 +64,8 @@ export default function Profile() {
       const res = await fetch('/api/upload-avatar', { method: 'POST', body: fd })
       if (!res.ok) throw new Error('Erreur upload')
       const data = await res.json()
-      if (data.success) {
-        setProfile(prev => prev ? { ...prev, avatar: data.avatar } : null)
-        toast.success('Photo mise à jour', { duration: 2000 })
-        setIsAvatarModalOpen(false)
-        await update()
-      }
-    } catch { toast.error('Erreur upload', { duration: 2500 }) }
-    finally { setUploadingAvatar(false) }
+      if (data.success) { setProfile(prev => prev ? { ...prev, avatar: data.avatar } : null); toast.success('Photo mise à jour'); setIsAvatarModalOpen(false); await update() }
+    } catch { toast.error('Erreur upload') } finally { setUploadingAvatar(false) }
   }
 
   const handlePasswordChange = async (currentPassword: string, newPassword: string) => {
@@ -122,20 +73,20 @@ export default function Profile() {
     try {
       const res = await fetch('/api/user/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword, newPassword }) })
       const data = await res.json()
-      if (res.ok) { toast.success('Mot de passe modifié', { duration: 2000 }); setIsPasswordModalOpen(false) }
-      else { toast.error(data.error || 'Erreur', { duration: 2500 }) }
-    } catch { toast.error('Erreur réseau', { duration: 2500 }) }
-    finally { setPasswordLoading(false) }
+      if (res.ok) { toast.success('Mot de passe modifié'); setIsPasswordModalOpen(false) }
+      else { toast.error(data.error || 'Erreur') }
+    } catch { toast.error('Erreur réseau') } finally { setPasswordLoading(false) }
   }
 
   if (!isAuthorized && !authLoading) {
     return (
-      <div className="min-h-screen bg-[#F5F0E8]">
-        <Navbar />
+      <div className="min-h-screen bg-[#0D0D0D]"><Navbar />
         <div className="flex flex-col items-center justify-center h-[80vh] px-4">
-          <div className="w-20 h-20 rounded-2xl bg-white/80 border border-[#D4A855]/20 flex items-center justify-center mb-6 shadow-sm"><LockClosedIcon className="w-10 h-10 text-[#FF6B35]" /></div>
-          <h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Accès restreint</h2>
-          <p className="text-sm text-[#8B5A2B]/80 text-center max-w-sm">Connectez-vous pour accéder à votre profil</p>
+          <div className="w-24 h-24 rounded-2xl bg-[#1A1A2E] border border-white/[0.06] flex items-center justify-center mb-6 shadow-xl">
+            <LockClosedIcon className="w-12 h-12 text-[#FF6B35]" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Accès restreint</h2>
+          <p className="text-sm text-white/60 text-center max-w-sm">Connectez-vous pour accéder à votre profil</p>
         </div>
       </div>
     )
@@ -146,11 +97,7 @@ export default function Profile() {
   }
 
   if (!profile) {
-    return (
-      <ProfileLayout title="Mon Profil" activeTab="profile">
-        <div className="flex flex-col items-center justify-center py-20"><div className="text-5xl mb-4">😕</div><h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Profil inaccessible</h2><button onClick={fetchProfile} className="mt-4 px-5 py-2.5 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl font-bold">Réessayer</button></div>
-      </ProfileLayout>
-    )
+    return <ProfileLayout title="Mon Profil" activeTab="profile"><div className="flex flex-col items-center justify-center py-20"><div className="text-5xl mb-4">😕</div><h2 className="text-xl font-bold text-white mb-2">Profil inaccessible</h2><button onClick={fetchProfile} className="mt-4 px-6 py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl font-bold">Réessayer</button></div></ProfileLayout>
   }
 
   const isCreator = profile.role === 'creator'
@@ -163,8 +110,7 @@ export default function Profile() {
   return (
     <ProfileLayout title="Mon Profil" subtitle={isCreator ? 'Créateur' : isAdmin ? 'Admin' : 'Client'} activeTab="profile">
       <div className="space-y-6 max-w-4xl mx-auto">
-        {/* Avatar */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-sm">
+        <div className="bg-[#1A1A2E] rounded-2xl p-6 border border-white/[0.04]">
           <div className="flex items-center gap-4">
             <button onClick={() => setIsAvatarModalOpen(true)} className="relative group flex-shrink-0">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center text-2xl font-bold text-white overflow-hidden border-2 border-[#FF6B35]/30">
@@ -173,38 +119,36 @@ export default function Profile() {
               <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="text-white text-xs font-bold">Modifier</span></div>
             </button>
             <div>
-              <h2 className="text-lg font-bold text-gray-900">{displayName}</h2>
-              <p className="text-sm text-gray-600 font-bold">{displayPhone}</p>
-              <p className="text-xs text-gray-500 mt-1">Membre depuis {memberSince}</p>
+              <h2 className="text-lg font-bold text-white">{displayName}</h2>
+              <p className="text-sm text-white/60 font-medium">{displayPhone}</p>
+              <p className="text-xs text-white/40 mt-1">Membre depuis {memberSince}</p>
             </div>
           </div>
         </div>
 
-        {/* Statistiques */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {isCreator ? (
             <>
-              <StatCard icon={VideoCameraIcon} label="Vidéos" value={profile.totalVideos || 0} color="text-blue-600" bgColor="bg-blue-100" />
-              <StatCard icon={EyeIcon} label="Vues" value={(profile.totalViews || 0).toLocaleString()} color="text-green-600" bgColor="bg-green-100" />
+              <StatCard icon={VideoCameraIcon} label="Vidéos" value={profile.totalVideos || 0} color="text-blue-400" bgColor="bg-blue-500/10" />
+              <StatCard icon={EyeIcon} label="Vues" value={(profile.totalViews || 0).toLocaleString()} color="text-green-400" bgColor="bg-green-500/10" />
               <StatCard icon={CurrencyDollarIcon} label="Gains" value={`${(profile.totalEarnings || 0).toLocaleString()} FCFA`} color="text-[#FF6B35]" bgColor="bg-[#FF6B35]/10" />
               <StatCard icon={CurrencyDollarIcon} label="Coins" value={profile.coins || 0} color="text-[#D4A855]" bgColor="bg-[#D4A855]/10" />
             </>
           ) : (
             <>
-              <StatCard icon={ShoppingBagIcon} label="Achetés" value={profile.totalPurchases || 0} color="text-purple-600" bgColor="bg-purple-100" />
+              <StatCard icon={ShoppingBagIcon} label="Achetés" value={profile.totalPurchases || 0} color="text-purple-400" bgColor="bg-purple-500/10" />
               <StatCard icon={CurrencyDollarIcon} label="Coins" value={profile.coins || 0} color="text-[#D4A855]" bgColor="bg-[#D4A855]/10" />
-              <StatCard icon={HeartIcon} label="Favoris" value={profile.favorites || 0} color="text-red-600" bgColor="bg-red-100" />
-              <StatCard icon={EyeIcon} label="Vues" value={(profile.totalViews || 0).toLocaleString()} color="text-green-600" bgColor="bg-green-100" />
+              <StatCard icon={HeartIcon} label="Favoris" value={profile.favorites || 0} color="text-red-400" bgColor="bg-red-500/10" />
+              <StatCard icon={EyeIcon} label="Vues" value={(profile.totalViews || 0).toLocaleString()} color="text-green-400" bgColor="bg-green-500/10" />
             </>
           )}
         </div>
 
-        {/* Informations */}
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-sm">
+        <div className="bg-[#1A1A2E] rounded-2xl p-6 border border-white/[0.04]">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-base font-bold text-gray-900">Informations personnelles</h3>
+            <h3 className="text-base font-bold text-white">Informations personnelles</h3>
             <div className="flex gap-2">
-              <button onClick={() => setIsPasswordModalOpen(true)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-[#1A1A35] rounded-lg hover:bg-[#2A2A45] transition"><KeyIcon className="w-3.5 h-3.5" />Mot de passe</button>
+              <button onClick={() => setIsPasswordModalOpen(true)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-white/[0.06] rounded-lg hover:bg-white/[0.1] transition"><KeyIcon className="w-3.5 h-3.5" />Mot de passe</button>
               <button onClick={() => setEditing(!editing)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-[#FF6B35] rounded-lg hover:bg-[#FF8C5A] transition"><PencilIcon className="w-3.5 h-3.5" />{editing ? 'Annuler' : 'Modifier'}</button>
             </div>
           </div>
@@ -217,7 +161,6 @@ export default function Profile() {
           {editing && <button onClick={handleSave} className="w-full mt-4 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white py-3 rounded-xl font-bold">Enregistrer</button>}
         </div>
       </div>
-
       {isAvatarModalOpen && <AvatarModal isOpen={isAvatarModalOpen} onClose={() => setIsAvatarModalOpen(false)} currentAvatar={profile.avatar} userName={displayName} onUpload={handleAvatarUpload} uploading={uploadingAvatar} />}
       {isPasswordModalOpen && <PasswordModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} onSubmit={handlePasswordChange} loading={passwordLoading} />}
     </ProfileLayout>

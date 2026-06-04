@@ -18,7 +18,6 @@ import {
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import { useRequireAuth } from '../hooks/useRequireAuth'
-import toast from 'react-hot-toast'
 
 interface Series {
   id: string
@@ -79,14 +78,8 @@ export default function ForYouPage() {
     }
   }
 
-  // Helper pour obtenir l'image (coverImage ou thumbnail)
-  const getMovieImage = (movie: Movie): string | null => {
-    return movie.coverImage || movie.thumbnail || null
-  }
-
-  const getSeriesImage = (serie: Series): string | null => {
-    return serie.coverImage || null
-  }
+  const getMovieImage = (movie: Movie): string | null => movie.coverImage || movie.thumbnail || null
+  const getSeriesImage = (serie: Series): string | null => serie.coverImage || null
 
   const footerTabs = [
     { id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' },
@@ -96,17 +89,16 @@ export default function ForYouPage() {
     { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
   ]
 
-  // Afficher un message si non connecté
   if (!isAuthorized && !isLoading) {
     return (
-      <div className="min-h-screen bg-[#F5F0E8]">
+      <div className="min-h-screen bg-[#0D0D0D]">
         <Navbar />
         <div className="flex flex-col items-center justify-center h-[80vh] px-4">
-          <div className="w-20 h-20 rounded-2xl bg-[#EDE4D8] border border-[#D4A855]/20 flex items-center justify-center mb-6">
-            <LockClosedIcon className="w-10 h-10 text-[#FF6B35]" />
+          <div className="w-24 h-24 rounded-2xl bg-[#1A1A2E] border border-white/[0.06] flex items-center justify-center mb-6 shadow-xl">
+            <LockClosedIcon className="w-12 h-12 text-[#FF6B35]" />
           </div>
-          <h2 className="text-xl font-bold text-[#3D2B1F] mb-2">Accès restreint</h2>
-          <p className="text-sm text-[#8B5A2B]/80 text-center max-w-sm">
+          <h2 className="text-xl font-bold text-white mb-2">Accès restreint</h2>
+          <p className="text-sm text-white/60 text-center max-w-sm">
             Connectez-vous pour découvrir des recommandations personnalisées basées sur vos goûts
           </p>
         </div>
@@ -116,29 +108,37 @@ export default function ForYouPage() {
 
   if (loading || isLoading) {
     return (
-      <div className="min-h-screen bg-[#F5F0E8]">
+      <div className="min-h-screen bg-[#0D0D0D]">
         <Navbar />
         <div className="flex items-center justify-center h-[80vh]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FF6B35]"></div>
+          <div className="flex flex-col items-center gap-5">
+            <div className="relative">
+              <div className="w-20 h-20 rounded-2xl bg-white/[0.04] flex items-center justify-center p-3 animate-pulse border border-white/[0.06]">
+                <img src="/logo-kahonyn.png" alt="Kahonyn" className="w-14 h-14 object-contain" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#FF6B35] animate-bounce"></div>
+            </div>
+            <p className="text-white/60 text-sm font-semibold">Chargement...</p>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F0E8] pb-20">
+    <div className="min-h-screen bg-[#0D0D0D] pb-20">
       <Navbar />
 
       {/* En-tête */}
-      <div className="sticky top-12 z-20 bg-[#0D0D1A]/95 backdrop-blur-xl border-b border-white/[0.06]">
+      <div className="sticky top-12 z-20 bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] rounded-xl flex items-center justify-center shadow-md shadow-[#FF6B35]/20">
+            <div className="w-10 h-10 bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] rounded-xl flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
               <SparklesIcon className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-white">Pour vous</h1>
-              <p className="text-xs text-[#D4A855]/60">
+              <h1 className="text-xl font-bold text-white">Pour vous</h1>
+              <p className="text-sm text-[#D4A855] font-medium">
                 Recommandations basées sur vos goûts ({preferredCategory})
               </p>
             </div>
@@ -149,77 +149,49 @@ export default function ForYouPage() {
       {/* Section FILMS recommandés */}
       {movies.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-lg shadow-[#8B5A2B]/5">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-md">
-                <FilmIcon className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-[#5C3D2E]">🎬 Films recommandés</h2>
-                <p className="text-[11px] text-[#8B5A2B]/60">{movies.length} films</p>
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
+              <FilmIcon className="w-4 h-4 text-white" />
             </div>
-            
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
-              {movies.map((movie, index) => {
-                const imageUrl = getMovieImage(movie)
-                return (
-                  <Link 
-                    key={movie.id} 
-                    href={`/video/${movie.id}`} 
-                    className="group"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                  >
-                    <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#FF6B35]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#8B5A2B]/10">
-                      <div className="relative aspect-[3/4] overflow-hidden">
-                        {imageUrl ? (
-                          <img 
-                            src={imageUrl} 
-                            alt={movie.title} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-[#F5F0E8] to-[#E8D5B5]/30 flex items-center justify-center">
-                            <FilmIcon className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
-                        
-                        {/* Overlay play au hover */}
-                        <div className="absolute inset-0 bg-[#5C3D2E]/30 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition duration-300">
-                            <PlayIcon className="w-5 h-5 text-[#FF6B35] ml-0.5" />
-                          </div>
+            <div>
+              <h2 className="text-base font-bold text-white">🎬 Films recommandés</h2>
+              <p className="text-sm text-white/50 font-medium">{movies.length} films</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
+            {movies.map((movie, index) => {
+              const imageUrl = getMovieImage(movie)
+              return (
+                <Link key={movie.id} href={`/video/${movie.id}`} className="group" style={{ animationDelay: `${index * 0.03}s` }}>
+                  <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-white/[0.04] hover:border-[#FF6B35]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FF6B35]/10">
+                    <div className="relative aspect-[3/4] overflow-hidden">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={movie.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#1A1A2E] to-[#2A2A4E] flex items-center justify-center">
+                          <FilmIcon className="w-10 h-10 text-white/20" />
                         </div>
-                        
-                        {/* Badge prix */}
-                        <div className="absolute top-1.5 right-1.5">
-                          <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#5C3D2E] text-[9px] font-bold px-1.5 py-0.5 rounded-md shadow-sm flex items-center gap-0.5">
-                            🪙 {movie.price || 0}
-                          </span>
-                        </div>
-                        
-                        {/* Badge durée */}
-                        <div className="absolute bottom-1.5 left-1.5">
-                          <span className="bg-black/60 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md">
-                            {movie.duration ? `${Math.floor(movie.duration / 60)}min` : '--'}
-                          </span>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition duration-300">
+                          <PlayIcon className="w-6 h-6 text-[#FF6B35] ml-0.5" />
                         </div>
                       </div>
-                      
-                      <div className="p-2">
-                        <h3 className="font-medium text-[11px] text-[#5C3D2E] line-clamp-1 group-hover:text-[#FF6B35] transition leading-tight">
-                          {movie.title}
-                        </h3>
-                        <p className="text-[9px] text-[#8B5A2B]/60 line-clamp-1 mt-0.5">
-                          {movie.description || movie.category || 'Film'}
-                        </p>
+                      <div className="absolute top-2 right-2">
+                        <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#0D0D0D] text-[10px] font-bold px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
+                          🪙 {movie.price || 0}
+                        </span>
                       </div>
                     </div>
-                  </Link>
-                )
-              })}
-            </div>
+                    <div className="p-2.5">
+                      <h3 className="font-semibold text-xs text-white line-clamp-1 group-hover:text-[#FF6B35] transition">{movie.title}</h3>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}
@@ -227,92 +199,63 @@ export default function ForYouPage() {
       {/* Section SÉRIES recommandées */}
       {series.length > 0 && (
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#D4A855]/10 shadow-lg shadow-[#8B5A2B]/5">
-            <div className="flex items-center gap-3 mb-5">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#D4A855] to-[#E5C87B] flex items-center justify-center shadow-md">
-                <TvIcon className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-[#5C3D2E]">📺 Séries recommandées</h2>
-                <p className="text-[11px] text-[#8B5A2B]/60">{series.length} séries</p>
-              </div>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#D4A855] to-[#E5C87B] flex items-center justify-center shadow-lg shadow-[#D4A855]/20">
+              <TvIcon className="w-4 h-4 text-[#0D0D0D]" />
             </div>
-            
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
-              {series.map((serie, index) => {
-                const imageUrl = getSeriesImage(serie)
-                return (
-                  <Link 
-                    key={serie.id} 
-                    href={`/series/${serie.id}`} 
-                    className="group"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                  >
-                    <div className="relative rounded-xl overflow-hidden bg-white border border-[#D4A855]/10 hover:border-[#D4A855]/30 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#8B5A2B]/10">
-                      <div className="relative aspect-[3/4] overflow-hidden">
-                        {imageUrl ? (
-                          <img 
-                            src={imageUrl} 
-                            alt={serie.title} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-[#F5F0E8] to-[#E8D5B5]/30 flex items-center justify-center">
-                            <TvIcon className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
-                        
-                        {/* Overlay play au hover */}
-                        <div className="absolute inset-0 bg-[#5C3D2E]/30 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
-                          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg transform scale-75 group-hover:scale-100 transition duration-300">
-                            <PlayIcon className="w-5 h-5 text-[#D4A855] ml-0.5" />
-                          </div>
+            <div>
+              <h2 className="text-base font-bold text-white">📺 Séries recommandées</h2>
+              <p className="text-sm text-white/50 font-medium">{series.length} séries</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
+            {series.map((serie, index) => {
+              const imageUrl = getSeriesImage(serie)
+              return (
+                <Link key={serie.id} href={`/series/${serie.id}`} className="group" style={{ animationDelay: `${index * 0.03}s` }}>
+                  <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-white/[0.04] hover:border-[#D4A855]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#D4A855]/10">
+                    <div className="relative aspect-[3/4] overflow-hidden">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={serie.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#1A1A2E] to-[#2A2A4E] flex items-center justify-center">
+                          <TvIcon className="w-10 h-10 text-white/20" />
                         </div>
-                        
-                        {/* Badge épisodes */}
-                        <div className="absolute top-1.5 left-1.5">
-                          <span className="bg-white/95 backdrop-blur-sm text-[#FF6B35] text-[9px] font-semibold px-1.5 py-0.5 rounded-md shadow-sm">
-                            {serie.totalEpisodes || 0} ép.
-                          </span>
-                        </div>
-                        
-                        {/* Badge vues */}
-                        <div className="absolute bottom-1.5 right-1.5">
-                          <span className="bg-black/60 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded-md">
-                            👁 {serie.totalViews?.toLocaleString() || 0}
-                          </span>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-transparent to-transparent opacity-60" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition duration-300">
+                          <PlayIcon className="w-6 h-6 text-[#D4A855] ml-0.5" />
                         </div>
                       </div>
-                      
-                      <div className="p-2">
-                        <h3 className="font-medium text-[11px] text-[#5C3D2E] line-clamp-1 group-hover:text-[#D4A855] transition leading-tight">
-                          {serie.title}
-                        </h3>
-                        <p className="text-[9px] text-[#8B5A2B]/60 line-clamp-1 mt-0.5">
-                          {serie.description || serie.category || 'Série'}
-                        </p>
+                      <div className="absolute top-2 left-2">
+                        <span className="bg-black/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg">
+                          {serie.totalEpisodes || 0} ép.
+                        </span>
                       </div>
                     </div>
-                  </Link>
-                )
-              })}
-            </div>
+                    <div className="p-2.5">
+                      <h3 className="font-semibold text-xs text-white line-clamp-1 group-hover:text-[#D4A855] transition">{serie.title}</h3>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Aucun contenu */}
       {movies.length === 0 && series.length === 0 && (
-        <div className="max-w-7xl mx-auto px-4 py-20">
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-12 text-center border border-[#D4A855]/10 shadow-lg shadow-[#8B5A2B]/5">
-            <div className="text-5xl mb-4">🎬</div>
-            <p className="text-[#5C3D2E] font-medium">Aucune recommandation pour le moment</p>
-            <p className="text-sm text-[#8B5A2B]/60 mt-2">Regardez des vidéos pour obtenir des recommandations personnalisées</p>
-            <Link href="/" className="inline-block mt-4 px-5 py-2.5 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl hover:shadow-lg hover:shadow-[#FF6B35]/20 transition font-medium text-sm">
-              Découvrir des vidéos
-            </Link>
+        <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+          <div className="w-24 h-24 rounded-2xl bg-[#1A1A2E] border border-white/[0.06] flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">🎬</span>
           </div>
+          <p className="text-white font-semibold text-lg">Aucune recommandation pour le moment</p>
+          <p className="text-sm text-white/50 mt-2">Regardez des vidéos pour obtenir des recommandations personnalisées</p>
+          <Link href="/" className="inline-block mt-6 px-6 py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl font-bold hover:shadow-lg hover:shadow-[#FF6B35]/20 transition">
+            Découvrir des vidéos
+          </Link>
         </div>
       )}
 

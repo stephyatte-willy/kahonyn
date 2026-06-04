@@ -1,16 +1,10 @@
 // context/ThemeContext.tsx
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
-
-interface ThemeContextType {
-  theme: Theme
-  setTheme: (theme: Theme) => void
-  resolvedTheme: 'dark' | 'light'
-}
-
+interface ThemeContextType { theme: Theme; setTheme: (theme: Theme) => void; resolvedTheme: 'dark' | 'light' }
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -18,51 +12,25 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>('dark')
 
   useEffect(() => {
-    // Charger le thème sauvegardé
-    const savedTheme = localStorage.getItem('kahonyn-theme') as Theme | null
-    if (savedTheme && ['dark', 'light', 'system'].includes(savedTheme)) {
-      setTheme(savedTheme)
-    }
+    const saved = localStorage.getItem('kahonyn-theme') as Theme | null
+    if (saved && ['dark', 'light', 'system'].includes(saved)) setTheme(saved)
   }, [])
 
   useEffect(() => {
-    // Sauvegarder le thème
     localStorage.setItem('kahonyn-theme', theme)
-
-    // Résoudre le thème réel
-    const resolveTheme = () => {
-      if (theme === 'system') {
-        const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        setResolvedTheme(isDark ? 'dark' : 'light')
-      } else {
-        setResolvedTheme(theme)
-      }
-    }
-
-    resolveTheme()
-
-    // Écouter les changements de thème système
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = () => {
-      if (theme === 'system') {
-        setResolvedTheme(mediaQuery.matches ? 'dark' : 'light')
-      }
-    }
-    mediaQuery.addEventListener('change', handleChange)
-    return () => mediaQuery.removeEventListener('change', handleChange)
+    const resolve = () => setResolvedTheme(theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+    resolve()
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => { if (theme === 'system') setResolvedTheme(mq.matches ? 'dark' : 'light') }
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
   }, [theme])
 
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
-      {children}
-    </ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext)
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider')
-  }
-  return context
+  const ctx = useContext(ThemeContext)
+  if (!ctx) throw new Error('useTheme must be used within a ThemeProvider')
+  return ctx
 }
