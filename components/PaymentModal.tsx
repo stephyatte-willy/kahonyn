@@ -7,13 +7,11 @@ import toast from 'react-hot-toast'
 interface CoinPack {
   id: string
   name: string
-  description?: string | null  // ← Ajouter
   coins: number
   price: number
   bonus: number
   isPopular?: boolean
-  isVip?: boolean  // ← Ajouter
-  promotionText?: string | null  // ← Accepter null
+  promotionText?: string
 }
 
 interface PaymentGateway {
@@ -38,10 +36,14 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
   const [paymentGateways, setPaymentGateways] = useState<PaymentGateway[]>([])
   const [selectedGateway, setSelectedGateway] = useState<string>('gateway_wave')
 
-  // Charger les moyens de paiement disponibles
   useEffect(() => {
     if (isOpen) {
       fetchPaymentGateways()
+      // 🆕 Empêcher le défilement de la page en arrière-plan
+      document.body.style.overflow = 'hidden'
+    }
+    return () => {
+      document.body.style.overflow = 'auto'
     }
   }, [isOpen])
 
@@ -51,18 +53,15 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
       const data = await res.json()
       if (Array.isArray(data) && data.length > 0) {
         setPaymentGateways(data)
-        // Sélectionner le premier moyen de paiement actif par défaut
         const firstActive = data.find((g: PaymentGateway) => g.isActive)
         if (firstActive) setSelectedGateway(firstActive.id)
       } else {
-        // Fallback : moyens de paiement par défaut
         setPaymentGateways([
           { id: 'gateway_wave', name: 'wave', displayName: 'Wave Côte d\'Ivoire', type: 'mobile_money', isActive: true },
           { id: 'gateway_cinetpay', name: 'cinetpay', displayName: 'Carte Bancaire (Visa/Mastercard)', type: 'card', isActive: true },
         ])
       }
     } catch (error) {
-      // Fallback en cas d'erreur
       setPaymentGateways([
         { id: 'gateway_wave', name: 'wave', displayName: 'Wave Côte d\'Ivoire', type: 'mobile_money', isActive: true },
         { id: 'gateway_cinetpay', name: 'cinetpay', displayName: 'Carte Bancaire (Visa/Mastercard)', type: 'card', isActive: true },
@@ -80,7 +79,6 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
     setError('')
 
     try {
-      // Choisir l'API selon le moyen de paiement
       let apiUrl = '/api/payment/wave/create'
       
       if (selectedGateway === 'gateway_cinetpay' || selectedGateway === 'gateway_cinetpay_usd') {
@@ -102,7 +100,6 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
       const data = await res.json()
 
       if (res.ok && data.paymentUrl) {
-        // Rediriger vers la page de paiement
         window.location.href = data.paymentUrl
       } else {
         setError(data.error || 'Erreur lors de la création du paiement')
@@ -117,14 +114,14 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
   return (
     <>
       {/* Overlay */}
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 animate-fadeIn" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" onClick={onClose} />
       
-      {/* Modal */}
-      <div className="fixed bottom-0 left-0 right-0 md:inset-0 md:flex md:items-center md:justify-center z-50 animate-slideUp md:animate-fadeIn">
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-t-3xl md:rounded-3xl shadow-2xl max-w-md w-full mx-auto overflow-hidden border border-gray-700">
+      {/* 🆕 Modal avec overflow-y-auto pour défiler */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-gray-700">
           
-          {/* Header */}
-          <div className="relative bg-gradient-to-r from-amber-600 to-orange-600 p-5">
+          {/* Header - FIXE */}
+          <div className="relative bg-gradient-to-r from-amber-600 to-orange-600 p-5 flex-shrink-0">
             <div className="absolute inset-0 bg-black/20"></div>
             <div className="relative flex justify-between items-center">
               <div className="flex items-center gap-3">
@@ -142,8 +139,8 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
             </div>
           </div>
 
-          {/* Contenu */}
-          <div className="p-6">
+          {/* 🆕 Contenu DÉFILABLE */}
+          <div className="overflow-y-auto flex-1 p-6">
             {/* Récapitulatif du pack */}
             <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 mb-4 border border-gray-700">
               <div className="text-center">
@@ -162,7 +159,7 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
               )}
             </div>
 
-            {/* 🆕 SÉLECTEUR DE MOYEN DE PAIEMENT */}
+            {/* Sélecteur de moyen de paiement */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Choisissez votre mode de paiement
@@ -224,8 +221,10 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
                 {error}
               </div>
             )}
+          </div>
 
-            {/* Bouton de paiement */}
+          {/* 🆕 Footer - FIXE en bas */}
+          <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <button
               onClick={handlePayment}
               disabled={loading}
@@ -244,25 +243,12 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
               )}
             </button>
 
-            <p className="text-center text-[10px] text-gray-500 mt-4">
+            <p className="text-center text-[10px] text-gray-500 mt-3">
               🔒 Paiement sécurisé • {totalCoins} coins seront ajoutés à votre compte
             </p>
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-slideUp { animation: slideUp 0.3s ease-out; }
-        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
-      `}</style>
     </>
   )
 }
