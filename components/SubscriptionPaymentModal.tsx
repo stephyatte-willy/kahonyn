@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { XMarkIcon, TrophyIcon, CheckCircleIcon, ExclamationTriangleIcon, SparklesIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 interface SubscriptionPlanModal {
@@ -28,10 +28,21 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  if (isOpen) {
-    document.body.style.overflow = 'hidden'
-  } else {
+  // 🆕 CORRECTION : Utiliser useEffect pour gérer proprement le body overflow
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    }
+    // 🆕 Nettoyage : toujours remettre le scroll quand le composant est démonté
+    return () => {
+      document.body.style.overflow = 'auto'
+    }
+  }, [isOpen])
+
+  // 🆕 Fonction de fermeture qui remet le scroll
+  const handleClose = () => {
     document.body.style.overflow = 'auto'
+    onClose()
   }
 
   if (!isOpen || !plan) return null
@@ -40,7 +51,6 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
     setLoading(true)
     setError('')
     try {
-      // 🔴 APPEL UNIQUEMENT À CINETPAY POUR LES ABONNEMENTS
       const res = await fetch('/api/payment/cinetpay/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +80,8 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" onClick={onClose} />
+      {/* Overlay - utilise handleClose pour la fermeture */}
+      <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" onClick={handleClose} />
       
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-gray-700">
@@ -88,7 +99,8 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
                   <p className="text-xs text-white/80">Abonnement {plan.name}</p>
                 </div>
               </div>
-              <button onClick={onClose} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all duration-300">
+              {/* 🆕 Utilise handleClose */}
+              <button onClick={handleClose} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all duration-300">
                 <XMarkIcon className="w-4 h-4 text-white" />
               </button>
             </div>
