@@ -1,26 +1,19 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 
 interface CoinPack {
   id: string
   name: string
+  description?: string
   coins: number
   price: number
   bonus: number
   isPopular?: boolean
-  promotionText?: string
-}
-
-interface PaymentGateway {
-  id: string
-  name: string
-  displayName: string
-  type: string
-  isActive: boolean
-  logoUrl?: string
+  isVip?: boolean
+  promotionText?: string | null
 }
 
 interface PaymentModalProps {
@@ -33,13 +26,9 @@ interface PaymentModalProps {
 export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: PaymentModalProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [paymentGateways, setPaymentGateways] = useState<PaymentGateway[]>([])
-  const [selectedGateway, setSelectedGateway] = useState<string>('gateway_wave')
 
   useEffect(() => {
     if (isOpen) {
-      fetchPaymentGateways()
-      // 🆕 Empêcher le défilement de la page en arrière-plan
       document.body.style.overflow = 'hidden'
     }
     return () => {
@@ -47,66 +36,44 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
     }
   }, [isOpen])
 
-  const fetchPaymentGateways = async () => {
-    try {
-      const res = await fetch('/api/public/payment-gateways')
-      const data = await res.json()
-      if (Array.isArray(data) && data.length > 0) {
-        setPaymentGateways(data)
-        const firstActive = data.find((g: PaymentGateway) => g.isActive)
-        if (firstActive) setSelectedGateway(firstActive.id)
-      } else {
-        setPaymentGateways([
-          { id: 'gateway_wave', name: 'wave', displayName: 'Wave Côte d\'Ivoire', type: 'mobile_money', isActive: true },
-          { id: 'gateway_cinetpay', name: 'cinetpay', displayName: 'Carte Bancaire (Visa/Mastercard)', type: 'card', isActive: true },
-        ])
-      }
-    } catch (error) {
-      setPaymentGateways([
-        { id: 'gateway_wave', name: 'wave', displayName: 'Wave Côte d\'Ivoire', type: 'mobile_money', isActive: true },
-        { id: 'gateway_cinetpay', name: 'cinetpay', displayName: 'Carte Bancaire (Visa/Mastercard)', type: 'card', isActive: true },
-      ])
-    }
-  }
-
   if (!isOpen || !pack) return null
 
   const totalCoins = pack.coins + (pack.bonus || 0)
-  const selectedGatewayInfo = paymentGateways.find(g => g.id === selectedGateway)
 
   const handlePayment = async () => {
     setLoading(true)
     setError('')
 
     try {
-      let apiUrl = '/api/payment/wave/create'
-      
-      if (selectedGateway === 'gateway_cinetpay' || selectedGateway === 'gateway_cinetpay_usd') {
-        apiUrl = '/api/payment/cinetpay/create'
-      }
-
-      const res = await fetch(apiUrl, {
+      // 🔴 APPEL UNIQUEMENT À CINETPAY
+      const res = await fetch('/api/payment/cinetpay/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           packId: pack.id,
           amount: pack.price,
           coins: totalCoins,
-          currency: selectedGatewayInfo?.name === 'cinetpay' ? 'XOF' : 'XOF',
-          gateway: selectedGateway
+          currency: 'XOF'
         })
       })
 
       const data = await res.json()
 
+      console.log('📡 Réponse CinetPay:', data)
+
       if (res.ok && data.paymentUrl) {
+        // ✅ Rediriger vers la page de paiement CinetPay
         window.location.href = data.paymentUrl
       } else {
-        setError(data.error || 'Erreur lors de la création du paiement')
+        // ❌ Afficher l'erreur
+        setError(data.error || data.message || 'Erreur lors de la création du paiement')
+        toast.error(data.error || 'Erreur de paiement')
         setLoading(false)
       }
     } catch (err) {
+      console.error('Erreur paiement:', err)
       setError('Erreur réseau. Veuillez réessayer.')
+      toast.error('Erreur réseau')
       setLoading(false)
     }
   }
@@ -116,20 +83,20 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
       {/* Overlay */}
       <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" onClick={onClose} />
       
-      {/* 🆕 Modal avec overflow-y-auto pour défiler */}
+      {/* Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-gray-700">
           
-          {/* Header - FIXE */}
-          <div className="relative bg-gradient-to-r from-amber-600 to-orange-600 p-5 flex-shrink-0">
+          {/* Header */}
+          <div className="relative bg-gradient-to-r from-purple-600 to-indigo-600 p-5 flex-shrink-0">
             <div className="absolute inset-0 bg-black/20"></div>
             <div className="relative flex justify-between items-center">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm text-2xl">
-                  🪙
+                  💳
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-white">Recharger mes coins</h2>
+                  <h2 className="text-lg font-bold text-white">Acheter des coins</h2>
                   <p className="text-xs text-white/80">{pack.name}</p>
                 </div>
               </div>
@@ -139,13 +106,13 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
             </div>
           </div>
 
-          {/* 🆕 Contenu DÉFILABLE */}
+          {/* Contenu défilable */}
           <div className="overflow-y-auto flex-1 p-6">
-            {/* Récapitulatif du pack */}
+            {/* Récapitulatif */}
             <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 mb-4 border border-gray-700">
               <div className="text-center">
                 <p className="text-sm text-gray-400">{pack.name}</p>
-                <p className="text-3xl font-bold text-amber-500">{totalCoins.toLocaleString()} coins</p>
+                <p className="text-3xl font-bold text-purple-400">{totalCoins.toLocaleString()} coins</p>
                 {pack.bonus > 0 && (
                   <p className="text-xs text-green-400 mt-1">+{pack.bonus} coins bonus inclus</p>
                 )}
@@ -159,60 +126,27 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
               )}
             </div>
 
-            {/* Sélecteur de moyen de paiement */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Choisissez votre mode de paiement
-              </label>
-              <div className="space-y-2">
-                {paymentGateways.filter((g) => g.isActive).map((gateway) => (
-                  <button
-                    key={gateway.id}
-                    type="button"
-                    onClick={() => setSelectedGateway(gateway.id)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition ${
-                      selectedGateway === gateway.id
-                        ? 'border-amber-500 bg-amber-500/10'
-                        : 'border-gray-700 hover:border-gray-600 bg-gray-800/50'
-                    }`}
-                  >
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${
-                      selectedGateway === gateway.id ? 'bg-amber-500/20' : 'bg-gray-700'
-                    }`}>
-                      {gateway.type === 'mobile_money' ? '📱' : '💳'}
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="font-bold text-sm text-white">{gateway.displayName}</p>
-                      <p className="text-[10px] text-gray-400">
-                        {gateway.type === 'mobile_money' ? 'Paiement mobile instantané' : 'Carte bancaire sécurisée'}
-                      </p>
-                    </div>
-                    {selectedGateway === gateway.id && (
-                      <CheckCircleIcon className="w-5 h-5 text-amber-500 flex-shrink-0" />
-                    )}
-                  </button>
-                ))}
+            {/* Info CinetPay */}
+            <div className="bg-purple-500/10 rounded-xl p-4 mb-4 border border-purple-500/20">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center text-2xl">
+                  💳
+                </div>
+                <div>
+                  <p className="font-semibold text-white text-sm">Paiement sécurisé CinetPay</p>
+                  <p className="text-[10px] text-gray-400">Visa • Mastercard • Mobile Money</p>
+                </div>
+              </div>
+              <p className="text-xs text-gray-300">
+                Vous serez redirigé vers la page de paiement sécurisée CinetPay pour finaliser votre achat.
+              </p>
+              <div className="mt-3 flex items-center gap-2 text-[10px] text-gray-400">
+                <ShieldCheckIcon className="w-3.5 h-3.5 text-green-400" />
+                <span>Paiement sécurisé SSL</span>
+                <ShieldCheckIcon className="w-3.5 h-3.5 text-green-400" />
+                <span>Protection acheteur</span>
               </div>
             </div>
-
-            {/* Information sur le moyen sélectionné */}
-            {selectedGatewayInfo && (
-              <div className={`rounded-xl p-3 mb-4 border ${
-                selectedGatewayInfo.type === 'mobile_money' 
-                  ? 'bg-blue-500/10 border-blue-500/20' 
-                  : 'bg-purple-500/10 border-purple-500/20'
-              }`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">{selectedGatewayInfo.type === 'mobile_money' ? '📱' : '💳'}</span>
-                  <p className="font-semibold text-white text-sm">{selectedGatewayInfo.displayName}</p>
-                </div>
-                <p className="text-[10px] text-gray-400">
-                  {selectedGatewayInfo.type === 'mobile_money' 
-                    ? 'Vous recevrez une notification Wave pour confirmer le paiement.' 
-                    : 'Vous serez redirigé vers une page de paiement sécurisée.'}
-                </p>
-              </div>
-            )}
 
             {/* Erreur */}
             {error && (
@@ -223,28 +157,27 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
             )}
           </div>
 
-          {/* 🆕 Footer - FIXE en bas */}
+          {/* Footer */}
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <button
               onClick={handlePayment}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-amber-500/20 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Traitement...
+                  Redirection vers CinetPay...
                 </>
               ) : (
                 <>
-                  {selectedGatewayInfo?.type === 'mobile_money' ? '📱' : '💳'}
-                  Payer {pack.price.toLocaleString()} FCFA
+                  💳 Payer {pack.price.toLocaleString()} FCFA avec CinetPay
                 </>
               )}
             </button>
 
             <p className="text-center text-[10px] text-gray-500 mt-3">
-              🔒 Paiement sécurisé • {totalCoins} coins seront ajoutés à votre compte
+              🔒 Paiement sécurisé • Vous serez redirigé vers CinetPay
             </p>
           </div>
         </div>

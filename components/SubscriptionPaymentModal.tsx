@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from 'react'
-import { XMarkIcon, TrophyIcon, CheckCircleIcon, ExclamationTriangleIcon, SparklesIcon } from '@heroicons/react/24/outline'
-import toast from 'react-hot-toast'
+import { XMarkIcon, TrophyIcon, CheckCircleIcon, ExclamationTriangleIcon, SparklesIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 interface SubscriptionPlanModal {
   id: string
@@ -29,7 +28,6 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // 🆕 Empêcher le défilement de la page en arrière-plan
   if (isOpen) {
     document.body.style.overflow = 'hidden'
   } else {
@@ -42,15 +40,22 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/payment/wave/subscribe', {
+      // 🔴 APPEL UNIQUEMENT À CINETPAY POUR LES ABONNEMENTS
+      const res = await fetch('/api/payment/cinetpay/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan: plan.id,
-          amount: plan.price
+          amount: plan.price,
+          name: plan.name,
+          duration: plan.duration,
+          coinsBonus: plan.coinsBonus
         })
       })
       const data = await res.json()
+      
+      console.log('📡 Réponse abonnement CinetPay:', data)
+
       if (res.ok && data.paymentUrl) {
         window.location.href = data.paymentUrl
       } else {
@@ -65,14 +70,12 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
 
   return (
     <>
-      {/* Overlay */}
       <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50" onClick={onClose} />
       
-      {/* 🆕 Modal avec overflow-y-auto pour défiler */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col border border-gray-700">
           
-          {/* Header - FIXE */}
+          {/* Header */}
           <div className="relative bg-gradient-to-r from-amber-600 to-orange-600 p-5 flex-shrink-0">
             <div className="absolute inset-0 bg-black/20"></div>
             <div className="relative flex justify-between items-center">
@@ -91,10 +94,10 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
             </div>
           </div>
 
-          {/* 🆕 Contenu DÉFILABLE */}
+          {/* Contenu défilable */}
           <div className="overflow-y-auto flex-1 p-6">
-            {/* Récapitulatif de l'offre */}
-            <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 mb-6 border border-gray-700">
+            {/* Récapitulatif */}
+            <div className="bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl p-4 mb-4 border border-gray-700">
               <div className="text-center">
                 <p className="text-sm text-gray-400">{plan.description || `Offre ${plan.name}`}</p>
                 <p className="text-3xl font-bold text-amber-500">
@@ -113,9 +116,9 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
               </div>
             </div>
 
-            {/* Avantages inclus */}
+            {/* Avantages */}
             {plan.benefits && plan.benefits.length > 0 && (
-              <div className="space-y-2 mb-6">
+              <div className="space-y-2 mb-4">
                 <p className="text-sm font-semibold text-white flex items-center gap-2">
                   <SparklesIcon className="w-4 h-4 text-amber-500" />
                   Avantages inclus
@@ -131,18 +134,24 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
               </div>
             )}
 
-            {/* Information Wave */}
-            <div className="bg-blue-500/10 rounded-xl p-4 mb-6 border border-blue-500/20">
+            {/* Info CinetPay */}
+            <div className="bg-purple-500/10 rounded-xl p-4 mb-4 border border-purple-500/20">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">W</span>
+                <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center text-2xl">
+                  💳
                 </div>
                 <div>
-                  <p className="font-semibold text-white text-sm">Wave</p>
-                  <p className="text-[10px] text-gray-400">Paiement sécurisé</p>
+                  <p className="font-semibold text-white text-sm">Paiement sécurisé CinetPay</p>
+                  <p className="text-[10px] text-gray-400">Visa • Mastercard • Mobile Money</p>
                 </div>
               </div>
-              <p className="text-xs text-gray-400">Vous serez redirigé vers Wave pour confirmer le paiement.</p>
+              <p className="text-xs text-gray-300">
+                Vous serez redirigé vers la page de paiement sécurisée CinetPay.
+              </p>
+              <div className="mt-2 flex items-center gap-2 text-[10px] text-gray-400">
+                <ShieldCheckIcon className="w-3.5 h-3.5 text-green-400" />
+                <span>Paiement sécurisé SSL</span>
+              </div>
             </div>
 
             {/* Erreur */}
@@ -154,7 +163,7 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
             )}
           </div>
 
-          {/* 🆕 Footer - FIXE en bas */}
+          {/* Footer */}
           <div className="p-4 border-t border-gray-700 flex-shrink-0">
             <button
               onClick={handleSubscribe}
@@ -164,17 +173,17 @@ export default function SubscriptionPaymentModal({ isOpen, onClose, plan, onSucc
               {loading ? (
                 <div className="flex items-center justify-center gap-2">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  Traitement...
+                  Redirection vers CinetPay...
                 </div>
               ) : plan.price > 0 ? (
-                `Souscrire pour ${plan.price.toLocaleString()} FCFA`
+                `💳 Payer ${plan.price.toLocaleString()} FCFA avec CinetPay`
               ) : (
                 'Commencer gratuitement'
               )}
             </button>
 
             <p className="text-center text-[10px] text-gray-500 mt-3">
-              💳 Paiement sécurisé • Annulation possible à tout moment
+              🔒 Paiement sécurisé • Annulation possible à tout moment
             </p>
           </div>
         </div>

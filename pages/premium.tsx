@@ -166,17 +166,25 @@ const detectUserCountry = async () => {
   }
 
   // 🆕 Vérifier les paramètres de retour Wave
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const success = params.get('success')
-    const amount = params.get('amount')
-    
-    if (success === 'coins_added' && amount) {
-      toast.success(`🎉 ${amount} coins ajoutés !`, { duration: 5000 })
-      refreshCoins()
-      window.history.replaceState({}, '', '/premium')
-    }
-  }, [])
+  // Dans le useEffect qui vérifie les paramètres de retour
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  const success = params.get('success')
+  const amount = params.get('amount')
+  
+  if (success === 'coins_added' && amount) {
+    toast.success(`🎉 ${amount} coins ajoutés !`, { duration: 5000 })
+    refreshCoins()
+    window.history.replaceState({}, '', '/premium')
+  } else if (success === 'subscription_activated') {
+    toast.success('🎉 Abonnement activé avec succès !', { duration: 5000 })
+    loadAllData()
+    window.history.replaceState({}, '', '/premium')
+  } else if (success === 'already_credited') {
+    toast('Coins déjà crédités', { icon: 'ℹ️' })
+    window.history.replaceState({}, '', '/premium')
+  }
+}, [])
 
   const handleBuyCoins = (pack: CoinPack) => {
     setSelectedCoinPack(pack)
