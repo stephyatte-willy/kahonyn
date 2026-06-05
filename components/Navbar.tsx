@@ -124,13 +124,13 @@ export default function Navbar({
               {!hideCategories && (
                 <div className="flex-1 max-w-[180px] sm:max-w-[280px] md:max-w-md mx-3 sm:mx-6">
                   <div className="relative">
-                    <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/50" />
+                    <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
                     <input
                       type="text"
                       placeholder="Rechercher..."
                       value={localSearch}
                       onChange={handleSearchChange}
-                      className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-2.5 text-sm bg-white/[0.06] border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/30 focus:border-[#FF6B35]/50 outline-none transition-all text-white font-medium placeholder-white/30 backdrop-blur-sm"
+                      className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-2.5 text-sm bg-white/[0.08] border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/30 focus:border-[#FF6B35]/50 outline-none transition-all text-white font-medium placeholder-white/70 backdrop-blur-sm"
                     />
                   </div>
                 </div>
@@ -228,8 +228,6 @@ export default function Navbar({
                         : 'bg-white/[0.03] text-white/70 hover:bg-white/[0.06] hover:text-white border border-white/[0.04]'
                     }`}
                   >
-                    <span className="text-base">📂</span>
-                    <span>Catégories</span>
                     <ChevronDownIcon className={`w-3.5 h-3.5 transition-transform duration-300 ${showCategoryModal ? 'rotate-180' : ''}`} />
                   </button>
                 </div>

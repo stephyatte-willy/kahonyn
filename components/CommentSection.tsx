@@ -134,7 +134,7 @@ export default function CommentSection({ videoId }: CommentSectionProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+      <h3 className="text-base font-bold text-gray-100 flex items-center gap-2">
         💬 Commentaires ({comments.length})
       </h3>
 

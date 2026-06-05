@@ -118,7 +118,7 @@ export default function CreateAdmin() {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-4 py-2 border text-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                 placeholder="Nom de l'administrateur"
                 required
               />
@@ -133,7 +133,7 @@ export default function CreateAdmin() {
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-4 py-2 border text-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                 placeholder="0501010101"
                 required
               />
@@ -149,7 +149,7 @@ export default function CreateAdmin() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-4 py-2 border text-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                 placeholder="admin@exemple.com"
               />
             </div>
@@ -164,7 +164,7 @@ export default function CreateAdmin() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none pr-10"
+                  className="w-full px-4 py-2 text-gray-700 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none pr-10"
                   placeholder="••••••••"
                   required
                   minLength={6}
@@ -188,7 +188,7 @@ export default function CreateAdmin() {
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
+                className="w-full px-4 py-2 border text-gray-700 rounded-lg focus:ring-2 focus:ring-orange-500 outline-none"
                 placeholder="••••••••"
                 required
               />

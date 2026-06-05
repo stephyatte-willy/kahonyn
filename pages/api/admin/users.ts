@@ -16,6 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       select: {
         id: true, phone: true, name: true, email: true,
         role: true, coins: true, totalEarnings: true,
+        isActive: true, // 🆕 Récupérer le vrai champ isActive
         createdAt: true,
         _count: { select: { videos: true, purchases: true } }
       }
@@ -30,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       coins: u.coins || 0,
       totalEarnings: u.totalEarnings || 0,
       totalWithdrawn: 0,
-      isActive: true,
+      isActive: u.isActive !== undefined ? u.isActive : true, // 🆕 Utiliser la vraie valeur
       videos: u._count?.videos || 0,
       purchases: u._count?.purchases || 0,
       createdAt: u.createdAt,

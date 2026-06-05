@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id, title, description, price, status, category, categories } = req.body
+    const { id, title, description, price, status, category, categories, thumbnail } = req.body
 
     if (!id) {
       return res.status(400).json({ error: 'ID vidéo requis' })
@@ -33,6 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       updateData.category = categoryString
       updateData.tags = categoryString
     }
+    // 🆕 Prendre en compte la miniature
+    if (thumbnail !== undefined) updateData.thumbnail = thumbnail
 
     await (prisma as any).video.update({
       where: { id },

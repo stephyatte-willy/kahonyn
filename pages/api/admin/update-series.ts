@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id, title, description, price, status, category, categories } = req.body
+    const { id, title, description, price, status, category, categories, coverImage, thumbnail } = req.body
 
     if (!id) {
       return res.status(400).json({ error: 'ID série requis' })
@@ -24,6 +24,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? categories.join(',') 
       : category || undefined
 
+    // 🆕 Utiliser coverImage ou thumbnail (les deux noms possibles)
+    const imageUrl = coverImage || thumbnail
+
     // Mettre à jour la série
     const updateData: any = {}
     if (title !== undefined) updateData.title = title
@@ -31,13 +34,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (price !== undefined) updateData.price = parseInt(price)
     if (status !== undefined) updateData.status = status
     if (categoryString !== undefined) updateData.category = categoryString
+    if (imageUrl !== undefined) updateData.coverImage = imageUrl
 
     await (prisma as any).series.update({
       where: { id },
       data: updateData
     })
 
-    // Mettre à jour tous les épisodes
+    // Mettre à jour tous les épisodes (prix, statut, catégorie seulement)
     const episodeUpdate: any = {}
     if (price !== undefined) episodeUpdate.price = parseInt(price)
     if (status !== undefined) episodeUpdate.status = status

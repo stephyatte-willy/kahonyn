@@ -119,28 +119,28 @@ export default function AdminDashboard() {
               href="/admin/videos/pending"
               className="flex items-center justify-between p-4 bg-yellow-50 rounded-lg hover:bg-yellow-100 transition"
             >
-              <span className="font-medium">Vidéos en attente ({stats?.pendingVideos || 0})</span>
+              <span className="font-medium text-gray-800">Vidéos en attente ({stats?.pendingVideos || 0})</span>
               <span className="text-yellow-600">→</span>
             </a>
             <a
               href="/admin/finances/withdrawals"
               className="flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition"
             >
-              <span className="font-medium">Demandes de retrait</span>
+              <span className="font-medium text-gray-800">Demandes de retrait</span>
               <span className="text-red-600">→</span>
             </a>
             <a
               href="/admin/creators"
               className="flex items-center justify-between p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition"
             >
-              <span className="font-medium">Gérer les créateurs</span>
+              <span className="font-medium text-gray-800">Gérer les créateurs</span>
               <span className="text-purple-600">→</span>
             </a>
             <a
               href="/admin/settings"
               className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
             >
-              <span className="font-medium">Paramètres</span>
+              <span className="font-medium text-gray-800">Paramètres</span>
               <span className="text-gray-600">→</span>
             </a>
           </div>

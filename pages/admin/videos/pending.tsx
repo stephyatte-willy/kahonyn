@@ -268,11 +268,7 @@ export default function PendingVideos() {
         {/* En-tête */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Vidéos en attente</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              🎬 Vidéo courte → Approuver avec prix et catégories<br />
-              🎞️ Film complet → Découper en épisodes
-            </p>
+            <h1 className="text-2xl font-bold text-gray-800">🎥 Vidéos en attente</h1>
           </div>
           <div className="bg-yellow-100 rounded-full px-4 py-2">
             <span className="text-yellow-700 font-semibold">{videos.length} en attente</span>
@@ -316,24 +312,16 @@ export default function PendingVideos() {
                       disabled={processingId === video.id}
                       className="flex-1 flex items-center justify-center gap-1 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition disabled:opacity-50"
                     >
-                      {processingId === video.id ? (
-                        <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>
-                      ) : (
-                        <CheckCircleIcon className="w-4 h-4" />
-                      )}
-                      <span className="hidden sm:inline">{processingId === video.id ? '...' : 'Simple'}</span>
+                      🎬
+                      <span className="hidden sm:inline">{processingId === video.id ? '...' : 'Film'}</span>
                     </button>
                     <button
                       onClick={() => handleCutSeriesClick(video)}
                       disabled={processingId === video.id}
                       className="flex-1 flex items-center justify-center gap-1 py-2 bg-purple-500 text-white rounded-lg text-sm hover:bg-purple-600 transition disabled:opacity-50"
                     >
-                      {processingId === video.id ? (
-                        <div className="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div>
-                      ) : (
-                        <FilmIcon className="w-4 h-4" />
-                      )}
-                      <span className="hidden sm:inline">{processingId === video.id ? '...' : 'Découper'}</span>
+                      🎞️
+                      <span className="hidden sm:inline">{processingId === video.id ? '...' : 'Série'}</span>
                     </button>
                     <button
                       onClick={() => handleRejectClick(video)}
@@ -418,7 +406,7 @@ export default function PendingVideos() {
                   type="number"
                   value={simpleVideoPrice}
                   onChange={(e) => setSimpleVideoPrice(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full px-3 py-2 border text-gray-700 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   min={0} step={50}
                 />
                 <p className="text-xs text-gray-400 mt-1">Le créateur recevra 70%</p>
@@ -532,7 +520,7 @@ export default function PendingVideos() {
                   type="number"
                   value={pricePerEpisode}
                   onChange={(e) => setPricePerEpisode(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                  className="w-full px-3 py-2 border text-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                   min={0} step={50}
                 />
               </div>

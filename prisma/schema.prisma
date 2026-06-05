@@ -24,6 +24,7 @@ model User {
   avatar        String?
   coins         Int       @default(0)
   totalEarnings Float     @default(0)
+  isActive      Boolean   @default(true) 
   emailVerified DateTime?
   image         String?
   createdAt     DateTime  @default(now())

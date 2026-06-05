@@ -179,9 +179,6 @@ export default function Home() {
                 </p>
               </div>
             </div>
-            <Link href="/series" className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-[#FF6B35] hover:bg-[#FF6B35]/10 rounded-lg transition border border-[#FF6B35]/30">
-              Voir tout →
-            </Link>
           </div>
           
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
@@ -240,17 +237,14 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#D4A855] to-[#E5C87B] flex items-center justify-center shadow-lg shadow-[#D4A855]/20">
                 <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D0D0D]" />
-              </div>
-              <div>
+                  </div>
+                  <div>
                 <h2 className="text-base sm:text-lg font-bold text-white">Films à l'affiche</h2>
                 <p className="text-xs sm:text-sm text-white/50 font-medium flex items-center gap-1">
                   <ClockIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {movies.length} films
                 </p>
               </div>
             </div>
-            <Link href="/movies" className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-[#D4A855] hover:bg-[#D4A855]/10 rounded-lg transition border border-[#D4A855]/30">
-              Voir tout →
-            </Link>
           </div>
           
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">

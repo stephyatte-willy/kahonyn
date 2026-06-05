@@ -208,7 +208,7 @@ export default function UserCoinsManagement() {
             <h1 className="text-2xl font-bold text-gray-800">Gestion des coins</h1>
             <p className="text-gray-500 text-sm mt-1">Créditez, débitez ou définissez le solde des utilisateurs</p>
           </div>
-          <button onClick={fetchUsers} className="flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+          <button onClick={fetchUsers} className="flex items-center text-gray-700 gap-2 px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
             <ArrowPathIcon className="w-4 h-4" /> Actualiser
           </button>
         </div>
@@ -219,7 +219,7 @@ export default function UserCoinsManagement() {
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input type="text" placeholder="Rechercher par nom, téléphone ou email..." value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" />
+              className="w-full pl-9 pr-4 py-2 text-gray-700 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none" />
           </div>
         </div>
 
@@ -353,7 +353,7 @@ export default function UserCoinsManagement() {
 
                 {/* Champ personnalisé */}
                 <input type="number" value={amount} onChange={(e) => setAmount(parseInt(e.target.value) || 0)}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#FF6B35] outline-none" min={1} />
+                  className="w-full px-3 py-2 border text-gray-600 rounded-lg focus:ring-2 focus:ring-[#FF6B35] outline-none" min={1} />
               </div>
 
               {/* Raison */}
@@ -361,7 +361,7 @@ export default function UserCoinsManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Raison (optionnel)</label>
                 <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
                   placeholder={getDefaultReason()}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-[#FF6B35] outline-none" />
+                  className="w-full px-3 py-2 border text-gray-600 rounded-lg focus:ring-2 focus:ring-[#FF6B35] outline-none" />
               </div>
 
               {/* Résumé */}
@@ -370,7 +370,7 @@ export default function UserCoinsManagement() {
                   ? 'bg-red-50 border-red-200' 
                   : 'bg-amber-50 border-amber-200'
               }`}>
-                <p className="text-sm font-bold">
+                <p className="text-sm font-bold text-gray-800">
                   {actionType === 'credit' && `➕ Ajouter ${amount} coins`}
                   {actionType === 'debit' && `➖ Retirer ${amount} coins`}
                   {actionType === 'set' && `✏️ Définir le solde à ${amount} coins`}
