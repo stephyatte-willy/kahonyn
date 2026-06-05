@@ -104,19 +104,17 @@ export default function Navbar({
               
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 flex-shrink-0 group">
-                <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-xl shadow-[#FF6B35]/30 group-hover:shadow-[#FF6B35]/50 transition-all duration-300 overflow-hidden">
                   <Image
                     src="/logo-kahonyn.png"
                     alt="Kahonyn"
-                    width={40}
-                    height={40}
+                    width={70}
+                    height={70}
                     className="object-contain"
                     priority
                   />
-                </div>
                 <div className="hidden sm:block">
                   <h1 className="font-extrabold text-lg sm:text-xl text-white tracking-tight leading-none">Kahonyn</h1>
-                  <p className="text-[9px] sm:text-[10px] text-[#D4A855] font-bold tracking-[0.2em] uppercase">Mini-séries</p>
+                  <p className="text-[9px] sm:text-[10px] text-[#D4A855] font-bold tracking-[0.2em] uppercase">RACONTE UNE HISTOIRE</p>
                 </div>
               </Link>
 
