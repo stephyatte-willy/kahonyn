@@ -137,8 +137,7 @@ export default function PremiumPage() {
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] pb-20">
-      <Navbar />
-
+      <Navbar hideCategories={true} />
       {/* En-tête */}
       <div className="sticky top-12 z-20 bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-4 py-4">

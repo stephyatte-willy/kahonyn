@@ -81,7 +81,8 @@ export default function MyListPage() {
 
   if (!isAuthorized && !authLoading) {
     return (
-      <div className="min-h-screen bg-[#0D0D0D]"><Navbar />
+      <div className="min-h-screen bg-[#0D0D0D]">
+        <Navbar />
         <div className="flex flex-col items-center justify-center h-[80vh] px-4">
           <div className="w-24 h-24 rounded-2xl bg-[#1A1A2E] border border-white/[0.06] flex items-center justify-center mb-6 shadow-xl">
             <LockClosedIcon className="w-12 h-12 text-[#FF6B35]" />
@@ -175,7 +176,7 @@ export default function MyListPage() {
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] pb-20">
-      <Navbar />
+      <Navbar hideCategories={true} />
       <div className="sticky top-12 z-20 bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-white/[0.04]">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
