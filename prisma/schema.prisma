@@ -44,7 +44,8 @@ model User {
   paymentMethods     PaymentMethod[]
   withdrawalRequests WithdrawalRequest[]
   transactions       Transaction[]
-  ratings            Rating[]  
+  ratings            Rating[]
+  adWatches          AdWatch[]      // ← NOUVEAU
 }
 
 // ==================== AUTH (NextAuth) ====================
@@ -118,7 +119,8 @@ model Video {
   comments      Comment[]
   watchHistory  WatchHistory[]
   notifications Notification[]
-  ratings       Rating[]  
+  ratings       Rating[]
+  adWatches     AdWatch[]      // ← NOUVEAU
 }
 
 model Series {
@@ -201,7 +203,6 @@ model Purchase {
   series Series? @relation(fields: [seriesId], references: [id])
 }
 
-// 🆕 NOUVELLE TABLE : Transactions
 model Transaction {
   id              String    @id @default(cuid())
   userId          String
@@ -210,10 +211,10 @@ model Transaction {
   coins           Int       // Coins crédités/débités
   currency        String    @default("XOF") // XOF, USD, EUR
   paymentMethod   String    // wave, cinetpay, orange_money, coins, admin
-  paymentGateway  String?   // 🆕 Référence à PaymentGateway
+  paymentGateway  String?   // Référence à PaymentGateway
   status          String    @default("pending")
   reference       String?   // Référence externe
-  gatewayResponse String?   @db.Text // 🆕 Réponse complète de la passerelle (JSON)
+  gatewayResponse String?   @db.Text // Réponse complète de la passerelle (JSON)
   metadata        String?   @db.Text
   description     String?
   createdAt       DateTime  @default(now())
@@ -234,7 +235,6 @@ model ExchangeRate {
   updatedAt     DateTime @updatedAt
 }
 
-// 🆕 MODIFIÉ : Subscription avec lien vers SubscriptionPlan
 model Subscription {
   id               String    @id @default(cuid())
   userId           String
@@ -253,7 +253,6 @@ model Subscription {
   planRef SubscriptionPlan? @relation(fields: [planId], references: [id])
 }
 
-// 🆕 NOUVELLE TABLE : SubscriptionPlan (abonnements configurables)
 model SubscriptionPlan {
   id          String   @id @default(cuid())
   name        String
@@ -275,7 +274,6 @@ model SubscriptionPlan {
   subscriptions Subscription[]
 }
 
-// 🆕 Table des méthodes de paiement disponibles
 model PaymentGateway {
   id            String   @id @default(cuid())
   name          String   // "wave", "cinetpay", "orange_money", "stripe"
@@ -293,7 +291,6 @@ model PaymentGateway {
   updatedAt     DateTime @updatedAt
 }
 
-// 🆕 MODIFIÉ : CoinPack avec nouveaux champs
 model CoinPack {
   id             String    @id @default(cuid())
   name           String
@@ -309,14 +306,13 @@ model CoinPack {
   sortOrder      Int       @default(0)
   currency       String    @default("XOF")
   stripePriceId  String?
-  cinetpayProductId String? // 🆕 ID produit CinetPay
+  cinetpayProductId String? // ID produit CinetPay
   promotionText  String?
   promotionEnd   DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 }
 
-// 🆕 NOUVELLE TABLE : VipBenefit (avantages VIP configurables)
 model VipBenefit {
   id          String   @id @default(cuid())
   title       String
@@ -328,7 +324,6 @@ model VipBenefit {
   updatedAt   DateTime @updatedAt
 }
 
-// 🆕 NOUVELLE TABLE : Promotion (bannières/offres)
 model Promotion {
   id          String   @id @default(cuid())
   title       String
@@ -377,7 +372,7 @@ model WatchHistory {
   videoId       String
   seriesId      String?
   episodeNumber Int?
-  progress      Float    @default(0) // Temps en secondes (pas pourcentage)
+  progress      Float    @default(0) // Temps en secondes
   completed     Boolean  @default(false)
   watchedAt     DateTime @default(now())
 
@@ -385,7 +380,7 @@ model WatchHistory {
   video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@index([userId, videoId])
-  @@index([userId]) // 🆕 Pour récupérer tout l'historique d'un utilisateur
+  @@index([userId])
 }
 
 model Rating {
@@ -412,4 +407,40 @@ model Notification {
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   video Video? @relation(fields: [videoId], references: [id], onDelete: Cascade)
+}
+
+// ==================== PUBLICITÉS ====================
+
+// Historique des publicités regardées par l'utilisateur
+model AdWatch {
+  id           String   @id @default(cuid())
+  userId       String
+  episodeId    String
+  rewardType   String   @default("free_episode")  // 'free_episode', 'bonus_coins', 'skip_wait'
+  rewardAmount Int      @default(1)               // 1 épisode ou X coins
+  adProvider   String   @default("google")       // google, unity, applovin
+  createdAt    DateTime @default(now())
+
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode Video @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, episodeId])  // Une pub par épisode max
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Configuration des publicités (une seule ligne de configuration)
+model AdConfig {
+  id                    String   @id @default(cuid())
+  adProvider            String   @default("google")     // google, unity, applovin
+  rewardedAdUnitId      String?                         // ID unité publicitaire récompensée
+  interstitialUnitId    String?                         // ID unité interstitielle
+  maxRewardedPerDay     Int      @default(5)            // Max pubs récompensées par jour
+  freeEpisodesBeforeAd  Int      @default(3)            // 3 épisodes gratuits puis pub forcée
+  adCooldownMinutes     Int      @default(5)            // Temps entre deux pubs forcées (minutes)
+  rewardedAdReward      Int      @default(1)            // Nombre d'épisodes débloqués par pub
+  isActive              Boolean  @default(true)
+  updatedAt             DateTime @updatedAt
+
+  @@map("ad_configs")
 }

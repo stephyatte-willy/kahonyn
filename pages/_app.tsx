@@ -7,6 +7,7 @@ import '../styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
+    // ✅ Supprimez complètement React.StrictMode
     <SessionProvider session={pageProps.session}>
       <Head>
         <title>Kahonyn - Mini-séries Ivoiriennes</title>

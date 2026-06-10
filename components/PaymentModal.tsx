@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { XMarkIcon, CheckCircleIcon, ExclamationTriangleIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+// ✅ IMPORT errorHandler
+import { handleError } from '../utils/errorHandler'
 import toast from 'react-hot-toast'
 
 interface CoinPack {
@@ -40,12 +42,23 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
 
   const totalCoins = pack.coins + (pack.bonus || 0)
 
+  // ✅ handlePayment avec meilleure gestion d'erreur
   const handlePayment = async () => {
     setLoading(true)
     setError('')
 
+    // Validation de base
+    if (!pack.price || pack.price <= 0) {
+      const errMsg = 'Montant invalide'
+      setError(errMsg)
+      toast.error(errMsg)
+      setLoading(false)
+      return
+    }
+
     try {
-      // 🔴 APPEL UNIQUEMENT À CINETPAY
+      console.log('🚀 Initiating payment for pack:', pack.id)
+
       const res = await fetch('/api/payment/cinetpay/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -57,23 +70,47 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
         })
       })
 
-      const data = await res.json()
+      // Vérifier si la réponse est JSON
+      const contentType = res.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Réponse serveur invalide')
+      }
 
+      const data = await res.json()
       console.log('📡 Réponse CinetPay:', data)
 
       if (res.ok && data.paymentUrl) {
-        // ✅ Rediriger vers la page de paiement CinetPay
-        window.location.href = data.paymentUrl
+        // ✅ Redirection réussie
+        toast.success('Redirection vers la page de paiement...', { duration: 2000 })
+        
+        // Petit délai pour que l'utilisateur voie le toast
+        setTimeout(() => {
+          window.location.href = data.paymentUrl
+        }, 500)
       } else {
-        // ❌ Afficher l'erreur
-        setError(data.error || data.message || 'Erreur lors de la création du paiement')
-        toast.error(data.error || 'Erreur de paiement')
+        // ❌ Gestion des erreurs CinetPay
+        const errorMsg = data.error || data.message || 'Erreur lors de la création du paiement'
+        setError(errorMsg)
+        toast.error(errorMsg, { duration: 4000 })
         setLoading(false)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erreur paiement:', err)
-      setError('Erreur réseau. Veuillez réessayer.')
-      toast.error('Erreur réseau')
+      
+      // Détection du type d'erreur
+      let errorMsg = 'Erreur réseau. Veuillez réessayer.'
+      
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        errorMsg = '📡 Problème de connexion. Vérifiez votre réseau.'
+      } else if (err.message === 'Réponse serveur invalide') {
+        errorMsg = '⚠️ Le serveur de paiement ne répond pas correctement.'
+      } else if (err.message) {
+        errorMsg = err.message
+      }
+      
+      setError(errorMsg)
+      toast.error(errorMsg, { duration: 4000 })
+      handleError(err, 'PaymentModal')
       setLoading(false)
     }
   }
@@ -100,7 +137,11 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
                   <p className="text-xs text-white/80">{pack.name}</p>
                 </div>
               </div>
-              <button onClick={onClose} className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all duration-300">
+              <button 
+                onClick={onClose} 
+                className="w-8 h-8 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all duration-300"
+                aria-label="Fermer"
+              >
                 <XMarkIcon className="w-4 h-4 text-white" />
               </button>
             </div>
@@ -152,7 +193,16 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2 text-red-400 text-sm">
                 <ExclamationTriangleIcon className="w-4 h-4 flex-shrink-0" />
-                {error}
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* Conseils en cas d'erreur réseau */}
+            {error && error.includes('réseau') && (
+              <div className="mb-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                <p className="text-xs text-yellow-400">
+                  💡 Vérifiez votre connexion internet et réessayez. Si le problème persiste, contactez le support.
+                </p>
               </div>
             )}
           </div>
@@ -162,7 +212,7 @@ export default function PaymentModal({ isOpen, onClose, pack, onSuccess }: Payme
             <button
               onClick={handlePayment}
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>

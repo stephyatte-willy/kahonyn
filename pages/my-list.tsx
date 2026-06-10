@@ -81,14 +81,14 @@ export default function MyListPage() {
 
   if (!isAuthorized && !authLoading) {
     return (
-      <div className="min-h-screen bg-[#0D0D0D]">
+      <div className="min-h-screen bg-gradient-to-b from-[#1A0A00] via-[#0D0D0D] to-[#0D0D0D]">
         <Navbar />
         <div className="flex flex-col items-center justify-center h-[80vh] px-4">
-          <div className="w-24 h-24 rounded-2xl bg-[#1A1A2E] border border-white/[0.06] flex items-center justify-center mb-6 shadow-xl">
+          <div className="w-24 h-24 rounded-2xl bg-[#1A1A2E] border border-[#8B5A2B]/20 flex items-center justify-center mb-6 shadow-xl">
             <LockClosedIcon className="w-12 h-12 text-[#FF6B35]" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Accès restreint</h2>
-          <p className="text-sm text-white/60 text-center max-w-sm">Connectez-vous pour accéder à votre liste personnelle</p>
+          <p className="text-sm text-[#D4A855]/70 text-center max-w-sm">Connectez-vous pour accéder à votre liste personnelle</p>
         </div>
       </div>
     )
@@ -96,16 +96,17 @@ export default function MyListPage() {
 
   if (loading || authLoading) {
     return (
-      <div className="min-h-screen bg-[#0D0D0D]"><Navbar />
+      <div className="min-h-screen bg-gradient-to-b from-[#1A0A00] via-[#0D0D0D] to-[#0D0D0D]">
+        <Navbar />
         <div className="flex items-center justify-center h-[80vh]">
           <div className="flex flex-col items-center gap-5">
             <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-white/[0.04] flex items-center justify-center p-3 animate-pulse border border-white/[0.06]">
+              <div className="w-20 h-20 rounded-2xl bg-[#1A1A2E]/80 flex items-center justify-center p-3 animate-pulse border border-[#8B5A2B]/30">
                 <img src="/logo-kahonyn.png" alt="Kahonyn" className="w-14 h-14 object-contain" />
               </div>
               <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#FF6B35] animate-bounce"></div>
             </div>
-            <p className="text-white/60 text-sm font-semibold">Chargement...</p>
+            <p className="text-[#D4A855]/80 text-sm font-semibold">Chargement...</p>
           </div>
         </div>
       </div>
@@ -122,23 +123,23 @@ export default function MyListPage() {
           </div>
           <div>
             <h2 className="text-base font-bold text-white">{title}</h2>
-            <p className="text-sm text-white/50 font-medium">{data.length} élément{data.length > 1 ? 's' : ''}</p>
+            <p className="text-sm text-[#D4A855]/70 font-medium">{data.length} élément{data.length > 1 ? 's' : ''}</p>
           </div>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
           {data.map((item) => (
             <div key={`${item.id}-${item.addedVia}`} className="relative group">
-              <Link href={item.type === 'series' ? `/series/${item.id}` : `/video/${item.id}`} className="block">
-                <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-white/[0.04] hover:border-[#FF6B35]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+              <Link href={item.type === 'series' ? `/series/${item.id}?autoplay=true` : `/video/${item.id}?autoplay=true`} className="block">
+                <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-[#8B5A2B]/10 hover:border-[#FF6B35]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
                   <div className="relative aspect-[3/4] overflow-hidden">
                     {item.coverImage ? (
                       <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" loading="lazy" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-[#1A1A2E] to-[#2A2A4E] flex items-center justify-center">
-                        <IconComponent className="w-10 h-10 text-white/20" />
+                      <div className="w-full h-full bg-gradient-to-br from-[#1A1A2E] to-[#2A1A0E] flex items-center justify-center">
+                        <IconComponent className="w-10 h-10 text-[#8B5A2B]/30" />
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1A0A00]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                       <PlayIcon className="w-10 h-10 text-white drop-shadow-lg" />
                     </div>
                     <div className="absolute top-2 left-2">
@@ -148,7 +149,7 @@ export default function MyListPage() {
                     </div>
                     {item.addedVia === 'purchase' && (
                       <div className="absolute top-2 right-2">
-                        <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#0D0D0D] text-[10px] font-bold px-2 py-1 rounded-lg">{item.price} 🪙</span>
+                        <span className="bg-gradient-to-r from-[#D4A855] to-[#E5C87B] text-[#1A0A00] text-[10px] font-bold px-2 py-1 rounded-lg">{item.price} 🪙</span>
                       </div>
                     )}
                   </div>
@@ -157,9 +158,9 @@ export default function MyListPage() {
                   </div>
                 </div>
               </Link>
-              <div className="absolute -top-1 -right-1 flex items-center gap-1 bg-[#1A1A2E] rounded-full px-2 py-1 shadow-lg border border-white/[0.06] z-10">
+              <div className="absolute -top-1 -right-1 flex items-center gap-1 bg-[#1A1A2E] rounded-full px-2 py-1 shadow-lg border border-[#8B5A2B]/20 z-10">
                 {getAddedViaIcon(item.addedVia)}
-                <span className="text-[10px] text-white font-medium">{getAddedViaLabel(item.addedVia)}</span>
+                <span className="text-[10px] text-[#D4A855] font-medium">{getAddedViaLabel(item.addedVia)}</span>
               </div>
               {(item.addedVia === 'like' || item.addedVia === 'save') && (
                 <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromList(item.id, item.addedVia as 'like' | 'save') }}
@@ -175,9 +176,13 @@ export default function MyListPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D0D] pb-20">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A0A00] via-[#0D0D0D] to-[#0D0D0D] pb-20">
+      {/* Effet de lueur marron en haut */}
+      <div className="fixed top-0 left-0 right-0 h-64 bg-gradient-to-b from-[#8B5A2B]/10 via-[#8B5A2B]/5 to-transparent pointer-events-none z-0"></div>
+
       <Navbar hideCategories={true} />
-      <div className="sticky top-12 z-20 bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-white/[0.04]">
+      
+      <div className="sticky top-12 z-20 bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-[#8B5A2B]/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] rounded-xl flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
@@ -193,31 +198,31 @@ export default function MyListPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-4">
         <div className="grid grid-cols-3 gap-3 mb-6">
           <button onClick={() => setFilter(filter === 'like' ? 'all' : 'like')}
-            className={`bg-[#1A1A2E] rounded-xl p-3 text-center transition-all duration-300 border ${filter === 'like' ? 'ring-2 ring-red-500 border-red-500/30' : 'border-white/[0.04] hover:border-white/[0.08]'}`}>
+            className={`bg-[#1A1A2E] rounded-xl p-3 text-center transition-all duration-300 border ${filter === 'like' ? 'ring-2 ring-red-500 border-red-500/30' : 'border-[#8B5A2B]/10 hover:border-[#8B5A2B]/30'}`}>
             <HeartSolidIcon className="w-6 h-6 text-red-500 mx-auto mb-1" />
             <p className="text-white font-bold text-lg">{stats.likes}</p>
-            <p className="text-white/50 text-xs font-medium">Aimés</p>
+            <p className="text-[#D4A855]/70 text-xs font-medium">Aimés</p>
           </button>
           <button onClick={() => setFilter(filter === 'save' ? 'all' : 'save')}
-            className={`bg-[#1A1A2E] rounded-xl p-3 text-center transition-all duration-300 border ${filter === 'save' ? 'ring-2 ring-[#FF6B35] border-[#FF6B35]/30' : 'border-white/[0.04] hover:border-white/[0.08]'}`}>
+            className={`bg-[#1A1A2E] rounded-xl p-3 text-center transition-all duration-300 border ${filter === 'save' ? 'ring-2 ring-[#FF6B35] border-[#FF6B35]/30' : 'border-[#8B5A2B]/10 hover:border-[#8B5A2B]/30'}`}>
             <BookmarkIcon className="w-6 h-6 text-[#FF6B35] mx-auto mb-1" />
             <p className="text-white font-bold text-lg">{stats.saves}</p>
-            <p className="text-white/50 text-xs font-medium">Sauvegardés</p>
+            <p className="text-[#D4A855]/70 text-xs font-medium">Sauvegardés</p>
           </button>
           <button onClick={() => setFilter(filter === 'purchase' ? 'all' : 'purchase')}
-            className={`bg-[#1A1A2E] rounded-xl p-3 text-center transition-all duration-300 border ${filter === 'purchase' ? 'ring-2 ring-green-500 border-green-500/30' : 'border-white/[0.04] hover:border-white/[0.08]'}`}>
+            className={`bg-[#1A1A2E] rounded-xl p-3 text-center transition-all duration-300 border ${filter === 'purchase' ? 'ring-2 ring-green-500 border-green-500/30' : 'border-[#8B5A2B]/10 hover:border-[#8B5A2B]/30'}`}>
             <ShoppingBagIcon className="w-6 h-6 text-green-500 mx-auto mb-1" />
             <p className="text-white font-bold text-lg">{stats.purchases}</p>
-            <p className="text-white/50 text-xs font-medium">Achetés</p>
+            <p className="text-[#D4A855]/70 text-xs font-medium">Achetés</p>
           </button>
         </div>
         {filter !== 'all' && (
           <div className="flex justify-between items-center mb-4">
-            <p className="text-sm text-white/60">Filtre : <span className="text-[#FF6B35] font-semibold">{getAddedViaLabel(filter)}</span></p>
-            <button onClick={() => setFilter('all')} className="text-sm text-white/50 hover:text-[#FF6B35] transition">✕ Réinitialiser</button>
+            <p className="text-sm text-[#D4A855]/70">Filtre : <span className="text-[#FF6B35] font-semibold">{getAddedViaLabel(filter)}</span></p>
+            <button onClick={() => setFilter('all')} className="text-sm text-[#D4A855]/50 hover:text-[#FF6B35] transition">✕ Réinitialiser</button>
           </div>
         )}
 
@@ -227,10 +232,10 @@ export default function MyListPage() {
             {renderGrid('Films', PlayIcon, movieItems, 'from-blue-500 to-blue-700')}
           </>
         ) : (
-          <div className="bg-[#1A1A2E] rounded-2xl p-12 text-center border border-white/[0.04] mt-6">
+          <div className="bg-[#1A1A2E] rounded-2xl p-12 text-center border border-[#8B5A2B]/10 mt-6">
             <div className="text-5xl mb-4">📭</div>
             <p className="text-white font-bold text-lg">Votre liste est vide</p>
-            <p className="text-sm text-white/50 mt-2">{filter !== 'all' ? `Aucun élément ${getAddedViaLabel(filter).toLowerCase()}` : 'Aimez, sauvegardez ou achetez des vidéos pour les retrouver ici'}</p>
+            <p className="text-sm text-[#D4A855]/70 mt-2">{filter !== 'all' ? `Aucun élément ${getAddedViaLabel(filter).toLowerCase()}` : 'Aimez, sauvegardez ou achetez des vidéos pour les retrouver ici'}</p>
             <Link href="/" className="inline-block mt-4 px-6 py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] text-white rounded-xl font-bold hover:shadow-lg transition">Découvrir des vidéos</Link>
           </div>
         )}

@@ -3,10 +3,14 @@
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { HomeIcon, UserGroupIcon, BookmarkIcon, TrophyIcon, UserCircleIcon, PlayIcon, ShieldCheckIcon, FireIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { HomeIcon, UserGroupIcon, BookmarkIcon, TrophyIcon, VideoCameraIcon, FilmIcon, UserCircleIcon, PlayIcon, ShieldCheckIcon, FireIcon, ClockIcon } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
 import Image from 'next/image'
+
+
+// ✅ 1. IMPORTER errorHandler
+import { safeFetch, silentFetch, handleError } from '../utils/errorHandler'
 
 interface Series { id: string; title: string; description: string; coverImage: string; totalEpisodes: number; totalViews: number; category: string; creator: { name: string; phone: string }; createdAt: string; type: 'series' }
 interface Movie { id: string; title: string; description: string; coverImage: string; duration: number; price: number; totalViews: number; category: string; creator: { name: string; phone: string }; createdAt: string; type: 'movie' }
@@ -33,30 +37,71 @@ export default function Home() {
   useEffect(() => { fetchCategories(); fetchContent() }, [])
   useEffect(() => { fetchContent() }, [activeCategory])
 
-  const fetchCategories = async () => { try { const res = await fetch('/api/public/categories'); const data = await res.json(); if (data && data.length > 0) setAllCategories(data) } catch (error) {} }
+  // ✅ 2. NOUVELLE VERSION de fetchCategories avec safeFetch
+  const fetchCategories = async () => {
+    const data = await safeFetch<Category[]>('/api/public/categories', undefined, 'fetchCategories')
+    if (data && data.length > 0) {
+      setAllCategories(data)
+    }
+  }
   
+  // ✅ 3. NOUVELLE VERSION de fetchRatings (utilise silentFetch car pas besoin de toast pour chaque note)
   const fetchRatings = async (seriesIds: string[], movieIds: string[]) => {
     try {
       const results: Record<string, { average: number; count: number }> = {}
-      await Promise.all([...movieIds.map(async (id) => { try { const res = await fetch(`/api/ratings/${id}`); if (res.ok) { const d = await res.json(); results[id] = { average: d.average || 0, count: d.count || 0 } } } catch (e) {} }), ...seriesIds.map(async (id) => { try { const res = await fetch(`/api/ratings/series/${id}`); if (res.ok) { const d = await res.json(); results[id] = { average: d.average || 0, count: d.count || 0 } } } catch (e) {} })])
+      
+      // Pour les films
+      await Promise.all(movieIds.map(async (id) => {
+        const data = await silentFetch<{ average: number; count: number }>(`/api/ratings/${id}`)
+        if (data) results[id] = { average: data.average || 0, count: data.count || 0 }
+      }))
+      
+      // Pour les séries
+      await Promise.all(seriesIds.map(async (id) => {
+        const data = await silentFetch<{ average: number; count: number }>(`/api/ratings/series/${id}`)
+        if (data) results[id] = { average: data.average || 0, count: data.count || 0 }
+      }))
+      
       setRatings(results)
-    } catch (error) {}
+    } catch (error) {
+      // On utilise handleError mais on ne bloque pas l'affichage
+      handleError(error, 'fetchRatings')
+    }
   }
 
+  // ✅ 4. NOUVELLE VERSION de fetchContent avec safeFetch
   const fetchContent = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/public/videos-by-category?category=${activeCategory}`)
-      const data = await res.json(); setSeries(data.series || []); setMovies(data.movies || [])
-      const sIds = (data.series || []).map((s: any) => s.id); const mIds = (data.movies || []).map((m: any) => m.id)
-      if (sIds.length > 0 || mIds.length > 0) fetchRatings(sIds, mIds)
-    } catch (error) {} finally { setLoading(false) }
+      const data = await safeFetch<{ series: Series[]; movies: Movie[] }>(
+        `/api/public/videos-by-category?category=${activeCategory}`,
+        undefined,
+        'fetchContent'
+      )
+      
+      if (data) {
+        setSeries(data.series || [])
+        setMovies(data.movies || [])
+        
+        const sIds = (data.series || []).map((s: any) => s.id)
+        const mIds = (data.movies || []).map((m: any) => m.id)
+        if (sIds.length > 0 || mIds.length > 0) {
+          fetchRatings(sIds, mIds)
+        }
+      } else {
+        // En cas d'erreur, on garde les tableaux vides
+        setSeries([])
+        setMovies([])
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const footerTabs = isAdmin 
-    ? [{ id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' }, { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' }, { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' }, { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' }, { id: 'admin', label: 'Admin', icon: ShieldCheckIcon, href: '/admin/videos/pending' }]
+    ? [{ id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' }, { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' }, { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' }, { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' }, { id: 'admin', label: 'Admin', icon: ShieldCheckIcon, href: '/admin/dashboard' }]
     : [{ id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' }, { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' }, { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' }, { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' }, { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' }]
-
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#1A0A00] via-[#0D0D0D] to-[#0D0D0D]">
@@ -88,18 +133,18 @@ export default function Home() {
         <div className="relative z-10 max-w-7xl mx-auto px-3 sm:px-4 py-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
-                <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C5A] flex items-center justify-center shadow-lg shadow-[#FF6B35]/20">
+                <FilmIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white">Séries populaires</h2>
+                <h2 className="text-base sm:text-lg font-bold text-[#FFFFFF]">Séries populaires</h2>
                 <p className="text-xs sm:text-sm text-[#D4A855]/70 font-medium flex items-center gap-1"><FireIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> {series.length} séries</p>
               </div>
             </div>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
             {series.map((serie, index) => (
-              <Link key={serie.id} href={`/series/${serie.id}`} className="group" style={{ animationDelay: `${index * 0.03}s` }}>
+              <Link href={`/series/${serie.id}?autoplay=true`} className="group">
                 <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-[#8B5A2B]/10 hover:border-[#FF6B35]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FF6B35]/10">
                   <div className="relative aspect-[3/4] overflow-hidden">
                     {serie.coverImage ? (
@@ -111,7 +156,7 @@ export default function Home() {
                       <div className="w-full h-full bg-gradient-to-br from-[#1A1A2E] to-[#2A1A0E] flex items-center justify-center"><PlayIcon className="w-8 h-8 sm:w-10 sm:h-10 text-[#8B5A2B]/30" /></div>
                     )}
                     <div className="absolute top-2 left-2">
-                      <span className="bg-black/80 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-lg">{serie.totalEpisodes} ép.</span>
+                      <span className="bg-black/80 backdrop-blur-md text-white text-[10px] sm:text-xs px-2 py-1 rounded-lg">{serie.totalEpisodes} ép</span>
                     </div>
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition duration-300 flex items-center justify-center">
                       <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#FF6B35] flex items-center justify-center shadow-2xl transform scale-75 group-hover:scale-100 transition duration-300"><PlayIcon className="w-6 h-6 sm:w-7 sm:h-7 text-white ml-0.5" /></div>
@@ -139,7 +184,7 @@ export default function Home() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-[#D4A855] to-[#E5C87B] flex items-center justify-center shadow-lg shadow-[#D4A855]/20">
-                <PlayIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#1A0A00]" />
+                <VideoCameraIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#1A0A00]" />
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-white">Films à l'affiche</h2>
@@ -149,7 +194,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
             {movies.map((movie, index) => (
-              <Link key={movie.id} href={`/video/${movie.id}`} className="group" style={{ animationDelay: `${index * 0.03}s` }}>
+              <Link href={`/video/${movie.id}?autoplay=true`} className="group">
                 <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-[#8B5A2B]/10 hover:border-[#D4A855]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#D4A855]/10">
                   <div className="relative aspect-[3/4] overflow-hidden">
                     {movie.coverImage ? (

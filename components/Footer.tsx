@@ -34,7 +34,7 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 z-30">
-      <div className="bg-[#0D0D0D]/98 backdrop-blur-2xl border-t border-white/[0.06] shadow-2xl shadow-black/50">
+      <div className="bg-[#402000]/98 backdrop-blur-2xl border-t border-white/[0.06] shadow-2xl shadow-black/50">
         <div className="max-w-lg mx-auto">
           <div className={`flex ${isCreator ? 'justify-start overflow-x-auto scrollbar-hide' : 'justify-around'} items-center py-2 px-1 gap-0.5`}>
             {filteredTabs.map((tab: FooterTab) => {
@@ -51,7 +51,7 @@ export default function Footer({ footerTabs, activeFooterTab, setActiveFooterTab
                     }
                     setActiveFooterTab(tab.id)
                   }}
-                  className={`relative flex flex-col items-center gap-1 px-2 py-1.5 rounded-xl transition-all duration-200 flex-shrink-0 ${
+                  className={`relative flex flex-col items-center gap-1 px-2 py-1.5  ${
                     isActive 
                       ? 'text-[#FF6B35]' 
                       : 'text-white/60 hover:text-white/90'

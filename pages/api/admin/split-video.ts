@@ -87,13 +87,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Archiver le master
     await (prisma as any).video.update({
-      where: { id: videoId },
-      data: {
-        status: 'archived',
-        seriesId: series.id,
-        updatedAt: new Date()
-      }
-    })
+  where: { id: videoId },
+  data: {
+    status: 'archived',
+    seriesId: series.id,
+    title: `[MASTER] ${masterVideo.title}`,  // ← Ajouter un préfixe pour l'identifier
+    updatedAt: new Date()
+  }
+})
 
     return res.status(200).json({
       success: true,
