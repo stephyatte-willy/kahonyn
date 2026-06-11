@@ -15,6 +15,7 @@ import {
 import { useState, useRef, useEffect } from 'react'
 import AuthSlidePanel from './AuthSlidePanel'
 import NotificationBell from './NotificationBell'
+import GiftModal from './GiftModal'  // ✅ Import du GiftModal
 
 interface Category {
   id: string
@@ -61,8 +62,31 @@ export default function Navbar({
   const modalRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   
+  // ✅ États pour le GiftModal
+  const [isGiftModalOpen, setIsGiftModalOpen] = useState(false)
+  const [userCoins, setUserCoins] = useState(0)
+  
   const hideNavbar = router.pathname === '/login' || router.pathname === '/register'
   const displayAllCategories = allCategories || categories
+
+  // ✅ Charger les coins de l'utilisateur
+  const refreshCoins = async () => {
+    if (session) {
+      try {
+        const res = await fetch('/api/user/profile')
+        const data = await res.json()
+        setUserCoins(data.coins || 0)
+      } catch (error) {
+        console.error('Erreur chargement coins:', error)
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (session) {
+      refreshCoins()
+    }
+  }, [session])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -140,9 +164,18 @@ export default function Navbar({
               <div className="flex items-center gap-2 sm:gap-3">
                 <NotificationBell />
                 
-                {/* Bouton Bonus */}
-                <button className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] rounded-full shadow-lg shadow-[#D4A855]/20 active:scale-95 hover:scale-105 transition-transform">
+                {/* ✅ Bouton Cadeau avec GiftModal */}
+                <button 
+                  onClick={() => setIsGiftModalOpen(true)}
+                  className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] rounded-full shadow-lg shadow-[#D4A855]/20 active:scale-95 hover:scale-105 transition-transform relative"
+                >
                   <GiftIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#0D0D0D]" />
+                  {/* ✅ Petit indicateur de coins disponibles */}
+                  {session && userCoins > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md">
+                      🪙
+                    </span>
+                  )}
                 </button>
 
                 {/* Mobile : Profil/Déconnexion */}
@@ -216,7 +249,7 @@ export default function Navbar({
                   </div>
                 </div>
                 
-                {/* 🆕 Bouton Catégories FIXE à droite */}
+                {/* Bouton Catégories FIXE à droite */}
                 <div className="flex-shrink-0 pl-2 border-l border-white/[0.06] ml-1">
                   <button
                     onClick={() => setShowCategoryModal(true)}
@@ -279,6 +312,14 @@ export default function Navbar({
         onClose={() => setAuthPanelOpen(false)} 
         initialMode={authMode}
         onSwitchMode={setAuthMode}
+      />
+
+      {/* ✅ GiftModal */}
+      <GiftModal
+        isOpen={isGiftModalOpen}
+        onClose={() => setIsGiftModalOpen(false)}
+        userCoins={userCoins}
+        onCoinsUpdated={refreshCoins}
       />
     </>
   )

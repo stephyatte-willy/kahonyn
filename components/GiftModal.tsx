@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react'
 import { 
   XMarkIcon, GiftIcon, SparklesIcon, UserGroupIcon, 
-  ClockIcon, CheckCircleIcon, FireIcon, TrophyIcon,
-  CurrencyDollarIcon, TvIcon, PlayIcon
+  CheckCircleIcon, FireIcon, TrophyIcon,
+  TvIcon, PlayIcon
 } from '@heroicons/react/24/outline'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -373,7 +373,7 @@ export default function GiftModal({ isOpen, onClose, userCoins, onCoinsUpdated }
                   </div>
                 </div>
                 
-                {/* Historique des parrainages (à implémenter) */}
+                {/* Historique des parrainages */}
                 <button
                   onClick={() => router.push('/profile?tab=referrals')}
                   className="w-full mt-4 py-2 text-center text-xs text-[#D4A855] hover:text-[#FF6B35] transition font-semibold"
