@@ -128,51 +128,53 @@ export default function SeriesPage() {
 
   // 🆕 Fonctions de swipe TikTok-like
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartY(e.touches[0].clientY)
-    setIsSwiping(true)
-  }
+  setTouchStartY(e.touches[0].clientY)
+  setIsSwiping(true)
+}
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isSwiping) return
-    
-    const currentY = e.touches[0].clientY
-    const diff = touchStartY - currentY
-    const newOffset = Math.max(-window.innerHeight, Math.min(window.innerHeight, diff))
-    
-    setSwipeOffset(newOffset)
-    
-    if (newOffset > 50) {
-      setSwipingDirection('down')
-    } else if (newOffset < -50) {
-      setSwipingDirection('up')
-    } else {
-      setSwipingDirection(null)
-    }
-  }
-
-  const handleTouchEnd = async () => {
-    if (!isSwiping) {
-      setIsSwiping(false)
-      setSwipeOffset(0)
-      setSwipingDirection(null)
-      return
-    }
-    
-    const threshold = window.innerHeight * 0.3 // 30% de l'écran
-    
-    if (swipeOffset > threshold && prevEpisode) {
-      // Swipe vers le BAS → Épisode précédent
-      await goToPreviousEpisode()
-    } else if (swipeOffset < -threshold && nextEpisode) {
-      // Swipe vers le HAUT → Épisode suivant
-      await goToNextEpisode()
-    }
-    
-    // Reset
-    setSwipeOffset(0)
-    setIsSwiping(false)
+  if (!isSwiping) return
+  
+  const currentY = e.touches[0].clientY
+  const diff = currentY - touchStartY // ✅ Inversé : positif = vers le bas
+  const newOffset = Math.max(-window.innerHeight, Math.min(window.innerHeight, diff))
+  
+  setSwipeOffset(newOffset)
+  
+  // ✅ Détection des directions CORRIGÉE
+  if (newOffset > 50) {
+    setSwipingDirection('down')  // Swipe vers le BAS
+  } else if (newOffset < -50) {
+    setSwipingDirection('up')    // Swipe vers le HAUT
+  } else {
     setSwipingDirection(null)
   }
+}
+
+  const handleTouchEnd = async () => {
+  if (!isSwiping) {
+    setIsSwiping(false)
+    setSwipeOffset(0)
+    setSwipingDirection(null)
+    return
+  }
+  
+  const threshold = window.innerHeight * 0.3 // 30% de l'écran
+  
+  // ✅ Actions CORRIGÉES
+  if (swipeOffset > threshold && prevEpisode) {
+    // Swipe vers le BAS (doigt descend) → Épisode PRÉCÉDENT
+    await goToPreviousEpisode()
+  } else if (swipeOffset < -threshold && nextEpisode) {
+    // Swipe vers le HAUT (doigt monte) → Épisode SUIVANT
+    await goToNextEpisode()
+  }
+  
+  // Reset
+  setSwipeOffset(0)
+  setIsSwiping(false)
+  setSwipingDirection(null)
+}
 
   // 🆕 Navigation vers l'épisode suivant avec effet TikTok
   const goToNextEpisode = async () => {
@@ -242,48 +244,49 @@ export default function SeriesPage() {
 
   // 🆕 Gestion du swipe par souris (desktop)
   const handleMouseDown = (e: React.MouseEvent) => {
-    setTouchStartY(e.clientY)
-    setIsSwiping(true)
-  }
+  setTouchStartY(e.clientY)
+  setIsSwiping(true)
+}
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isSwiping) return
-    
-    const currentY = e.clientY
-    const diff = touchStartY - currentY
-    const newOffset = Math.max(-window.innerHeight, Math.min(window.innerHeight, diff))
-    
-    setSwipeOffset(newOffset)
-    
-    if (newOffset > 50) {
-      setSwipingDirection('down')
-    } else if (newOffset < -50) {
-      setSwipingDirection('up')
-    } else {
-      setSwipingDirection(null)
-    }
-  }
-
-  const handleMouseUp = async () => {
-    if (!isSwiping) {
-      setIsSwiping(false)
-      setSwipeOffset(0)
-      setSwipingDirection(null)
-      return
-    }
-    
-    const threshold = window.innerHeight * 0.3
-    
-    if (swipeOffset > threshold && prevEpisode) {
-      await goToPreviousEpisode()
-    } else if (swipeOffset < -threshold && nextEpisode) {
-      await goToNextEpisode()
-    }
-    
-    setSwipeOffset(0)
-    setIsSwiping(false)
+const handleMouseMove = (e: React.MouseEvent) => {
+  if (!isSwiping) return
+  
+  const currentY = e.clientY
+  const diff = currentY - touchStartY // ✅ Inversé
+  const newOffset = Math.max(-window.innerHeight, Math.min(window.innerHeight, diff))
+  
+  setSwipeOffset(newOffset)
+  
+  if (newOffset > 50) {
+    setSwipingDirection('down')
+  } else if (newOffset < -50) {
+    setSwipingDirection('up')
+  } else {
     setSwipingDirection(null)
   }
+}
+
+const handleMouseUp = async () => {
+  if (!isSwiping) {
+    setIsSwiping(false)
+    setSwipeOffset(0)
+    setSwipingDirection(null)
+    return
+  }
+  
+  const threshold = window.innerHeight * 0.3
+  
+  // ✅ Actions CORRIGÉES
+  if (swipeOffset > threshold && prevEpisode) {
+    await goToPreviousEpisode()
+  } else if (swipeOffset < -threshold && nextEpisode) {
+    await goToNextEpisode()
+  }
+  
+  setSwipeOffset(0)
+  setIsSwiping(false)
+  setSwipingDirection(null)
+}
 
   // 🆕 Précharger la vidéo suivante
   useEffect(() => {
@@ -989,48 +992,48 @@ export default function SeriesPage() {
           onMouseUp={handleMouseUp}
         >
           {/* Vidéo suivante (préchargée) - apparaît pendant le swipe */}
-          {nextEpisode && nextEpisode.url && (
-            <video
-              ref={nextVideoRef}
-              src={nextEpisode.url}
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-              style={{
-                transform: `translateY(${100 - (Math.abs(swipeOffset) / window.innerHeight) * 100}%)`,
-                opacity: Math.min(1, Math.abs(swipeOffset) / 200),
-                transition: isSwiping ? 'none' : 'transform 0.3s ease-out, opacity 0.3s ease-out'
-              }}
-              preload="auto"
-            />
-          )}
-          
-          {/* Vidéo précédente (préchargée) - apparaît pendant le swipe */}
-          {prevEpisode && prevEpisode.url && (
-            <video
-              src={prevEpisode.url}
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-              style={{
-                transform: `translateY(${-100 - (Math.abs(swipeOffset) / window.innerHeight) * 100}%)`,
-                opacity: Math.min(1, Math.abs(swipeOffset) / 200),
-                transition: isSwiping ? 'none' : 'transform 0.3s ease-out, opacity 0.3s ease-out'
-              }}
-              preload="auto"
-            />
-          )}
-          
-          {/* Vidéo courante */}
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none" 
-            key={selectedEpisode?.url} 
-            playsInline
-            style={{
-              transform: `translateY(${swipeOffset}px)`,
-              transition: isSwiping ? 'none' : 'transform 0.3s ease-out'
-            }}
-          >
-            {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
-          </video>
+{nextEpisode && nextEpisode.url && (
+  <video
+    ref={nextVideoRef}
+    src={nextEpisode.url}
+    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+    style={{
+      transform: `translateY(${100 + (Math.abs(swipeOffset) / window.innerHeight) * 100}%)`,
+      opacity: Math.min(1, Math.abs(swipeOffset) / 200),
+      transition: isSwiping ? 'none' : 'transform 0.3s ease-out, opacity 0.3s ease-out'
+    }}
+    preload="auto"
+  />
+)}
+
+{/* Vidéo précédente (préchargée) - apparaît pendant le swipe vers le BAS */}
+{prevEpisode && prevEpisode.url && (
+  <video
+    src={prevEpisode.url}
+    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+    style={{
+      transform: `translateY(${-100 - (Math.abs(swipeOffset) / window.innerHeight) * 100}%)`,
+      opacity: Math.min(1, Math.abs(swipeOffset) / 200),
+      transition: isSwiping ? 'none' : 'transform 0.3s ease-out, opacity 0.3s ease-out'
+    }}
+    preload="auto"
+  />
+)}
+
+{/* Vidéo courante */}
+<video 
+  ref={videoRef} 
+  autoPlay 
+  className="absolute inset-0 w-full h-full object-contain pointer-events-none" 
+  key={selectedEpisode?.url} 
+  playsInline
+  style={{
+    transform: `translateY(${swipeOffset}px)`,
+    transition: isSwiping ? 'none' : 'transform 0.3s ease-out'
+  }}
+>
+  {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
+</video>
           
           {/* Indicateur de direction de swipe */}
           {swipingDirection && (
