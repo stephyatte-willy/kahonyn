@@ -73,6 +73,7 @@ export default function SeriesPage() {
   const [activeFooterTab, setActiveFooterTab] = useState('')
   const controlsTimeout = useRef<NodeJS.Timeout | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [userCoins, setUserCoins] = useState(0)
   const [volume, setVolume] = useState(1)
   const [isMuted, setIsMuted] = useState(false)
@@ -82,7 +83,7 @@ export default function SeriesPage() {
   const [savedProgress, setSavedProgress] = useState(0)
   const [hasResumed, setHasResumed] = useState(false)
   
-  // 🆕 États pour la publicité (AJOUTS UNIQUEMENT)
+  // 🆕 États pour la publicité
   const [remainingAds, setRemainingAds] = useState(5)
   const [maxAdsPerDay, setMaxAdsPerDay] = useState(5)
   const [watchingAd, setWatchingAd] = useState(false)
@@ -90,9 +91,15 @@ export default function SeriesPage() {
   const [episodesWatchedFree, setEpisodesWatchedFree] = useState(0)
   const [freeEpisodesBeforeAd] = useState(3)
   
-  // 🆕 États pour la modale de déblocage (AJOUTS UNIQUEMENT)
+  // 🆕 États pour la modale de déblocage
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false)
   const [pendingEpisode, setPendingEpisode] = useState<Episode | null>(null)
+
+  // 🆕 États pour le swipe vertical (TikTok/Reels)
+  const [touchStartY, setTouchStartY] = useState(0)
+  const [touchEndY, setTouchEndY] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  const [swipeDirection, setSwipeDirection] = useState<'up' | 'down' | null>(null)
 
   const footerTabs = [
     { id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' },
@@ -102,11 +109,221 @@ export default function SeriesPage() {
     { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
   ]
 
+  // 🆕 Fonctions de swipe vertical
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartY(e.touches[0].clientY)
+    setIsSwiping(true)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isSwiping) return
+    const currentY = e.touches[0].clientY
+    const diff = touchStartY - currentY
+    
+    // Détecter la direction
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        setSwipeDirection('up')
+      } else {
+        setSwipeDirection('down')
+      }
+    }
+  }
+
+  const handleTouchEnd = () => {
+    if (!isSwiping) {
+      setIsSwiping(false)
+      return
+    }
+    
+    const diff = touchStartY - touchEndY
+    const minSwipeDistance = 80
+    
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0) {
+        // Swipe vers le HAUT → Épisode suivant
+        goToNextEpisodeBySwipe()
+      } else if (diff < 0) {
+        // Swipe vers le BAS → Épisode précédent
+        goToPreviousEpisodeBySwipe()
+      }
+    }
+    
+    setIsSwiping(false)
+    setSwipeDirection(null)
+  }
+
+  // 🆕 Navigation par swipe vers l'épisode suivant
+  const goToNextEpisodeBySwipe = async () => {
+    if (!selectedEpisode || !series) return
+    
+    const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
+    const nextEpisode = series.episodes[currentIndex + 1]
+    
+    if (!nextEpisode) {
+      toast('🎬 C\'est le dernier épisode !', { icon: '🏁', duration: 2000 })
+      return
+    }
+    
+    // Sauvegarder la progression de l'épisode actuel
+    if (videoRef.current && session) {
+      const currentTime = videoRef.current.currentTime
+      await fetch('/api/user/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          episodeId: selectedEpisode.id, 
+          currentTime: Math.floor(currentTime),
+          seriesId: series.id
+        })
+      }).catch(() => {})
+    }
+    
+    // Animation de transition
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.3s ease-out'
+      containerRef.current.style.transform = 'translateY(100%)'
+      await new Promise(resolve => setTimeout(resolve, 300))
+      containerRef.current.style.transform = 'translateY(0)'
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.style.transition = ''
+        }
+      }, 300)
+    }
+    
+    if (canWatch(nextEpisode)) {
+      setSelectedEpisode(nextEpisode)
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.load()
+          videoRef.current.play()
+          setIsPlaying(true)
+        }
+      }, 100)
+    } else {
+      setPendingEpisode(nextEpisode)
+      setIsUnlockModalOpen(true)
+    }
+  }
+
+  // 🆕 Navigation par swipe vers l'épisode précédent
+  const goToPreviousEpisodeBySwipe = async () => {
+    if (!selectedEpisode || !series) return
+    
+    const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
+    const prevEpisode = series.episodes[currentIndex - 1]
+    
+    if (!prevEpisode) {
+      toast('🎬 C\'est le premier épisode !', { icon: '🏁', duration: 2000 })
+      return
+    }
+    
+    // Sauvegarder la progression de l'épisode actuel
+    if (videoRef.current && session) {
+      const currentTime = videoRef.current.currentTime
+      await fetch('/api/user/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          episodeId: selectedEpisode.id, 
+          currentTime: Math.floor(currentTime),
+          seriesId: series.id
+        })
+      }).catch(() => {})
+    }
+    
+    // Animation de transition
+    if (containerRef.current) {
+      containerRef.current.style.transition = 'transform 0.3s ease-out'
+      containerRef.current.style.transform = 'translateY(-100%)'
+      await new Promise(resolve => setTimeout(resolve, 300))
+      containerRef.current.style.transform = 'translateY(0)'
+      setTimeout(() => {
+        if (containerRef.current) {
+          containerRef.current.style.transition = ''
+        }
+      }, 300)
+    }
+    
+    if (canWatch(prevEpisode)) {
+      setSelectedEpisode(prevEpisode)
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.load()
+          videoRef.current.play()
+          setIsPlaying(true)
+        }
+      }, 100)
+    } else {
+      setPendingEpisode(prevEpisode)
+      setIsUnlockModalOpen(true)
+    }
+  }
+
+  // 🆕 Gestion du swipe par souris (pour desktop)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setTouchStartY(e.clientY)
+    setIsSwiping(true)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isSwiping) return
+    const currentY = e.clientY
+    const diff = touchStartY - currentY
+    
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) {
+        setSwipeDirection('up')
+      } else {
+        setSwipeDirection('down')
+      }
+    }
+  }
+
+  const handleMouseUp = (e: React.MouseEvent) => {
+    if (!isSwiping) {
+      setIsSwiping(false)
+      return
+    }
+    
+    const diff = touchStartY - e.clientY
+    const minSwipeDistance = 80
+    
+    if (Math.abs(diff) > minSwipeDistance) {
+      if (diff > 0) {
+        goToNextEpisodeBySwipe()
+      } else if (diff < 0) {
+        goToPreviousEpisodeBySwipe()
+      }
+    }
+    
+    setIsSwiping(false)
+    setSwipeDirection(null)
+  }
+
+  // 🆕 Indicateur visuel de swipe
+  const SwipeIndicator = () => {
+    if (!swipeDirection) return null
+    return (
+      <div className={`absolute left-1/2 transform -translate-x-1/2 z-50 transition-all duration-150 ${
+        swipeDirection === 'up' ? 'top-10 animate-bounce' : 'bottom-10 animate-bounce'
+      }`}>
+        <div className="bg-white/20 backdrop-blur-md rounded-full p-2">
+          {swipeDirection === 'up' ? (
+            <ChevronDoubleRightIcon className="w-8 h-8 text-white rotate-90" />
+          ) : (
+            <ChevronDoubleLeftIcon className="w-8 h-8 text-white rotate-90" />
+          )}
+        </div>
+      </div>
+    )
+  }
+
   useEffect(() => { if (id) fetchSeries() }, [id])
   useEffect(() => { if (session && series && series.episodes.length > 0) { fetchPurchasedStatus(); fetchUserCoins() } }, [session, series])
   useEffect(() => { if (selectedEpisode) { fetchCounters(); fetchWatchHistory(selectedEpisode.id); setHasResumed(false) } }, [selectedEpisode])
   
-  // 🆕 Charger la disponibilité des publicités (AJOUT)
   useEffect(() => {
     if (session) {
       checkAdAvailability()
@@ -114,7 +331,6 @@ export default function SeriesPage() {
     }
   }, [session])
 
-  // 🆕 Fonctions pour les publicités (AJOUTS)
   const loadFreeEpisodesCount = () => {
     const today = new Date().toDateString()
     const stored = localStorage.getItem(`kahonyn_free_episodes_${today}`)
@@ -153,32 +369,41 @@ export default function SeriesPage() {
     }
   }, [volume, isMuted])
 
-useEffect(() => {
-  const video = videoRef.current
-  if (!video || !isPlayerOpen) return
-  
-  const handleVideoEnd = () => {
-    setIsPlaying(false)
-    if (selectedEpisode && series) {
-      const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
-      const nextEpisode = series.episodes[currentIndex + 1]
-      
-      if (nextEpisode) {
-        if (canWatch(nextEpisode)) {
-          // ✅ VÉRIFIER SI L'ÉPISODE SUIVANT EST GRATUIT
-          const isNextEpisodeFree = nextEpisode.isFree
-          const FREE_BEFORE_AD = freeEpisodesBeforeAd
-          
-          // ✅ NE COMPTER QUE LES ÉPISODES PAYANTS POUR LA PUB FORCÉE
-          if (!isNextEpisodeFree) {
-            const freeCount = episodesWatchedFree
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !isPlayerOpen) return
+    
+    const handleVideoEnd = () => {
+      setIsPlaying(false)
+      if (selectedEpisode && series) {
+        const currentIndex = series.episodes.findIndex(ep => ep.id === selectedEpisode.id)
+        const nextEpisode = series.episodes[currentIndex + 1]
+        
+        if (nextEpisode) {
+          if (canWatch(nextEpisode)) {
+            const isNextEpisodeFree = nextEpisode.isFree
+            const FREE_BEFORE_AD = freeEpisodesBeforeAd
             
-            if (freeCount >= FREE_BEFORE_AD && !forcedAdNeeded && session) {
-              setForcedAdNeeded(true)
-              toast('📺 Publicité avant l\'épisode suivant', { duration: 3000, icon: '📺' })
+            if (!isNextEpisodeFree) {
+              const freeCount = episodesWatchedFree
               
-              setTimeout(async () => {
-                setForcedAdNeeded(false)
+              if (freeCount >= FREE_BEFORE_AD && !forcedAdNeeded && session) {
+                setForcedAdNeeded(true)
+                toast('📺 Publicité avant l\'épisode suivant', { duration: 3000, icon: '📺' })
+                
+                setTimeout(async () => {
+                  setForcedAdNeeded(false)
+                  saveFreeEpisodesCount(freeCount + 1)
+                  setSelectedEpisode(nextEpisode)
+                  setTimeout(() => {
+                    if (videoRef.current) {
+                      videoRef.current.load()
+                      videoRef.current.play()
+                      setIsPlaying(true)
+                    }
+                  }, 500)
+                }, 10000)
+              } else {
                 saveFreeEpisodesCount(freeCount + 1)
                 setSelectedEpisode(nextEpisode)
                 setTimeout(() => {
@@ -188,9 +413,8 @@ useEffect(() => {
                     setIsPlaying(true)
                   }
                 }, 500)
-              }, 10000)
+              }
             } else {
-              saveFreeEpisodesCount(freeCount + 1)
               setSelectedEpisode(nextEpisode)
               setTimeout(() => {
                 if (videoRef.current) {
@@ -201,38 +425,26 @@ useEffect(() => {
               }, 500)
             }
           } else {
-            // ✅ ÉPISODE GRATUIT : PAS DE PUB, PAS D'INCRÉMENTATION
-            setSelectedEpisode(nextEpisode)
-            setTimeout(() => {
-              if (videoRef.current) {
-                videoRef.current.load()
-                videoRef.current.play()
-                setIsPlaying(true)
-              }
-            }, 500)
+            setPendingEpisode(nextEpisode)
+            setIsUnlockModalOpen(true)
           }
-        } else {
-          // Épisode payant non accessible → afficher modale
-          setPendingEpisode(nextEpisode)
-          setIsUnlockModalOpen(true)
         }
       }
     }
-  }
-  
-  const handlePlay = () => setIsPlaying(true)
-  const handlePause = () => setIsPlaying(false)
-  
-  video.addEventListener('ended', handleVideoEnd)
-  video.addEventListener('play', handlePlay)
-  video.addEventListener('pause', handlePause)
-  
-  return () => {
-    video.removeEventListener('ended', handleVideoEnd)
-    video.removeEventListener('play', handlePlay)
-    video.removeEventListener('pause', handlePause)
-  }
-}, [selectedEpisode, series, isPlayerOpen, episodesWatchedFree, forcedAdNeeded, session, freeEpisodesBeforeAd])
+    
+    const handlePlay = () => setIsPlaying(true)
+    const handlePause = () => setIsPlaying(false)
+    
+    video.addEventListener('ended', handleVideoEnd)
+    video.addEventListener('play', handlePlay)
+    video.addEventListener('pause', handlePause)
+    
+    return () => {
+      video.removeEventListener('ended', handleVideoEnd)
+      video.removeEventListener('play', handlePlay)
+      video.removeEventListener('pause', handlePause)
+    }
+  }, [selectedEpisode, series, isPlayerOpen, episodesWatchedFree, forcedAdNeeded, session, freeEpisodesBeforeAd])
 
   useEffect(() => {
     if (isPlayerOpen && videoRef.current && savedProgress > 0 && !hasResumed) {
@@ -265,7 +477,6 @@ useEffect(() => {
     return () => clearInterval(saveInterval)
   }, [isPlayerOpen, selectedEpisode, session, series])
 
-  // 🆕 Lecture automatique du premier épisode accessible (AJOUT)
   useEffect(() => {
     if (!series || series.episodes.length === 0 || isPlayerOpen) return
     
@@ -453,7 +664,6 @@ useEffect(() => {
     } catch (error) { console.error('fetchPurchasedStatus error:', error) }
   }
 
-  // ✅ ACHAT AVEC COINS (VERSION CORRIGÉE)
   const handlePurchase = async (episode: Episode) => {
     if (!session) { 
       toast.error('Connectez-vous pour acheter')
@@ -488,7 +698,6 @@ useEffect(() => {
     finally { setIsPurchasing(false) }
   }
 
-  // ✅ PUBLICITÉ RÉCOMPENSÉE (AJOUT)
   const watchAdForEpisode = async (episode: Episode) => {
     if (!session) {
       toast.error('Connectez-vous pour débloquer avec une pub')
@@ -536,22 +745,21 @@ useEffect(() => {
   }
 
   const handlePlay = (episode: Episode) => {
-  if (canWatch(episode)) {
-    setSelectedEpisode(episode)
-    setIsPlayerOpen(true)
-  } 
-  else {
-    setPendingEpisode(episode)
-    setIsUnlockModalOpen(true)
+    if (canWatch(episode)) {
+      setSelectedEpisode(episode)
+      setIsPlayerOpen(true)
+    } else {
+      setPendingEpisode(episode)
+      setIsUnlockModalOpen(true)
+    }
   }
-}
 
   const canWatch = (episode: Episode): boolean => {
-  if ((session?.user as any)?.role === 'admin') return true
-  if (purchasedEpisodes.has(episode.id)) return true
-  if (episode.isFree) return true
-  return false
-}
+    if ((session?.user as any)?.role === 'admin') return true
+    if (purchasedEpisodes.has(episode.id)) return true
+    if (episode.isFree) return true
+    return false
+  }
 
   const formatDuration = (seconds: number) => {
     if (!seconds || isNaN(seconds)) return '0:00'
@@ -703,7 +911,6 @@ useEffect(() => {
               </div>
             )}
             
-            {/* 🆕 Indicateur de publicités restantes (AJOUT) */}
             {session && remainingAds > 0 && (
               <div className="bg-purple-500/10 rounded-xl p-2 mb-4 border border-purple-500/20 text-center">
                 <p className="text-xs text-purple-400 font-bold flex items-center justify-center gap-2">
@@ -795,12 +1002,34 @@ useEffect(() => {
           </div>
         </div>
       ) : (
-        <div className="fixed inset-0 bg-black z-[9999]">
-          <video ref={videoRef} autoPlay className="absolute inset-0 w-full h-full object-contain" key={selectedEpisode?.url} playsInline onClick={() => setShowControls(!showControls)}>
+        /* LECTEUR PLEIN ÉCRAN AVEC SWIPE VERTICAL */
+        <div 
+          ref={containerRef}
+          className="fixed inset-0 bg-black z-[9999]"
+          onTouchStart={handleTouchStart}
+          onTouchMove={(e) => {
+            setTouchEndY(e.touches[0].clientY)
+            handleTouchMove(e)
+          }}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        >
+          {/* Indicateur de swipe */}
+          <SwipeIndicator />
+          
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none" 
+            key={selectedEpisode?.url} 
+            playsInline
+          >
             {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
           </video>
           
-          {/* 🆕 Indicateur de pub forcée (AJOUT) */}
+          {/* Indicateur de pub forcée */}
           {forcedAdNeeded && (
             <div className="absolute top-20 left-0 right-0 text-center z-30">
               <div className="bg-purple-500/80 text-white text-xs px-4 py-2 rounded-full inline-flex items-center gap-2 backdrop-blur-sm">
@@ -811,6 +1040,7 @@ useEffect(() => {
             </div>
           )}
           
+          {/* Boutons latéraux (doivent être cliquables malgré le swipe) */}
           <div className="absolute right-4 top-1/3 -translate-y-1/3 flex flex-col gap-3 z-20">
             <button onClick={handleLike} className="text-white bg-black/50 rounded-full p-2.5 hover:bg-black/70 transition w-10 h-10 flex items-center justify-center">
               {isLiked ? <HeartSolidIcon className="w-5 h-5 text-red-500" /> : <HeartIcon className="w-5 h-5" />}
@@ -826,6 +1056,7 @@ useEffect(() => {
             </button>
           </div>
           
+          {/* Overlay contrôles */}
           <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/40 transition-opacity duration-300 ${
             showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}>
@@ -868,6 +1099,13 @@ useEffect(() => {
                     <span className="text-white text-xs font-bold w-8">{Math.round((isMuted ? 0 : volume) * 100)}%</span>
                   </div>
                 )}
+              </div>
+            </div>
+            
+            {/* Indicateur swipe info */}
+            <div className="absolute bottom-20 left-0 right-0 text-center z-20 pointer-events-none">
+              <div className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
+                <span className="text-[10px] text-white/70">⬆️ ⬇️ Swipe pour changer d'épisode</span>
               </div>
             </div>
             
@@ -974,7 +1212,6 @@ useEffect(() => {
         </>
       )}
 
-      {/* 🆕 MODALE DE DÉBLOCAGE (AJOUT) */}
       {pendingEpisode && (
         <UnlockEpisodeModal
           isOpen={isUnlockModalOpen}
