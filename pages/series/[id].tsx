@@ -266,10 +266,11 @@ export default function SeriesPage() {
     } catch (error) { console.error('Erreur vérification pub:', error) }
   }
 
+  // ✅ Gestion de l'auto-masquage des contrôles (comme TikTok)
   useEffect(() => {
     if (showControls && isPlayerOpen) {
       if (controlsTimeout.current) clearTimeout(controlsTimeout.current)
-      controlsTimeout.current = setTimeout(() => setShowControls(false), 4000)
+      controlsTimeout.current = setTimeout(() => setShowControls(false), 3000)
     }
     return () => { if (controlsTimeout.current) clearTimeout(controlsTimeout.current) }
   }, [showControls, isPlayerOpen])
@@ -329,13 +330,17 @@ export default function SeriesPage() {
       }
     }
     
+    // ✅ Mise à jour de l'état play/pause
+    const handlePlay = () => setIsPlaying(true)
+    const handlePause = () => setIsPlaying(false)
+    
     video.addEventListener('ended', handleVideoEnd)
-    video.addEventListener('play', () => setIsPlaying(true))
-    video.addEventListener('pause', () => setIsPlaying(false))
+    video.addEventListener('play', handlePlay)
+    video.addEventListener('pause', handlePause)
     return () => {
       video.removeEventListener('ended', handleVideoEnd)
-      video.removeEventListener('play', () => setIsPlaying(true))
-      video.removeEventListener('pause', () => setIsPlaying(false))
+      video.removeEventListener('play', handlePlay)
+      video.removeEventListener('pause', handlePause)
     }
   }, [selectedEpisode, series, isPlayerOpen, episodesWatchedFree, forcedAdNeeded, session])
 
@@ -568,11 +573,22 @@ export default function SeriesPage() {
     }
   }
 
-  const togglePlayPause = () => {
+  // ✅ Fonction Play/Pause sur tap de l'écran
+  const handleVideoTap = () => {
     if (videoRef.current) {
-      videoRef.current.paused ? videoRef.current.play() : videoRef.current.pause()
+      if (videoRef.current.paused) {
+        videoRef.current.play()
+        setIsPlaying(true)
+      } else {
+        videoRef.current.pause()
+        setIsPlaying(false)
+      }
+      // Afficher les contrôles temporairement
+      setShowControls(true)
+      // Réinitialiser le timeout
+      if (controlsTimeout.current) clearTimeout(controlsTimeout.current)
+      controlsTimeout.current = setTimeout(() => setShowControls(false), 3000)
     }
-    setShowControls(true)
   }
 
   const handleClosePlayer = () => {
@@ -738,20 +754,25 @@ export default function SeriesPage() {
             />
           )}
           
-          {/* Vidéo courante */}
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            className="absolute inset-0 w-full h-full object-contain" 
-            key={selectedEpisode?.url} 
-            playsInline
-            style={{
-              transform: `translateY(${swipeOffset}px)`,
-              transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1)'
-            }}
+          {/* ✅ Vidéo courante avec gestion du tap pour play/pause */}
+          <div 
+            className="absolute inset-0 w-full h-full"
+            onClick={handleVideoTap}
           >
-            {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
-          </video>
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              className="w-full h-full object-contain" 
+              key={selectedEpisode?.url} 
+              playsInline
+              style={{
+                transform: `translateY(${swipeOffset}px)`,
+                transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.2, 0.9, 0.4, 1.1)'
+              }}
+            >
+              {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
+            </video>
+          </div>
           
           {/* ============================================================ */}
           {/* INTERFACE FIXE (NE DISPARAÎT PAS PENDANT LE SWIPE) */}
@@ -760,26 +781,21 @@ export default function SeriesPage() {
           {/* Barre supérieure fixe */}
           <div className="absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/60 to-transparent pt-5 pb-10 pointer-events-none">
             <div className="flex items-center justify-between px-4 pointer-events-auto">
-              {/* Bouton retour à gauche */}
               <button 
                 onClick={handleClosePlayer} 
                 className="w-10 h-10 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center hover:bg-black/70 transition-all active:scale-95"
               >
                 <ChevronLeftIcon className="w-6 h-6 text-white" />
               </button>
-              
-              {/* Titre de l'épisode au centre */}
               <div className="text-center">
                 <h2 className="text-sm font-semibold text-white line-clamp-1 max-w-[200px]">{selectedEpisode?.title || 'Épisode'}</h2>
                 <p className="text-[10px] text-white/70">Épisode {selectedEpisode?.episodeNumber}</p>
               </div>
-              
-              {/* Espace pour équilibrer */}
               <div className="w-10" />
             </div>
           </div>
           
-          {/* Indicateur de direction de swipe (discret) */}
+          {/* Indicateur de direction de swipe */}
           {swipingDirection && (
             <div className={`absolute left-1/2 transform -translate-x-1/2 z-30 transition-all duration-150 ${
               swipingDirection === 'up' ? 'top-1/3' : 'bottom-1/3'
@@ -794,6 +810,15 @@ export default function SeriesPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 )}
+              </div>
+            </div>
+          )}
+          
+          {/* ✅ Bouton Play/Pause central (apparaît quand on tape et disparaît) */}
+          {!isPlaying && showControls && (
+            <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+              <div className="bg-black/50 backdrop-blur-md rounded-full p-5 animate-fadeIn">
+                <PlayIcon className="w-12 h-12 text-white" />
               </div>
             </div>
           )}
@@ -814,9 +839,9 @@ export default function SeriesPage() {
             </button>
           </div>
           
-          {/* Contrôles du bas (progress bar, play/pause, volume, qualité) */}
+          {/* ✅ Contrôles du bas (progress bar, volume, qualité) - Apparaît/disparaît au tap */}
           <div className={`absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/60 to-transparent pt-10 pb-4 transition-opacity duration-300 ${
-            showControls ? 'opacity-100' : 'opacity-0'
+            showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}>
             {/* Barre de progression */}
             <div className="px-4 mb-4">
@@ -878,16 +903,10 @@ export default function SeriesPage() {
                 </div>
               </div>
               
-              {/* Bouton Play/Pause central */}
-              <button 
-                onClick={togglePlayPause} 
-                className="text-white bg-black/50 backdrop-blur-md rounded-full p-4 hover:bg-black/70 transition-all active:scale-95 w-16 h-16 flex items-center justify-center"
-              >
-                {isPlaying ? <PauseIcon className="w-8 h-8" /> : <PlayIcon className="w-8 h-8 ml-0.5" />}
-              </button>
-              
-              {/* Espace pour équilibrer */}
-              <div className="w-16" />
+              {/* Indicateur de temps restant */}
+              <div className="text-white/50 text-[10px] font-mono">
+                {selectedEpisode && `-${formatDuration((selectedEpisode.duration || 0) - (videoRef.current?.currentTime || 0))}`}
+              </div>
             </div>
           </div>
           
@@ -986,7 +1005,12 @@ export default function SeriesPage() {
           from { transform: translateY(100%); }
           to { transform: translateY(0); }
         }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.8); }
+          to { opacity: 1; transform: scale(1); }
+        }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
+        .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
       `}</style>
     </>
   )
