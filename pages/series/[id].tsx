@@ -95,13 +95,15 @@ export default function SeriesPage() {
   const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false)
   const [pendingEpisode, setPendingEpisode] = useState<Episode | null>(null)
 
-  // 🆕 États pour le swipe vertical (comme TikTok)
+  // 🆕 États pour le swipe TikTok-like (amélioré)
   const [touchStartY, setTouchStartY] = useState(0)
+  const [touchStartTime, setTouchStartTime] = useState(0)
   const [isSwiping, setIsSwiping] = useState(false)
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [nextEpisode, setNextEpisode] = useState<Episode | null>(null)
   const [prevEpisode, setPrevEpisode] = useState<Episode | null>(null)
   const [swipingDirection, setSwipingDirection] = useState<'up' | 'down' | null>(null)
+  const [isChangingEpisode, setIsChangingEpisode] = useState(false)
 
   const footerTabs = [
     { id: 'home', label: 'Accueil', icon: HomeIcon, href: '/' },
@@ -111,7 +113,7 @@ export default function SeriesPage() {
     { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
   ]
 
-  // 🆕 Charger les épisodes voisins pour le swipe
+  // Charger les épisodes voisins pour le swipe
   const loadAdjacentEpisodes = () => {
     if (!selectedEpisode || !series) return
     
@@ -126,61 +128,120 @@ export default function SeriesPage() {
     }
   }, [selectedEpisode, series])
 
-  // 🆕 Fonctions de swipe TikTok-like
+  // 🆕 Fonctions de swipe TikTok-like (améliorées)
   const handleTouchStart = (e: React.TouchEvent) => {
-  setTouchStartY(e.touches[0].clientY)
-  setIsSwiping(true)
-}
+    if (isChangingEpisode) return
+    setTouchStartY(e.touches[0].clientY)
+    setTouchStartTime(Date.now())
+    setIsSwiping(true)
+  }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-  if (!isSwiping) return
-  
-  const currentY = e.touches[0].clientY
-  const diff = currentY - touchStartY // ✅ Inversé : positif = vers le bas
-  const newOffset = Math.max(-window.innerHeight, Math.min(window.innerHeight, diff))
-  
-  setSwipeOffset(newOffset)
-  
-  // ✅ Détection des directions CORRIGÉE
-  if (newOffset > 50) {
-    setSwipingDirection('down')  // Swipe vers le BAS
-  } else if (newOffset < -50) {
-    setSwipingDirection('up')    // Swipe vers le HAUT
-  } else {
-    setSwipingDirection(null)
+    if (!isSwiping || isChangingEpisode) return
+    
+    const currentY = e.touches[0].clientY
+    const diff = currentY - touchStartY
+    
+    // ✅ Réduire la résistance pour un swipe plus sensible
+    const newOffset = Math.max(-150, Math.min(150, diff * 0.8))
+    
+    setSwipeOffset(newOffset)
+    
+    // ✅ Seuil plus bas pour détecter la direction
+    if (newOffset > 15) {
+      setSwipingDirection('down')
+    } else if (newOffset < -15) {
+      setSwipingDirection('up')
+    } else {
+      setSwipingDirection(null)
+    }
   }
-}
 
   const handleTouchEnd = async () => {
-  if (!isSwiping) {
-    setIsSwiping(false)
-    setSwipeOffset(0)
-    setSwipingDirection(null)
-    return
-  }
-  
-  const threshold = window.innerHeight * 0.3 // 30% de l'écran
-  
-  // ✅ Actions CORRIGÉES
-  if (swipeOffset > threshold && prevEpisode) {
-    // Swipe vers le BAS (doigt descend) → Épisode PRÉCÉDENT
-    await goToPreviousEpisode()
-  } else if (swipeOffset < -threshold && nextEpisode) {
-    // Swipe vers le HAUT (doigt monte) → Épisode SUIVANT
-    await goToNextEpisode()
-  }
-  
-  // Reset
-  setSwipeOffset(0)
-  setIsSwiping(false)
-  setSwipingDirection(null)
-}
-
-  // 🆕 Navigation vers l'épisode suivant avec effet TikTok
-  const goToNextEpisode = async () => {
-    if (!nextEpisode) return
+    if (!isSwiping || isChangingEpisode) {
+      setIsSwiping(false)
+      setSwipeOffset(0)
+      setSwipingDirection(null)
+      return
+    }
     
-    // Sauvegarder la progression de l'épisode actuel
+    const velocity = Math.abs(swipeOffset) / (Date.now() - touchStartTime || 1)
+    const isFastSwipe = velocity > 0.5 // ✅ Détection swipe rapide
+    const minSwipeDistance = 30 // ✅ Seuil très bas (30px au lieu de 30% d'écran)
+    
+    if (Math.abs(swipeOffset) > minSwipeDistance || isFastSwipe) {
+      if (swipeOffset > 0 && prevEpisode) {
+        // Swipe vers le BAS → Épisode précédent
+        await changeToPreviousEpisode()
+      } else if (swipeOffset < 0 && nextEpisode) {
+        // Swipe vers le HAUT → Épisode suivant
+        await changeToNextEpisode()
+      }
+    }
+    
+    // Reset avec animation fluide
+    setSwipeOffset(0)
+    setIsSwiping(false)
+    setTimeout(() => setSwipingDirection(null), 200)
+  }
+
+  // 🆕 Gestion du swipe par souris (desktop) améliorée
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isChangingEpisode) return
+    setTouchStartY(e.clientY)
+    setTouchStartTime(Date.now())
+    setIsSwiping(true)
+  }
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isSwiping || isChangingEpisode) return
+    
+    const currentY = e.clientY
+    const diff = currentY - touchStartY
+    const newOffset = Math.max(-150, Math.min(150, diff * 0.8))
+    
+    setSwipeOffset(newOffset)
+    
+    if (newOffset > 15) {
+      setSwipingDirection('down')
+    } else if (newOffset < -15) {
+      setSwipingDirection('up')
+    } else {
+      setSwipingDirection(null)
+    }
+  }
+
+  const handleMouseUp = async () => {
+    if (!isSwiping || isChangingEpisode) {
+      setIsSwiping(false)
+      setSwipeOffset(0)
+      setSwipingDirection(null)
+      return
+    }
+    
+    const velocity = Math.abs(swipeOffset) / (Date.now() - touchStartTime || 1)
+    const isFastSwipe = velocity > 0.5
+    const minSwipeDistance = 30
+    
+    if (Math.abs(swipeOffset) > minSwipeDistance || isFastSwipe) {
+      if (swipeOffset > 0 && prevEpisode) {
+        await changeToPreviousEpisode()
+      } else if (swipeOffset < 0 && nextEpisode) {
+        await changeToNextEpisode()
+      }
+    }
+    
+    setSwipeOffset(0)
+    setIsSwiping(false)
+    setTimeout(() => setSwipingDirection(null), 200)
+  }
+
+  // 🆕 Changement d'épisode avec animation fluide
+  const changeToNextEpisode = async () => {
+    if (!nextEpisode || isChangingEpisode) return
+    setIsChangingEpisode(true)
+    
+    // Sauvegarder la progression
     if (videoRef.current && session && selectedEpisode) {
       const currentTime = videoRef.current.currentTime
       await fetch('/api/user/save-progress', {
@@ -202,18 +263,19 @@ export default function SeriesPage() {
           videoRef.current.play()
           setIsPlaying(true)
         }
-      }, 100)
+      }, 50)
     } else {
       setPendingEpisode(nextEpisode)
       setIsUnlockModalOpen(true)
     }
+    
+    setTimeout(() => setIsChangingEpisode(false), 300)
   }
 
-  // 🆕 Navigation vers l'épisode précédent avec effet TikTok
-  const goToPreviousEpisode = async () => {
-    if (!prevEpisode) return
+  const changeToPreviousEpisode = async () => {
+    if (!prevEpisode || isChangingEpisode) return
+    setIsChangingEpisode(true)
     
-    // Sauvegarder la progression de l'épisode actuel
     if (videoRef.current && session && selectedEpisode) {
       const currentTime = videoRef.current.currentTime
       await fetch('/api/user/save-progress', {
@@ -235,60 +297,34 @@ export default function SeriesPage() {
           videoRef.current.play()
           setIsPlaying(true)
         }
-      }, 100)
+      }, 50)
     } else {
+      setPendingEpisode(prevEpisode)
+      setIsUnlockModalOpen(true)
+    }
+    
+    setTimeout(() => setIsChangingEpisode(false), 300)
+  }
+
+  const goToNextEpisodeSwipe = () => {
+    if (nextEpisode && canWatch(nextEpisode)) {
+      changeToNextEpisode()
+    } else if (nextEpisode) {
+      setPendingEpisode(nextEpisode)
+      setIsUnlockModalOpen(true)
+    }
+  }
+
+  const goToPreviousEpisodeSwipe = () => {
+    if (prevEpisode && canWatch(prevEpisode)) {
+      changeToPreviousEpisode()
+    } else if (prevEpisode) {
       setPendingEpisode(prevEpisode)
       setIsUnlockModalOpen(true)
     }
   }
 
-  // 🆕 Gestion du swipe par souris (desktop)
-  const handleMouseDown = (e: React.MouseEvent) => {
-  setTouchStartY(e.clientY)
-  setIsSwiping(true)
-}
-
-const handleMouseMove = (e: React.MouseEvent) => {
-  if (!isSwiping) return
-  
-  const currentY = e.clientY
-  const diff = currentY - touchStartY // ✅ Inversé
-  const newOffset = Math.max(-window.innerHeight, Math.min(window.innerHeight, diff))
-  
-  setSwipeOffset(newOffset)
-  
-  if (newOffset > 50) {
-    setSwipingDirection('down')
-  } else if (newOffset < -50) {
-    setSwipingDirection('up')
-  } else {
-    setSwipingDirection(null)
-  }
-}
-
-const handleMouseUp = async () => {
-  if (!isSwiping) {
-    setIsSwiping(false)
-    setSwipeOffset(0)
-    setSwipingDirection(null)
-    return
-  }
-  
-  const threshold = window.innerHeight * 0.3
-  
-  // ✅ Actions CORRIGÉES
-  if (swipeOffset > threshold && prevEpisode) {
-    await goToPreviousEpisode()
-  } else if (swipeOffset < -threshold && nextEpisode) {
-    await goToNextEpisode()
-  }
-  
-  setSwipeOffset(0)
-  setIsSwiping(false)
-  setSwipingDirection(null)
-}
-
-  // 🆕 Précharger la vidéo suivante
+  // Précharger la vidéo suivante
   useEffect(() => {
     if (nextEpisode && nextEpisode.url && nextVideoRef.current) {
       nextVideoRef.current.load()
@@ -981,7 +1017,7 @@ const handleMouseUp = async () => {
           </div>
         </div>
       ) : (
-        /* LECTEUR PLEIN ÉCRAN AVEC SWIPE TIKTOK-LIKE */
+        /* LECTEUR PLEIN ÉCRAN AVEC SWIPE TIKTOK-LIKE AMÉLIORÉ */
         <div 
           className="fixed inset-0 bg-black z-[9999] overflow-hidden"
           onTouchStart={handleTouchStart}
@@ -990,63 +1026,64 @@ const handleMouseUp = async () => {
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
+          style={{ cursor: isSwiping ? 'grabbing' : 'grab' }}
         >
-          {/* Vidéo suivante (préchargée) - apparaît pendant le swipe */}
-{nextEpisode && nextEpisode.url && (
-  <video
-    ref={nextVideoRef}
-    src={nextEpisode.url}
-    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-    style={{
-      transform: `translateY(${100 + (Math.abs(swipeOffset) / window.innerHeight) * 100}%)`,
-      opacity: Math.min(1, Math.abs(swipeOffset) / 200),
-      transition: isSwiping ? 'none' : 'transform 0.3s ease-out, opacity 0.3s ease-out'
-    }}
-    preload="auto"
-  />
-)}
-
-{/* Vidéo précédente (préchargée) - apparaît pendant le swipe vers le BAS */}
-{prevEpisode && prevEpisode.url && (
-  <video
-    src={prevEpisode.url}
-    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-    style={{
-      transform: `translateY(${-100 - (Math.abs(swipeOffset) / window.innerHeight) * 100}%)`,
-      opacity: Math.min(1, Math.abs(swipeOffset) / 200),
-      transition: isSwiping ? 'none' : 'transform 0.3s ease-out, opacity 0.3s ease-out'
-    }}
-    preload="auto"
-  />
-)}
-
-{/* Vidéo courante */}
-<video 
-  ref={videoRef} 
-  autoPlay 
-  className="absolute inset-0 w-full h-full object-contain pointer-events-none" 
-  key={selectedEpisode?.url} 
-  playsInline
-  style={{
-    transform: `translateY(${swipeOffset}px)`,
-    transition: isSwiping ? 'none' : 'transform 0.3s ease-out'
-  }}
->
-  {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
-</video>
+          {/* Vidéo suivante (préchargée) - apparaît pendant le swipe vers le HAUT */}
+          {nextEpisode && nextEpisode.url && (
+            <video
+              ref={nextVideoRef}
+              src={nextEpisode.url}
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={{
+                transform: `translateY(${Math.max(0, 100 + (Math.abs(swipeOffset) / 150) * 100)}%)`,
+                opacity: Math.min(1, Math.abs(swipeOffset) / 60),
+                transition: isSwiping ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.2s ease-out'
+              }}
+              preload="auto"
+            />
+          )}
           
-          {/* Indicateur de direction de swipe */}
+          {/* Vidéo précédente (préchargée) - apparaît pendant le swipe vers le BAS */}
+          {prevEpisode && prevEpisode.url && (
+            <video
+              src={prevEpisode.url}
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+              style={{
+                transform: `translateY(${Math.min(0, -100 - (Math.abs(swipeOffset) / 150) * 100)}%)`,
+                opacity: Math.min(1, Math.abs(swipeOffset) / 60),
+                transition: isSwiping ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1), opacity 0.2s ease-out'
+              }}
+              preload="auto"
+            />
+          )}
+          
+          {/* Vidéo courante */}
+          <video 
+            ref={videoRef} 
+            autoPlay 
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none" 
+            key={selectedEpisode?.url} 
+            playsInline
+            style={{
+              transform: `translateY(${swipeOffset}px)`,
+              transition: isSwiping ? 'none' : 'transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1)'
+            }}
+          >
+            {selectedEpisode?.url && <source src={selectedEpisode.url} type="video/mp4" />}
+          </video>
+          
+          {/* Indicateur de direction de swipe (plus discret) */}
           {swipingDirection && (
             <div className={`absolute left-1/2 transform -translate-x-1/2 z-50 transition-all duration-150 ${
-              swipingDirection === 'up' ? 'top-20 animate-bounce' : 'bottom-20 animate-bounce'
+              swipingDirection === 'up' ? 'top-1/4' : 'bottom-1/4'
             }`}>
-              <div className="bg-white/20 backdrop-blur-md rounded-full p-3">
+              <div className="bg-white/20 backdrop-blur-md rounded-full p-2 shadow-lg">
                 {swipingDirection === 'up' ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                   </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 )}
@@ -1127,10 +1164,10 @@ const handleMouseUp = async () => {
               </div>
             </div>
             
-            {/* Indicateur swipe info */}
+            {/* Indicateur swipe info (discret) */}
             <div className="absolute bottom-20 left-0 right-0 text-center z-20 pointer-events-none">
-              <div className="inline-flex items-center gap-1 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
-                <span className="text-[10px] text-white/70">⬆️ ⬇️ Swipe pour changer d'épisode</span>
+              <div className="inline-flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-2 py-0.5">
+                <span className="text-[8px] text-white/50">⬆️ ⬇️</span>
               </div>
             </div>
             
