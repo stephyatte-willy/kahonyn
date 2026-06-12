@@ -144,7 +144,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
             {series.map((serie, index) => (
-              <Link href={`/series/${serie.id}?autoplay=true`} className="group">
+                <Link key={serie.id} href={`/series/${serie.id}?autoplay=true`} className="group">
                 <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-[#8B5A2B]/10 hover:border-[#FF6B35]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#FF6B35]/10">
                   <div className="relative aspect-[3/4] overflow-hidden">
                     {serie.coverImage ? (
@@ -194,7 +194,7 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-2.5">
             {movies.map((movie, index) => (
-              <Link href={`/video/${movie.id}?autoplay=true`} className="group">
+               <Link key={movie.id} href={`/video/${movie.id}?autoplay=true`} className="group">
                 <div className="relative rounded-xl overflow-hidden bg-[#1A1A2E] border border-[#8B5A2B]/10 hover:border-[#D4A855]/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-[#D4A855]/10">
                   <div className="relative aspect-[3/4] overflow-hidden">
                     {movie.coverImage ? (

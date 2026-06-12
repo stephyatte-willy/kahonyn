@@ -11,7 +11,7 @@ import UnlockEpisodeModal from '../../components/UnlockEpisodeModal'
 import { 
   LockClosedIcon, PlayIcon, PauseIcon, ChevronLeftIcon, CheckCircleIcon, XMarkIcon,
   BookmarkIcon, QueueListIcon, HeartIcon, ShareIcon, HomeIcon, UserGroupIcon, TrophyIcon,
-  UserCircleIcon, SpeakerWaveIcon, SpeakerXMarkIcon, Cog6ToothIcon, TvIcon
+  ShieldCheckIcon, UserCircleIcon, SpeakerWaveIcon, SpeakerXMarkIcon, Cog6ToothIcon, TvIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
 import { safeFetch, silentFetch, handleError } from '../../utils/errorHandler'
@@ -109,7 +109,7 @@ export default function SeriesPage() {
     { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' },
     { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' },
     { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' },
-    { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
+    { id: 'Admin', label: 'Admin', icon: ShieldCheckIcon, href: '/admin/dashboard' },
   ]
 
   const loadAdjacentEpisodes = () => {

@@ -9,7 +9,7 @@ import StarRating from '../../components/StarRating'
 import CommentSection from '../../components/CommentSection'
 import { 
   LockClosedIcon, PlayIcon, PauseIcon, ChevronLeftIcon, BookmarkIcon, HeartIcon,
-  ShareIcon, HomeIcon, UserGroupIcon, TrophyIcon, UserCircleIcon,
+  ShareIcon, HomeIcon, UserGroupIcon, TrophyIcon, ShieldCheckIcon, UserCircleIcon,
   SpeakerWaveIcon, SpeakerXMarkIcon, Cog6ToothIcon, CheckCircleIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
@@ -65,7 +65,7 @@ export default function VideoPage() {
     { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' },
     { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' },
     { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' },
-    { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
+    { id: 'Admin', label: 'Admin', icon: ShieldCheckIcon, href: '/admin/dashboard' },
   ]
 
   useEffect(() => { if (id) fetchVideo() }, [id])

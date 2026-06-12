@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { 
   PlayIcon, UserCircleIcon, BookmarkIcon, ShoppingBagIcon, TrashIcon,
-  HomeIcon, UserGroupIcon, TrophyIcon, LockClosedIcon, FilmIcon
+  HomeIcon, UserGroupIcon, TrophyIcon, ShieldCheckIcon, LockClosedIcon, FilmIcon
 } from '@heroicons/react/24/outline'
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid'
 import Navbar from '../components/Navbar'
@@ -76,7 +76,7 @@ export default function MyListPage() {
     { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' },
     { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' },
     { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' },
-    { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
+    { id: 'Admin', label: 'Admin', icon: ShieldCheckIcon, href: '/admin/dashboard' },
   ]
 
   if (!isAuthorized && !authLoading) {

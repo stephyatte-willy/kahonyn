@@ -1,6 +1,6 @@
 // pages/api/video/[id]/stream.ts
 import { NextApiRequest, NextApiResponse } from 'next'
-import { checkVideoAccess } from '@/lib/videoAccess'
+import { checkVideoAccess } from '../../../../lib/videoAccess'
 import fs from 'fs'
 import path from 'path'
 

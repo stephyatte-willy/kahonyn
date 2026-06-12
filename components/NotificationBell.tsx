@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { BellIcon } from '@heroicons/react/24/outline'
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid'
 import Link from 'next/link'
+import { getSession } from 'next-auth/react'
 
 interface Notification {
   id: string
@@ -60,8 +61,12 @@ export default function NotificationBell() {
   }, [isOpen])
 
   const fetchNotifications = async () => {
-    try {
-      const res = await fetch('/api/notifications')
+  // ✅ Ajouter cette vérification
+  const session = await getSession()
+  if (!session) return
+  
+  try {
+    const res = await fetch('/api/notifications')
       if (res.ok) {
         const data = await res.json()
         setNotifications(data.notifications || [])

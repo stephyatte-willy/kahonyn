@@ -1,9 +1,9 @@
 // pages/api/auth/[...nextauth].ts
-import NextAuth, { AuthOptions } from 'next-auth'
+import NextAuth, { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
 import { PrismaAdapter } from '@auth/prisma-adapter'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../../lib/prisma'
 import bcrypt from 'bcryptjs'
 
 // ==================== DÉCLARATION DES TYPES ====================
@@ -37,7 +37,7 @@ declare module 'next-auth/jwt' {
 
 // ==================== CONFIGURATION ====================
 
-export const authOptions: AuthOptions = {
+export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma as any) as any,
   
   providers: [
@@ -49,14 +49,8 @@ export const authOptions: AuthOptions = {
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        phone: { 
-          label: 'Téléphone', 
-          type: 'tel' 
-        },
-        password: { 
-          label: 'Mot de passe', 
-          type: 'password'
-        }
+        phone: { label: 'Téléphone', type: 'tel' },
+        password: { label: 'Mot de passe', type: 'password' }
       },
       async authorize(credentials) {
         if (!credentials?.phone || !credentials?.password) {
@@ -64,12 +58,10 @@ export const authOptions: AuthOptions = {
         }
 
         try {
-          // Nettoyer le téléphone : garder uniquement les chiffres
           const cleanPhone = credentials.phone.replace(/\D/g, '')
           
           console.log('🔍 Recherche utilisateur avec téléphone:', cleanPhone)
 
-          // Rechercher l'utilisateur
           const user = await (prisma as any).user.findUnique({
             where: { phone: cleanPhone }
           })
@@ -84,11 +76,7 @@ export const authOptions: AuthOptions = {
             throw new Error('Ce compte utilise la connexion Google. Veuillez vous connecter avec Google.')
           }
 
-          // Vérifier le mot de passe
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          )
+          const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
 
           console.log('🔑 Mot de passe valide:', isPasswordValid)
 
@@ -96,7 +84,6 @@ export const authOptions: AuthOptions = {
             throw new Error('Mot de passe incorrect')
           }
 
-          // Retourner l'utilisateur
           return {
             id: user.id,
             phone: user.phone,
@@ -107,9 +94,7 @@ export const authOptions: AuthOptions = {
           }
         } catch (error) {
           console.error('❌ Erreur authorize:', error)
-          if (error instanceof Error) {
-            throw error
-          }
+          if (error instanceof Error) throw error
           throw new Error('Erreur lors de la connexion')
         }
       }
@@ -121,8 +106,14 @@ export const authOptions: AuthOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
 
+  // ✅ Correction : typer explicitement les paramètres des callbacks
   callbacks: {
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account, trigger }: { 
+      token: any
+      user: any
+      account: any
+      trigger?: any
+    }) {
       if (user) {
         token.id = user.id
         token.phone = user.phone || ''
@@ -164,16 +155,22 @@ export const authOptions: AuthOptions = {
       return token
     },
 
-    async session({ session, token }) {
+    async session({ session, token }: { 
+      session: any
+      token: any
+    }) {
       if (session.user) {
-        session.user.id = token.id
-        session.user.phone = token.phone
-        session.user.role = token.role
+        session.user.id = token.id as string
+        session.user.phone = token.phone as string
+        session.user.role = token.role as string
       }
       return session
     },
 
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: { 
+      url: string
+      baseUrl: string
+    }) {
       if (url.startsWith('/')) return `${baseUrl}${url}`
       if (new URL(url).origin === baseUrl) return url
       return baseUrl
@@ -189,4 +186,5 @@ export const authOptions: AuthOptions = {
   debug: process.env.NODE_ENV === 'development',
 }
 
+// ✅ Correction : exporter avec le type correct
 export default NextAuth(authOptions)

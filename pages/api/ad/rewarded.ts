@@ -2,7 +2,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]'
-import { prisma } from '@/lib/prisma'
+import { prisma } from '../../../lib/prisma'
 
 const MAX_REWARDED_ADS_PER_DAY = 5
 

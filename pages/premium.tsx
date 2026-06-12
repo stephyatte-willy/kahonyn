@@ -93,7 +93,7 @@ export default function PremiumPage() {
     { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' },
     { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' },
     { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' },
-    { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
+    { id: 'Admin', label: 'Admin', icon: ShieldCheckIcon, href: '/admin/dashboard' },
   ]
 
   const getBadgeColor = (color: string | null): string => {

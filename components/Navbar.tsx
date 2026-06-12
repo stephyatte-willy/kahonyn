@@ -1,3 +1,4 @@
+// components/Navbar.tsx
 "use client"
 
 import Link from 'next/link'
@@ -15,7 +16,7 @@ import {
 import { useState, useRef, useEffect } from 'react'
 import AuthSlidePanel from './AuthSlidePanel'
 import NotificationBell from './NotificationBell'
-import GiftModal from './GiftModal'  // ✅ Import du GiftModal
+import GiftModal from './GiftModal'
 
 interface Category {
   id: string
@@ -62,14 +63,15 @@ export default function Navbar({
   const modalRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   
-  // ✅ États pour le GiftModal
+  // États pour le GiftModal
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false)
   const [userCoins, setUserCoins] = useState(0)
   
   const hideNavbar = router.pathname === '/login' || router.pathname === '/register'
   const displayAllCategories = allCategories || categories
+  const isSearchPage = router.pathname === '/search'
 
-  // ✅ Charger les coins de l'utilisateur
+  // Charger les coins de l'utilisateur
   const refreshCoins = async () => {
     if (session) {
       try {
@@ -103,8 +105,17 @@ export default function Navbar({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setLocalSearch(value)
-    if (onSearchChange) { onSearchChange(value) }
+    if (onSearchChange) { 
+      onSearchChange(value) 
+    }
   }
+
+  // ✅ Soumettre la recherche
+  const handleSearchSubmit = (e: React.FormEvent) => {
+  e.preventDefault()
+  if (!localSearch.trim()) return
+  router.push(`/search?q=${encodeURIComponent(localSearch.trim())}`)
+}
 
   const handleCategorySelect = (categoryId: string) => {
     onCategoryChange?.(categoryId)
@@ -128,34 +139,34 @@ export default function Navbar({
               
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 flex-shrink-0 group">
-                  <Image
-                    src="/logo-kahonyn.png"
-                    alt="Kahonyn"
-                    width={70}
-                    height={70}
-                    className="object-contain"
-                    priority
-                  />
+                <Image
+                  src="/logo-kahonyn.png"
+                  alt="Kahonyn"
+                  width={70}
+                  height={70}
+                  className="object-contain"
+                  priority
+                />
                 <div className="hidden sm:block">
                   <h1 className="font-extrabold text-lg sm:text-xl text-white tracking-tight leading-none">Kahonyn</h1>
                   <p className="text-[9px] sm:text-[10px] text-[#D4A855] font-bold tracking-[0.2em] uppercase">RACONTE UNE HISTOIRE</p>
                 </div>
               </Link>
 
-              {/* Barre de recherche */}
+              {/* ✅ Barre de recherche avec formulaire */}
               {!hideCategories && (
-                <div className="flex-1 max-w-[180px] sm:max-w-[280px] md:max-w-md mx-3 sm:mx-6">
-                  <div className="relative">
-                    <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
-                    <input
-                      type="text"
-                      placeholder="Rechercher..."
-                      value={localSearch}
-                      onChange={handleSearchChange}
-                      className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-2.5 text-sm bg-white/[0.08] border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/30 focus:border-[#FF6B35]/50 outline-none transition-all text-white font-medium placeholder-white/70 backdrop-blur-sm"
-                    />
-                  </div>
+                <form onSubmit={handleSearchSubmit} className="flex-1 max-w-[180px] sm:max-w-[280px] md:max-w-md mx-3 sm:mx-6">
+                <div className="relative">
+                  <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/80" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher..."
+                    value={localSearch}
+                    onChange={handleSearchChange}
+                    className="w-full pl-10 sm:pl-12 pr-4 py-2 sm:py-2.5 text-sm bg-white/[0.08] border border-white/[0.08] rounded-full focus:ring-2 focus:ring-[#FF6B35]/30 focus:border-[#FF6B35]/50 outline-none transition-all text-white font-medium placeholder-white/70 backdrop-blur-sm"
+                  />
                 </div>
+              </form>
               )}
 
               {hideCategories && <div className="flex-1" />}
@@ -164,13 +175,12 @@ export default function Navbar({
               <div className="flex items-center gap-2 sm:gap-3">
                 <NotificationBell />
                 
-                {/* ✅ Bouton Cadeau avec GiftModal */}
+                {/* Bouton Cadeau */}
                 <button 
                   onClick={() => setIsGiftModalOpen(true)}
                   className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-r from-[#D4A855] to-[#E5C87B] rounded-full shadow-lg shadow-[#D4A855]/20 active:scale-95 hover:scale-105 transition-transform relative"
                 >
                   <GiftIcon className="w-5 h-5 sm:w-6 sm:h-6 text-[#0D0D0D]" />
-                  {/* ✅ Petit indicateur de coins disponibles */}
                   {session && userCoins > 0 && (
                     <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[9px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md">
                       🪙
@@ -224,12 +234,11 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Barre des catégories - Bouton Catégories FIXE à droite */}
+        {/* Barre des catégories */}
         {!hideCategories && (
           <div className="bg-[#0D0D0D]/98 backdrop-blur-xl border-b border-white/[0.04]">
             <div className="max-w-7xl mx-auto px-2 sm:px-4 relative">
               <div className="flex items-center py-2">
-                {/* Zone défilante des catégories */}
                 <div className="flex-1 overflow-x-auto scrollbar-hide" ref={scrollContainerRef}>
                   <div className="flex items-center gap-1.5 pr-2">
                     {categories.map((cat) => (
@@ -249,7 +258,6 @@ export default function Navbar({
                   </div>
                 </div>
                 
-                {/* Bouton Catégories FIXE à droite */}
                 <div className="flex-shrink-0 pl-2 border-l border-white/[0.06] ml-1">
                   <button
                     onClick={() => setShowCategoryModal(true)}
@@ -314,7 +322,6 @@ export default function Navbar({
         onSwitchMode={setAuthMode}
       />
 
-      {/* ✅ GiftModal */}
       <GiftModal
         isOpen={isGiftModalOpen}
         onClose={() => setIsGiftModalOpen(false)}

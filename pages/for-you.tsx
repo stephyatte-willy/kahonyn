@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { 
   FilmIcon, TvIcon, PlayIcon, UserCircleIcon, SparklesIcon, 
-  HomeIcon, UserGroupIcon, BookmarkIcon, TrophyIcon, LockClosedIcon 
+  HomeIcon, UserGroupIcon, BookmarkIcon, ShieldCheckIcon, TrophyIcon, LockClosedIcon 
 } from '@heroicons/react/24/outline'
 import Navbar from '../components/Navbar'
 import Footer from '../components/Footer'
@@ -110,7 +110,7 @@ export default function ForYouPage() {
     { id: 'for-you', label: 'Pour vous', icon: UserGroupIcon, href: '/for-you' },
     { id: 'my-list', label: 'Ma liste', icon: BookmarkIcon, href: '/my-list' },
     { id: 'premium', label: 'Primes', icon: TrophyIcon, href: '/premium' },
-    { id: 'profile', label: 'Profil', icon: UserCircleIcon, href: '/profile' },
+    { id: 'Admin', label: 'Admin', icon: ShieldCheckIcon, href: '/admin/dashboard' },
   ]
 
   // Vérification d'authentification

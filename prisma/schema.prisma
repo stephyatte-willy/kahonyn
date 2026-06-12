@@ -30,7 +30,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Relations
+  // Relations existantes
   accounts           Account[]
   sessions           Session[]
   videos             Video[]
@@ -45,7 +45,18 @@ model User {
   withdrawalRequests WithdrawalRequest[]
   transactions       Transaction[]
   ratings            Rating[]
-  adWatches          AdWatch[]      // ← NOUVEAU
+  adWatches          AdWatch[]
+  
+  // ==================== SYSTÈME DE CADEAUX & BONUS ====================
+  dailyRewards       DailyReward[]
+  userMissions       UserMission[]
+  sentReferrals      Referral[] @relation("sent")
+  receivedReferrals  Referral[] @relation("received")
+  rewardHistory      RewardHistory[]
+  userStreak         UserStreak?
+  
+  // ==================== LOGS DE RECHERCHE ====================
+  searchLogs         SearchLog[]
 }
 
 // ==================== AUTH (NextAuth) ====================
@@ -120,7 +131,7 @@ model Video {
   watchHistory  WatchHistory[]
   notifications Notification[]
   ratings       Rating[]
-  adWatches     AdWatch[]      // ← NOUVEAU
+  adWatches     AdWatch[]
 }
 
 model Series {
@@ -206,15 +217,15 @@ model Purchase {
 model Transaction {
   id              String    @id @default(cuid())
   userId          String
-  type            String    // coin_purchase, episode_purchase, subscription, withdrawal, admin_credit, admin_debit
-  amount          Float     // Montant payé
-  coins           Int       // Coins crédités/débités
-  currency        String    @default("XOF") // XOF, USD, EUR
-  paymentMethod   String    // wave, cinetpay, orange_money, coins, admin
-  paymentGateway  String?   // Référence à PaymentGateway
+  type            String
+  amount          Float
+  coins           Int
+  currency        String    @default("XOF")
+  paymentMethod   String
+  paymentGateway  String?
   status          String    @default("pending")
-  reference       String?   // Référence externe
-  gatewayResponse String?   @db.Text // Réponse complète de la passerelle (JSON)
+  reference       String?
+  gatewayResponse String?   @db.Text
   metadata        String?   @db.Text
   description     String?
   createdAt       DateTime  @default(now())
@@ -229,9 +240,9 @@ model Transaction {
 
 model ExchangeRate {
   id            String   @id @default(cuid())
-  fromCurrency  String   // XOF, USD, EUR
-  toCurrency    String   // XOF, USD, EUR
-  rate          Float    // Taux de conversion
+  fromCurrency  String
+  toCurrency    String
+  rate          Float
   updatedAt     DateTime @updatedAt
 }
 
@@ -276,16 +287,16 @@ model SubscriptionPlan {
 
 model PaymentGateway {
   id            String   @id @default(cuid())
-  name          String   // "wave", "cinetpay", "orange_money", "stripe"
-  displayName   String   // "Wave Côte d'Ivoire", "Carte Bancaire (CinetPay)"
-  type          String   // "mobile_money", "card", "international"
+  name          String
+  displayName   String
+  type          String
   isActive      Boolean  @default(true)
-  countries     String?  // "CI,SN,ML" ou "ALL" pour tous les pays
-  currency      String   @default("XOF") // XOF, USD, EUR
+  countries     String?
+  currency      String   @default("XOF")
   minAmount     Float    @default(100)
   maxAmount     Float    @default(500000)
-  logoUrl       String?  // URL du logo
-  config        String?  @db.Text // JSON : clés API, secrets, etc.
+  logoUrl       String?
+  config        String?  @db.Text
   sortOrder     Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -296,9 +307,9 @@ model CoinPack {
   name           String
   description    String?
   coins          Int
-  price          Float     // Prix en FCFA (devise principale)
-  priceUSD       Float?    // Prix en USD pour l'international
-  priceEUR       Float?    // Prix en EUR
+  price          Float
+  priceUSD       Float?
+  priceEUR       Float?
   bonus          Int       @default(0)
   isPopular      Boolean   @default(false)
   isVip          Boolean   @default(false)
@@ -306,7 +317,7 @@ model CoinPack {
   sortOrder      Int       @default(0)
   currency       String    @default("XOF")
   stripePriceId  String?
-  cinetpayProductId String? // ID produit CinetPay
+  cinetpayProductId String?
   promotionText  String?
   promotionEnd   DateTime?
   createdAt      DateTime  @default(now())
@@ -372,7 +383,7 @@ model WatchHistory {
   videoId       String
   seriesId      String?
   episodeNumber Int?
-  progress      Float    @default(0) // Temps en secondes
+  progress      Float    @default(0)
   completed     Boolean  @default(false)
   watchedAt     DateTime @default(now())
 
@@ -387,7 +398,7 @@ model Rating {
   id        String   @id @default(cuid())
   userId    String
   videoId   String
-  value     Int      // 1 à 5
+  value     Int
   createdAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -411,36 +422,133 @@ model Notification {
 
 // ==================== PUBLICITÉS ====================
 
-// Historique des publicités regardées par l'utilisateur
 model AdWatch {
   id           String   @id @default(cuid())
   userId       String
   episodeId    String
-  rewardType   String   @default("free_episode")  // 'free_episode', 'bonus_coins', 'skip_wait'
-  rewardAmount Int      @default(1)               // 1 épisode ou X coins
-  adProvider   String   @default("google")       // google, unity, applovin
+  rewardType   String   @default("free_episode")
+  rewardAmount Int      @default(1)
+  adProvider   String   @default("google")
   createdAt    DateTime @default(now())
 
   user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   episode Video @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, episodeId])  // Une pub par épisode max
+  @@unique([userId, episodeId])
   @@index([userId])
   @@index([createdAt])
 }
 
-// Configuration des publicités (une seule ligne de configuration)
 model AdConfig {
   id                    String   @id @default(cuid())
-  adProvider            String   @default("google")     // google, unity, applovin
-  rewardedAdUnitId      String?                         // ID unité publicitaire récompensée
-  interstitialUnitId    String?                         // ID unité interstitielle
-  maxRewardedPerDay     Int      @default(5)            // Max pubs récompensées par jour
-  freeEpisodesBeforeAd  Int      @default(3)            // 3 épisodes gratuits puis pub forcée
-  adCooldownMinutes     Int      @default(5)            // Temps entre deux pubs forcées (minutes)
-  rewardedAdReward      Int      @default(1)            // Nombre d'épisodes débloqués par pub
+  adProvider            String   @default("google")
+  rewardedAdUnitId      String?
+  interstitialUnitId    String?
+  maxRewardedPerDay     Int      @default(5)
+  freeEpisodesBeforeAd  Int      @default(3)
+  adCooldownMinutes     Int      @default(5)
+  rewardedAdReward      Int      @default(1)
   isActive              Boolean  @default(true)
   updatedAt             DateTime @updatedAt
 
   @@map("ad_configs")
+}
+
+// ==================== SYSTÈME DE CADEAUX & BONUS ====================
+
+// Récompenses quotidiennes par utilisateur
+model DailyReward {
+  id         String   @id @default(cuid())
+  userId     String
+  day        Int
+  coins      Int
+  claimedAt  DateTime
+  createdAt  DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, day])
+  @@index([userId])
+  @@index([claimedAt])
+}
+
+// Suivi des séries (streak) de connexion
+model UserStreak {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  currentStreak Int      @default(0)
+  longestStreak Int      @default(0)
+  lastClaimDate DateTime?
+  updatedAt     DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Missions utilisateur
+model UserMission {
+  id         String   @id @default(cuid())
+  userId     String
+  missionId  String   // 'watch_ad', 'watch_3_ads', 'share_app', 'watch_episode'
+  progress   Int      @default(0)
+  target     Int
+  completed  Boolean  @default(false)
+  claimedAt  DateTime?
+  resetAt    DateTime // Pour reset quotidien/hebdomadaire
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, missionId])
+  @@index([userId])
+}
+
+// Parrainages
+model Referral {
+  id           String   @id @default(cuid())
+  referrerId   String
+  referredId   String
+  status       String   @default("pending") // pending, completed, rewarded
+  coinsAwarded Int      @default(0)
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+  
+  referrer User @relation("sent", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred User @relation("received", fields: [referredId], references: [id], onDelete: Cascade)
+  
+  @@unique([referredId])
+  @@index([referrerId])
+  @@index([status])
+}
+
+// Historique des récompenses
+model RewardHistory {
+  id         String   @id @default(cuid())
+  userId     String
+  type       String   // 'daily', 'mission', 'referral', 'bonus'
+  amount     Int
+  source     String   // 'day_1', 'watch_ad', 'invite_friend'
+  createdAt  DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ==================== LOGS DE RECHERCHE ====================
+// Pour les statistiques de recherche et suggestions populaires
+
+model SearchLog {
+  id          String   @id @default(cuid())
+  query       String
+  resultCount Int
+  timestamp   DateTime @default(now())
+  userId      String?
+  
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([query])
+  @@index([timestamp])
+  @@index([userId])
 }
